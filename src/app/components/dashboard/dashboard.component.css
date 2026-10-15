@@ -1,0 +1,40 @@
+:host {
+  display: block;
+}
+
+.dashboard-title {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+}
+
+.summary-item {
+  min-height: 154px;
+  animation: summary-arrive 420ms ease-out both;
+}
+
+.summary-item:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.metric-icon svg {
+  width: 21px;
+  height: 21px;
+}
+
+@keyframes summary-arrive {
+  from {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .summary-item {
+    animation: none;
+  }
+}

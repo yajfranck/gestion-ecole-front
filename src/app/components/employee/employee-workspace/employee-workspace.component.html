@@ -1,0 +1,17 @@
+<section>
+  <nav class="mb-5 text-sm text-[#758178]" aria-label="Fil d’Ariane">
+    <a class="text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Établissements</a>
+    <span class="px-2" aria-hidden="true">/</span>
+    <a class="text-[#47745d] no-underline hover:text-[#244a37]" [routerLink]="['/establishments', establishmentId()]">Établissement</a>
+    <span class="px-2" aria-hidden="true">/</span>
+    <span class="text-[#35473b]">Équipe</span>
+  </nav>
+  <header class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">Administration</p>
+      <h1 class="page-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">Équipe et accès</h1>
+    </div>
+  </header>
+  <app-establishment-nav [establishmentId]="establishmentId()" />
+  <router-outlet />
+</section>

@@ -1,0 +1,56 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.login-visual {
+  background-color: #244a37;
+}
+
+.login-visual img {
+  animation: image-arrive 900ms ease-out both;
+}
+
+.visual-wash {
+  background: linear-gradient(180deg, rgb(20 43 32 / 15%) 0%, rgb(20 43 32 / 22%) 40%, rgb(20 43 32 / 84%) 100%);
+}
+
+.brand-mark {
+  box-shadow: 0 8px 24px rgb(8 30 18 / 20%);
+}
+
+.login-display {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-weight: 400;
+}
+
+.login-input {
+  min-height: 48px;
+}
+
+.login-input:focus {
+  border-color: #47745d;
+  box-shadow: 0 0 0 3px rgb(71 116 93 / 14%);
+}
+
+.login-submit {
+  min-height: 48px;
+}
+
+@keyframes image-arrive {
+  from {
+    transform: scale(1.035);
+    opacity: 0.75;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-visual img {
+    animation: none;
+  }
+}

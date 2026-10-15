@@ -1,0 +1,37 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.brand-mark {
+  box-shadow: 0 8px 24px rgb(8 30 18 / 20%);
+}
+
+.nav-link svg {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 auto;
+}
+
+.nav-link.is-active {
+  background: rgb(255 255 255 / 13%);
+  color: white;
+  box-shadow: inset 2px 0 #f0bd73;
+}
+
+.logout-button svg {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 1023px) {
+  .app-sidebar {
+    position: relative;
+  }
+
+  .app-nav {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

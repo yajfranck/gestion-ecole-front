@@ -1,0 +1,13 @@
+<nav class="mb-6 flex flex-wrap items-center gap-1 border-b border-[#e1e7e0] pb-3" aria-label="Menus de l’établissement">
+  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId()]">Configuration</a>
+  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'employees']">Personnel</a>
+  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'positions']">Postes</a>
+  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'roles']">Rôles</a>
+  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'permissions']">Permissions</a>
+  @for (year of academicYears(); track year.id) {
+    <a class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id]" (click)="openAcademicYear(year)">
+      {{ year.name }}
+      @if (workspace()?.academicYearId === year.id) { <span class="rounded-full bg-[#f0bd73]/30 px-2 py-0.5 text-[10px] font-semibold">Courante</span> }
+    </a>
+  }
+</nav>

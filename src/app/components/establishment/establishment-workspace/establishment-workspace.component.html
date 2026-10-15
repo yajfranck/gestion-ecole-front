@@ -1,0 +1,57 @@
+<section>
+  <nav class="mb-5 text-sm text-[#758178]" aria-label="Fil d’Ariane">
+    <a class="text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Établissements</a>
+    <span class="px-2" aria-hidden="true">/</span>
+    <span class="text-[#35473b]">{{ establishment()?.name || 'Espace établissement' }}</span>
+  </nav>
+
+  <header class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">Configuration scolaire</p>
+      <h1 class="page-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">{{ establishment()?.name || 'Établissement' }}</h1>
+      @if (establishment()) {
+        <p class="mt-2 text-sm text-[#69756d]">Code établissement : {{ establishment()?.code }}</p>
+      }
+    </div>
+  </header>
+
+  <app-establishment-nav [establishmentId]="establishmentId()" />
+
+  @if (isLoading()) {
+    <div class="h-36 animate-pulse rounded-xl border border-[#e1e7e0] bg-white" aria-label="Chargement des années scolaires"></div>
+  } @else if (errorMessage()) {
+    <div class="flex flex-col items-start gap-4 rounded-xl border border-[#e8c4b6] bg-[#fff4ef] p-5 sm:flex-row sm:items-center sm:justify-between" role="alert">
+      <p class="text-sm leading-6 text-[#8a3e2d]">{{ errorMessage() }}</p>
+      <button class="text-sm font-semibold text-[#8a3e2d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
+    </div>
+  } @else {
+    @if (createSuccess()) {
+      <output class="mb-5 block rounded-lg border border-[#bdd6c5] bg-[#eef7f0] px-4 py-3 text-sm text-[#28563b]">{{ createSuccess() }}</output>
+    }
+    <details class="rounded-xl border border-[#e1e7e0] bg-white">
+      <summary class="cursor-pointer px-5 py-4 text-sm font-semibold text-[#35473b] sm:px-6"><svg lucidePlus class="mr-1 inline-block align-middle" [size]="16" aria-hidden="true"></svg>Ajouter une année scolaire</summary>
+      <form class="grid gap-4 border-t border-[#edf0ec] p-5 sm:grid-cols-3 sm:p-6" (ngSubmit)="createAcademicYear()">
+        <label class="block text-sm font-medium text-[#35473b] sm:col-span-3" for="year-name">
+          Nom de l’année
+          <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="year-name" name="yearName" [(ngModel)]="name" maxlength="100" placeholder="2026-2027" required>
+        </label>
+        <label class="block text-sm font-medium text-[#35473b]" for="year-start">
+          Date de début
+          <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="year-start" name="startsOn" type="date" [(ngModel)]="startsOn" [max]="endsOn" required>
+        </label>
+        <label class="block text-sm font-medium text-[#35473b]" for="year-end">
+          Date de fin
+          <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="year-end" name="endsOn" type="date" [(ngModel)]="endsOn" [min]="startsOn" required>
+        </label>
+        <div class="flex flex-col justify-end gap-3">
+          <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#244a37] px-4 text-sm font-semibold text-white hover:bg-[#193b2b] disabled:opacity-60" type="submit" [disabled]="isCreating()">
+            @if (isCreating()) { Création… } @else { <svg lucidePlus [size]="16" aria-hidden="true"></svg> Créer l’année }
+          </button>
+        </div>
+        @if (createError()) {
+          <p class="text-sm text-[#8a3e2d] sm:col-span-3" role="alert">{{ createError() }}</p>
+        }
+      </form>
+    </details>
+  }
+</section>

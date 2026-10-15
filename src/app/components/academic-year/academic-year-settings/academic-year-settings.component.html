@@ -1,0 +1,30 @@
+<section class="rounded-xl border border-[#e1e7e0] bg-white" aria-labelledby="year-settings-title">
+  <div class="border-b border-[#e9ede8] px-5 py-4 sm:px-6">
+    <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#819087]">Calendrier</p>
+    <h2 id="year-settings-title" class="mt-1 text-lg font-semibold text-[#26372d]">Informations de l’année scolaire</h2>
+  </div>
+  <form class="grid gap-4 p-5 sm:grid-cols-3 sm:p-6" (ngSubmit)="save()">
+    <label class="block text-sm font-medium text-[#35473b] sm:col-span-3" for="settings-year-name">
+      Nom de l’année
+      <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="settings-year-name" name="settingsYearName" [(ngModel)]="name" maxlength="100" required>
+    </label>
+    <label class="block text-sm font-medium text-[#35473b]" for="settings-year-start">
+      Date de début
+      <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="settings-year-start" name="settingsStartsOn" type="date" [(ngModel)]="startsOn" [max]="endsOn" required>
+    </label>
+    <label class="block text-sm font-medium text-[#35473b]" for="settings-year-end">
+      Date de fin
+      <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="settings-year-end" name="settingsEndsOn" type="date" [(ngModel)]="endsOn" [min]="startsOn" required>
+    </label>
+    <div class="flex items-end gap-2">
+      <button class="min-h-11 rounded-lg bg-[#244a37] px-4 text-sm font-semibold text-white hover:bg-[#193b2b] disabled:opacity-60" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+      <button class="min-h-11 rounded-lg border border-[#e8c4b6] px-4 text-sm font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="isArchiving()" (click)="archive()">{{ isArchiving() ? 'Archivage…' : 'Archiver' }}</button>
+    </div>
+    @if (errorMessage()) {
+      <p class="text-sm text-[#8a3e2d] sm:col-span-3" role="alert">{{ errorMessage() }}</p>
+    }
+    @if (successMessage()) {
+      <output class="block text-sm text-[#28563b] sm:col-span-3">{{ successMessage() }}</output>
+    }
+  </form>
+</section>
