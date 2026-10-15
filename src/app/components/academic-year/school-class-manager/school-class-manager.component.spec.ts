@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { SchoolClassManagerComponent } from './school-class-manager.component';
 
@@ -10,7 +11,7 @@ describe('SchoolClassManagerComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [SchoolClassManagerComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   }));
 
   it('affiche les classes avec leurs actions', () => {
@@ -30,6 +31,7 @@ describe('SchoolClassManagerComponent', () => {
     expect(text).toContain('Primary 1 A');
     expect(text).toContain('Matières et élèves');
     expect(text).toContain('Archiver');
+    expect(text).toContain('Ajouter une classe');
     http.verify();
   });
 });

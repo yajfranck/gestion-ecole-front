@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { ClassStudent } from '../../../models/enrollment/enrollment.model';
 import { SchoolClassSubject, Subject } from '../../../models/subject/subject.model';
 import { EnrollmentService } from '../../../service/enrollment-service/enrollment.service';
@@ -8,7 +9,7 @@ import { SubjectService } from '../../../service/subject-service/subject.service
 
 @Component({
   selector: 'app-school-class-detail',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   templateUrl: './school-class-detail.component.html',
   styleUrl: './school-class-detail.component.css'
 })

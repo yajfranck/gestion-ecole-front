@@ -13,6 +13,13 @@ import { RolesComponent } from './components/role/role-list/role-list.component'
 import { PermissionsComponent } from './components/permission/permission-list/permission-list.component';
 import { ChangePasswordComponent } from './components/auth/change-password/change-password.component';
 import { AcceptInvitationComponent } from './components/auth/accept-invitation/accept-invitation.component';
+import { EstablishmentSettingsComponent } from './components/establishment/establishment-settings/establishment-settings.component';
+import { EstablishmentReferentialsComponent } from './components/establishment/establishment-referentials/establishment-referentials.component';
+import { StudentListComponent } from './components/student/student-list/student-list.component';
+import { EnrollmentWorkspaceComponent } from './components/enrollment/enrollment-workspace/enrollment-workspace.component';
+import { AcademicYearClassesComponent } from './components/academic-year/academic-year-classes/academic-year-classes.component';
+import { AcademicYearCalendarComponent } from './components/academic-year/academic-year-calendar/academic-year-calendar.component';
+import { AcademicYearFinanceComponent } from './components/academic-year/academic-year-finance/academic-year-finance.component';
 import { EmployeeDetailComponent } from './components/employee/employee-detail/employee-detail.component';
 import { GuardianChildrenComponent } from './components/guardian/guardian-children/guardian-children.component';
 
@@ -37,22 +44,37 @@ export const routes: Routes = [
 				pathMatch: 'full'
 			},
 			{
-				path: 'establishments/:establishmentId/team',
-				component: EmployeeWorkspaceComponent,
+				path: 'establishments/:establishmentId',
+				component: EstablishmentWorkspaceComponent,
 				children: [
-					{ path: 'employees', component: EmployeeListComponent },
-					{ path: 'employees/:employeeId', component: EmployeeDetailComponent },
-					{ path: 'positions', component: PositionsComponent },
-					{ path: 'roles', component: RolesComponent },
-					{ path: 'permissions', component: PermissionsComponent },
-					{ path: '', redirectTo: 'employees', pathMatch: 'full' }
+					{ path: '', component: EstablishmentSettingsComponent, pathMatch: 'full' },
+					{
+						path: 'team',
+						component: EmployeeWorkspaceComponent,
+						children: [
+							{ path: 'employees', component: EmployeeListComponent },
+							{ path: 'employees/:employeeId', component: EmployeeDetailComponent },
+							{ path: 'positions', component: PositionsComponent },
+							{ path: 'roles', component: RolesComponent },
+							{ path: 'permissions', component: PermissionsComponent },
+							{ path: '', redirectTo: 'employees', pathMatch: 'full' }
+						]
+					},
+					{ path: 'students', component: StudentListComponent },
+					{ path: 'referentials', component: EstablishmentReferentialsComponent },
+					{
+						path: 'school-years/:academicYearId',
+						component: AcademicYearWorkspaceComponent,
+						children: [
+							{ path: 'classes', component: AcademicYearClassesComponent },
+							{ path: 'enrollments', component: EnrollmentWorkspaceComponent },
+							{ path: 'calendar', component: AcademicYearCalendarComponent },
+							{ path: 'finance', component: AcademicYearFinanceComponent },
+							{ path: '', redirectTo: 'classes', pathMatch: 'full' }
+						]
+					}
 				]
 			},
-			{
-				path: 'establishments/:establishmentId/school-years/:academicYearId',
-				component: AcademicYearWorkspaceComponent
-			},
-			{ path: 'establishments/:establishmentId', component: EstablishmentWorkspaceComponent },
 			{ path: '', redirectTo: 'dashboard', pathMatch: 'full' }
 		]
 	},

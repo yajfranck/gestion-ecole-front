@@ -54,4 +54,26 @@ describe('WorkspaceContextService', () => {
     expect(service.current()?.academicYearId).toBe('year-1');
     expect(service.current()?.academicYearName).toBe('2026-2027');
   });
+
+  it('exposes the selected year and drops it with the establishment or when cleared', () => {
+    service.selectEstablishment(northSchool);
+    service.selectAcademicYear(schoolYear);
+    expect(service.academicYear()).toEqual(schoolYear);
+
+    service.clearAcademicYear();
+    expect(service.academicYear()).toBeNull();
+    expect(service.current()?.academicYearId).toBeNull();
+
+    service.selectAcademicYear(schoolYear);
+    service.selectEstablishment(southSchool);
+    expect(service.academicYear()).toBeNull();
+  });
+
+  it('ignores a year belonging to another establishment', () => {
+    service.selectEstablishment(southSchool);
+    service.selectAcademicYear(schoolYear);
+
+    expect(service.academicYear()).toBeNull();
+    expect(service.current()?.academicYearId).toBeNull();
+  });
 });

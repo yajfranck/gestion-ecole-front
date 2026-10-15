@@ -1,13 +1,36 @@
-<nav class="mb-6 flex flex-wrap items-center gap-1 border-b border-[#e1e7e0] pb-3" aria-label="Menus de l’établissement">
-  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId()]">Configuration</a>
-  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'employees']">Personnel</a>
-  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'positions']">Postes</a>
-  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'roles']">Rôles</a>
-  <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'team', 'permissions']">Permissions</a>
-  @for (year of academicYears(); track year.id) {
-    <a class="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id]" (click)="openAcademicYear(year)">
-      {{ year.name }}
-      @if (workspace()?.academicYearId === year.id) { <span class="rounded-full bg-[#f0bd73]/30 px-2 py-0.5 text-[10px] font-semibold">Courante</span> }
-    </a>
+<nav class="mb-6 flex flex-wrap gap-x-8 gap-y-4 rounded-xl border border-[#e1e7e0] bg-white px-4 py-3" aria-label="Navigation de l’établissement">
+  @for (group of establishmentGroups; track group.label) {
+    <div role="group" [attr.aria-label]="group.label">
+      <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.17em] text-[#819087]">{{ group.label }}</p>
+      <div class="flex flex-wrap gap-1">
+        @for (item of group.items; track item.label) {
+          <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" [routerLinkActiveOptions]="{ exact: !!item.exact }" ariaCurrentWhenActive="page" [routerLink]="establishmentLink(item)">{{ item.label }}</a>
+        }
+      </div>
+    </div>
   }
+
+  <div role="group" aria-label="Année scolaire" class="lg:border-l lg:border-[#e1e7e0] lg:pl-8">
+    <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.17em] text-[#819087]">Année scolaire</p>
+    <div class="flex flex-wrap items-center gap-1">
+      @if (academicYears().length === 0) {
+        <span class="px-3 py-2 text-sm text-[#69756d]">Aucune année configurée</span>
+      } @else {
+        <label class="sr-only" for="nav-academic-year">Année scolaire sélectionnée</label>
+        <select class="min-h-10 rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm font-medium text-[#35473b] outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="nav-academic-year" (change)="onYearChange($any($event.target).value)">
+          @if (!selectedYear()) {
+            <option value="" selected disabled>Choisir une année</option>
+          }
+          @for (year of academicYears(); track year.id) {
+            <option [value]="year.id" [selected]="year.id === selectedYear()?.id">{{ year.name }}</option>
+          }
+        </select>
+      }
+      @if (selectedYear()) {
+        @for (item of yearItems; track item.label) {
+          <a class="rounded-lg px-3 py-2 text-sm font-medium text-[#35473b] no-underline hover:bg-[#eef3ed]" routerLinkActive="bg-[#244a37] !text-white hover:!bg-[#244a37]" ariaCurrentWhenActive="page" [routerLink]="yearLink(item)">{{ item.label }}</a>
+        }
+      }
+    </div>
+  </div>
 </nav>

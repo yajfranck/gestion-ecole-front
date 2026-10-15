@@ -1,0 +1,18 @@
+@if (year(); as current) {
+  @if (isLoading()) {
+    <p class="text-sm text-[#69756d]" aria-live="polite">Chargement de l’espace financier…</p>
+  } @else if (errorMessage()) {
+    <div class="flex flex-col items-start gap-3 rounded-xl border border-[#e8c4b6] bg-[#fff4ef] p-5 sm:flex-row sm:items-center sm:justify-between" role="alert">
+      <p class="text-sm text-[#8a3e2d]">{{ errorMessage() }}</p>
+      <button class="text-sm font-semibold text-[#8a3e2d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
+    </div>
+  } @else {
+    <app-tuition-workspace
+      [establishmentId]="current.establishmentId"
+      [academicYearId]="current.id"
+      [academicYearStartsOn]="current.startsOn"
+      [academicYearEndsOn]="current.endsOn"
+      [gradeLevels]="gradeLevels()"
+      [students]="students()" />
+  }
+}

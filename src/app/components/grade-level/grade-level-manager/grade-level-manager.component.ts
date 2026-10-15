@@ -1,12 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LucidePlus } from '@lucide/angular';
 import { GradeLevel } from '../../../models/grade-level/grade-level.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 
 @Component({
   selector: 'app-grade-level-manager',
-  imports: [FormsModule],
+  imports: [FormsModule, LucidePlus],
   templateUrl: './grade-level-manager.component.html',
   styleUrl: './grade-level-manager.component.css'
 })
@@ -27,6 +28,11 @@ export class GradeLevelManagerComponent implements OnInit {
   protected code = '';
   protected name = '';
   protected displayOrder = 0;
+  protected newCode = '';
+  protected newName = '';
+  protected newOrder = 0;
+  protected readonly isCreating = signal(false);
+  protected readonly createError = signal<string | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -43,6 +49,33 @@ export class GradeLevelManagerComponent implements OnInit {
       error: (error: unknown) => {
         this.loadError.set(this.errorMessage(error));
         this.isLoading.set(false);
+      }
+    });
+  }
+
+  protected create(): void {
+    const code = this.newCode.trim();
+    const name = this.newName.trim();
+    if (!code || !name || this.isCreating()) return;
+
+    this.isCreating.set(true);
+    this.createError.set(null);
+    this.successMessage.set(null);
+    this.academicYearService.createGradeLevel(this.establishmentId(), {
+      code,
+      name,
+      displayOrder: Number(this.newOrder)
+    }).subscribe({
+      next: () => {
+        this.newCode = '';
+        this.newName = '';
+        this.isCreating.set(false);
+        this.successMessage.set(`Le niveau « ${name} » a été créé.`);
+        this.load();
+      },
+      error: (error: unknown) => {
+        this.createError.set(this.errorMessage(error));
+        this.isCreating.set(false);
       }
     });
   }

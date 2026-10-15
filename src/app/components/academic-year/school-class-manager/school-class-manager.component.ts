@@ -1,6 +1,8 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { LucidePlus } from '@lucide/angular';
 import { GradeLevel } from '../../../models/grade-level/grade-level.model';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
@@ -8,7 +10,7 @@ import { SchoolClassDetailComponent } from '../school-class-detail/school-class-
 
 @Component({
   selector: 'app-school-class-manager',
-  imports: [FormsModule, SchoolClassDetailComponent],
+  imports: [FormsModule, RouterLink, LucidePlus, SchoolClassDetailComponent],
   templateUrl: './school-class-manager.component.html',
   styleUrl: './school-class-manager.component.css'
 })
@@ -32,6 +34,11 @@ export class SchoolClassManagerComponent implements OnInit {
   protected gradeLevelId = '';
   protected code = '';
   protected name = '';
+  protected newGradeLevelId = '';
+  protected newCode = '';
+  protected newName = '';
+  protected readonly isCreating = signal(false);
+  protected readonly createError = signal<string | null>(null);
 
   ngOnInit(): void {
     this.load();
@@ -43,6 +50,7 @@ export class SchoolClassManagerComponent implements OnInit {
     this.academicYearService.getGradeLevels(this.establishmentId()).subscribe({
       next: (levels) => {
         this.levels.set(levels);
+        if (!levels.some((level) => level.id === this.newGradeLevelId)) this.newGradeLevelId = levels[0]?.id ?? '';
         this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).subscribe({
           next: (classes) => {
             this.classes.set(classes);
@@ -52,6 +60,33 @@ export class SchoolClassManagerComponent implements OnInit {
         });
       },
       error: (error: unknown) => this.failLoad(error)
+    });
+  }
+
+  protected create(): void {
+    const code = this.newCode.trim();
+    const name = this.newName.trim();
+    if (!this.newGradeLevelId || !code || !name || this.isCreating()) return;
+
+    this.isCreating.set(true);
+    this.createError.set(null);
+    this.successMessage.set(null);
+    this.academicYearService.createClass(this.establishmentId(), this.academicYearId(), {
+      gradeLevelId: this.newGradeLevelId,
+      code,
+      name
+    }).subscribe({
+      next: () => {
+        this.newCode = '';
+        this.newName = '';
+        this.isCreating.set(false);
+        this.successMessage.set(`La classe « ${name} » a été créée.`);
+        this.load();
+      },
+      error: (error: unknown) => {
+        this.createError.set(this.errorMessage(error));
+        this.isCreating.set(false);
+      }
     });
   }
 

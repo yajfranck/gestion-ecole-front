@@ -9,20 +9,18 @@ export interface WorkspaceContext {
   academicYearName: string | null;
 }
 
-export type AcademicWorkspaceStep = 'setup' | 'students' | 'enrollments' | 'finance' | 'calendar' | 'catalog';
-
 @Injectable({ providedIn: 'root' })
 export class WorkspaceContextService {
   readonly current = signal<WorkspaceContext | null>(null);
   readonly academicYears = signal<AcademicYear[]>([]);
-  readonly activeAcademicStep = signal<AcademicWorkspaceStep>('setup');
+  readonly academicYear = signal<AcademicYear | null>(null);
 
   selectEstablishment(establishment: Establishment): void {
     const current = this.current();
     const sameEstablishment = current?.establishmentId === establishment.id;
     if (!sameEstablishment) {
       this.academicYears.set([]);
-      this.activeAcademicStep.set('setup');
+      this.academicYear.set(null);
     }
     this.current.set({
       establishmentId: establishment.id,
@@ -38,7 +36,7 @@ export class WorkspaceContextService {
       return;
     }
 
-    if (current.academicYearId !== year.id) this.activeAcademicStep.set('setup');
+    this.academicYear.set(year);
     this.current.set({
       ...current,
       academicYearId: year.id,
@@ -69,12 +67,8 @@ export class WorkspaceContextService {
       : []);
   }
 
-  setAcademicStep(step: AcademicWorkspaceStep): void {
-    this.activeAcademicStep.set(step);
-  }
-
   clearAcademicYear(): void {
-    this.activeAcademicStep.set('setup');
+    this.academicYear.set(null);
     const current = this.current();
     if (current) {
       this.current.set({
@@ -88,6 +82,6 @@ export class WorkspaceContextService {
   clear(): void {
     this.current.set(null);
     this.academicYears.set([]);
-    this.activeAcademicStep.set('setup');
+    this.academicYear.set(null);
   }
 }

@@ -28,6 +28,9 @@
         <button class="min-h-10 rounded-lg bg-[#244a37] px-3 text-sm font-semibold text-white disabled:opacity-60" type="submit" [disabled]="!selectedSubjectId || isMutating()">Affecter</button>
       </form>
     }
+    @if (subjects().length === 0 && !isLoadingSubjects()) {
+      <p class="mt-3 text-sm text-[#69756d]">Aucune matière n’existe encore : créez-les dans <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'referentials']">Matières et niveaux</a>.</p>
+    }
     @if (subjectError()) {
       <p class="mt-2 text-sm text-[#8a3e2d]" role="alert">{{ subjectError() }}</p>
     }

@@ -1,0 +1,6 @@
+@if (year(); as current) {
+  <div class="flex flex-col gap-6">
+    <app-academic-year-settings [establishmentId]="current.establishmentId" [year]="current" (updated)="onYearUpdated($event)" (archived)="onYearArchived()" />
+    <app-academic-period-list [establishmentId]="current.establishmentId" [academicYearId]="current.id" [yearStartsOn]="current.startsOn" [yearEndsOn]="current.endsOn" />
+  </div>
+}
