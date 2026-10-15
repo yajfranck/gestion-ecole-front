@@ -9,6 +9,7 @@ import { EstablishmentSettingsComponent } from './establishment-settings.compone
 
 describe('EstablishmentSettingsComponent', () => {
   const url = `${environment.apiUrl}/establishments/school-1/school-years`;
+  const api = environment.apiUrl;
   const year = { id: 'year-1', establishmentId: 'school-1', name: '2026-2027', startsOn: '2026-09-01', endsOn: '2027-06-30', enabled: true };
 
   beforeEach(() => TestBed.configureTestingModule({
@@ -29,10 +30,12 @@ describe('EstablishmentSettingsComponent', () => {
 
     const fixture = TestBed.createComponent(EstablishmentSettingsComponent);
     fixture.detectChanges();
+    http.expectOne(`${api}/establishments`).flush([{ id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' }]);
     http.expectOne(url).flush([year]);
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('2026-2027');
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('S1');
     expect(context.academicYears()).toEqual([year]);
 
     const select = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button')).find((b) => b.textContent?.includes('Sélectionner'));
@@ -45,6 +48,7 @@ describe('EstablishmentSettingsComponent', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(EstablishmentSettingsComponent);
     fixture.detectChanges();
+    http.expectOne(`${api}/establishments`).flush([]);
     http.expectOne(url).flush([]);
     fixture.detectChanges();
 

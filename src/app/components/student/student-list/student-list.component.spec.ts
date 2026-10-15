@@ -43,4 +43,18 @@ describe('StudentListComponent', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Aucun élève enregistré');
     http.verify();
   });
+
+  it('suit la structure commune : titre de section compact, état vide, création sous la liste', () => {
+    const http = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(StudentListComponent);
+    fixture.detectChanges();
+    http.expectOne(url).flush([]);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    expect(root.querySelector('.section-header h2.section-title')?.textContent).toContain('Élèves');
+    expect(root.querySelector('.state-empty')).toBeTruthy();
+    expect(root.querySelector('.section-header')?.compareDocumentPosition(root.querySelector('details') as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    http.verify();
+  });
 });

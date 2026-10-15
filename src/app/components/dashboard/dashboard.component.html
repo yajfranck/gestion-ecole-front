@@ -1,9 +1,8 @@
-<section class="dashboard-page">
-  <header class="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+<section class="dashboard-page page">
+  <header class="page-header">
     <div>
-      <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">{{ dateLabel }}</p>
-      <h1 class="dashboard-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">Votre espace de gestion</h1>
-      <p class="mt-2 text-sm leading-6 text-[#69756d]">Retrouvez ici les établissements accessibles à votre compte.</p>
+      <h1 class="page-heading">Votre espace de gestion</h1>
+      <p class="page-subtitle">{{ dateLabel }} · Retrouvez ici les établissements accessibles à votre compte.</p>
     </div>
     <a
       class="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg bg-[#244a37] px-4 py-2.5 text-sm font-semibold text-white no-underline transition hover:bg-[#193b2b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#244a37]"
@@ -16,7 +15,7 @@
     </a>
   </header>
 
-  <div class="mb-8 grid gap-4 sm:grid-cols-2">
+  <div class="grid gap-4 sm:grid-cols-2">
     <article class="summary-item rounded-xl border border-[#e1e7e0] bg-white p-5 sm:p-6">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -55,12 +54,9 @@
     </article>
   </div>
 
-  <section class="rounded-xl border border-[#e1e7e0] bg-white" aria-labelledby="establishments-heading">
-    <div class="flex flex-col gap-3 border-b border-[#e9ede8] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#819087]">Votre périmètre</p>
-        <h2 id="establishments-heading" class="mt-1 text-lg font-semibold text-[#26372d]">Établissements</h2>
-      </div>
+  <section class="section" aria-labelledby="establishments-heading">
+    <div class="section-header">
+      <h2 id="establishments-heading" class="section-title">Établissements</h2>
       <a class="text-sm font-semibold text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Afficher la liste</a>
     </div>
 

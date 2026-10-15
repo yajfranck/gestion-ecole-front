@@ -33,7 +33,7 @@ export interface PaymentMethodInput {
   name: string;
 }
 
-export type TuitionFeeScope = 'ACADEMIC_YEAR' | 'GRADE_LEVEL' | 'STUDENT';
+export type TuitionFeeScope = 'ACADEMIC_YEAR' | 'SCHOOL_CLASS' | 'STUDENT';
 
 export interface TuitionFee {
   id: string;
@@ -47,7 +47,7 @@ export interface TuitionFee {
   currency: string;
   dueDate: string;
   scope: TuitionFeeScope;
-  gradeLevelId: string | null;
+  schoolClassId: string | null;
   studentId: string | null;
   createdAt: string;
 }
@@ -58,7 +58,7 @@ export interface CreateTuitionFeeRequest {
   amount: number;
   currency: string;
   dueDate: string;
-  gradeLevelId?: string | null;
+  schoolClassId?: string | null;
   studentId?: string | null;
 }
 

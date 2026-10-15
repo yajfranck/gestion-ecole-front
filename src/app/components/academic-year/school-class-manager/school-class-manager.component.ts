@@ -1,16 +1,13 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
-import { LucidePlus } from '@lucide/angular';
-import { GradeLevel } from '../../../models/grade-level/grade-level.model';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { SchoolClassDetailComponent } from '../school-class-detail/school-class-detail.component';
 
 @Component({
   selector: 'app-school-class-manager',
-  imports: [FormsModule, RouterLink, LucidePlus, SchoolClassDetailComponent],
+  imports: [FormsModule, SchoolClassDetailComponent],
   templateUrl: './school-class-manager.component.html',
   styleUrl: './school-class-manager.component.css'
 })
@@ -21,7 +18,6 @@ export class SchoolClassManagerComponent implements OnInit {
   readonly academicYearId = input.required<string>();
 
   protected readonly classes = signal<SchoolClass[]>([]);
-  protected readonly levels = signal<GradeLevel[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly isSaving = signal(false);
   protected readonly archivingId = signal<string | null>(null);
@@ -31,10 +27,8 @@ export class SchoolClassManagerComponent implements OnInit {
   protected readonly actionError = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
 
-  protected gradeLevelId = '';
   protected code = '';
   protected name = '';
-  protected newGradeLevelId = '';
   protected newCode = '';
   protected newName = '';
   protected readonly isCreating = signal(false);
@@ -47,35 +41,27 @@ export class SchoolClassManagerComponent implements OnInit {
   protected load(): void {
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.academicYearService.getGradeLevels(this.establishmentId()).subscribe({
-      next: (levels) => {
-        this.levels.set(levels);
-        if (!levels.some((level) => level.id === this.newGradeLevelId)) this.newGradeLevelId = levels[0]?.id ?? '';
-        this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).subscribe({
-          next: (classes) => {
-            this.classes.set(classes);
-            this.isLoading.set(false);
-          },
-          error: (error: unknown) => this.failLoad(error)
-        });
+    this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).subscribe({
+      next: (classes) => {
+        this.classes.set(classes);
+        this.isLoading.set(false);
       },
-      error: (error: unknown) => this.failLoad(error)
+      error: (error: unknown) => {
+        this.loadError.set(this.errorMessage(error));
+        this.isLoading.set(false);
+      }
     });
   }
 
   protected create(): void {
     const code = this.newCode.trim();
     const name = this.newName.trim();
-    if (!this.newGradeLevelId || !code || !name || this.isCreating()) return;
+    if (!code || !name || this.isCreating()) return;
 
     this.isCreating.set(true);
     this.createError.set(null);
     this.successMessage.set(null);
-    this.academicYearService.createClass(this.establishmentId(), this.academicYearId(), {
-      gradeLevelId: this.newGradeLevelId,
-      code,
-      name
-    }).subscribe({
+    this.academicYearService.createClass(this.establishmentId(), this.academicYearId(), { code, name }).subscribe({
       next: () => {
         this.newCode = '';
         this.newName = '';
@@ -90,17 +76,12 @@ export class SchoolClassManagerComponent implements OnInit {
     });
   }
 
-  protected levelNameFor(gradeLevelId: string): string {
-    return this.levels().find((level) => level.id === gradeLevelId)?.name ?? 'Niveau';
-  }
-
   protected toggleDetail(schoolClass: SchoolClass): void {
     this.expandedId.set(this.expandedId() === schoolClass.id ? null : schoolClass.id);
   }
 
   protected startEditing(schoolClass: SchoolClass): void {
     this.editingId.set(schoolClass.id);
-    this.gradeLevelId = schoolClass.gradeLevelId;
     this.code = schoolClass.code;
     this.name = schoolClass.name;
     this.actionError.set(null);
@@ -115,15 +96,11 @@ export class SchoolClassManagerComponent implements OnInit {
   protected save(schoolClass: SchoolClass): void {
     const code = this.code.trim();
     const name = this.name.trim();
-    if (!this.gradeLevelId || !code || !name || this.isSaving()) return;
+    if (!code || !name || this.isSaving()) return;
 
     this.isSaving.set(true);
     this.actionError.set(null);
-    this.academicYearService.updateClass(this.establishmentId(), this.academicYearId(), schoolClass.id, {
-      gradeLevelId: this.gradeLevelId,
-      code,
-      name
-    }).subscribe({
+    this.academicYearService.updateClass(this.establishmentId(), this.academicYearId(), schoolClass.id, { code, name }).subscribe({
       next: () => {
         this.isSaving.set(false);
         this.editingId.set(null);
@@ -157,17 +134,12 @@ export class SchoolClassManagerComponent implements OnInit {
     });
   }
 
-  private failLoad(error: unknown): void {
-    this.loadError.set(this.errorMessage(error));
-    this.isLoading.set(false);
-  }
-
   private errorMessage(error: unknown): string {
     if (error instanceof HttpErrorResponse) {
-      if (error.status === 400) return 'Vérifiez le niveau, le code et le nom de la classe.';
+      if (error.status === 400) return 'Vérifiez le code et le nom de la classe.';
       if (error.status === 403) return 'Votre compte ne dispose pas de l’autorisation nécessaire pour cette opération.';
-      if (error.status === 404) return 'Cette classe ou ce niveau est absent ou inaccessible.';
-      if (error.status === 409) return 'Ce code ou ce nom de classe existe déjà pour cette année.';
+      if (error.status === 404) return 'Cette classe ou cette année scolaire est absente ou inaccessible.';
+      if (error.status === 409) return 'Ce code de classe existe déjà pour cette année.';
     }
     return 'Impossible de traiter les classes. Vérifiez le serveur puis réessayez.';
   }

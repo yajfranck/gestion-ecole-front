@@ -21,9 +21,8 @@ describe('SchoolClassManagerComponent', () => {
     fixture.componentRef.setInput('academicYearId', 'year-1');
     fixture.detectChanges();
 
-    http.expectOne(`${base}/grade-levels`).flush([{ id: 'l-1', establishmentId: 'school-1', code: 'P1', name: 'Primary 1', displayOrder: 1, enabled: true }]);
     http.expectOne(`${base}/school-years/year-1/classes`).flush([
-      { id: 'c-1', establishmentId: 'school-1', academicYearId: 'year-1', gradeLevelId: 'l-1', code: 'P1-A', name: 'Primary 1 A', enabled: true }
+      { id: 'c-1', establishmentId: 'school-1', academicYearId: 'year-1', code: 'P1-A', name: 'Primary 1 A', enabled: true }
     ]);
     fixture.detectChanges();
 
@@ -32,6 +31,7 @@ describe('SchoolClassManagerComponent', () => {
     expect(text).toContain('Matières et élèves');
     expect(text).toContain('Archiver');
     expect(text).toContain('Ajouter une classe');
+    expect(text).not.toContain('Niveau');
     http.verify();
   });
 });

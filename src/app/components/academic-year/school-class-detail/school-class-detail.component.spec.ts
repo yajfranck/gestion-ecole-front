@@ -34,7 +34,7 @@ describe('SchoolClassDetailComponent', () => {
     http.verify();
   });
 
-  it('renvoie vers Matières et niveaux quand le référentiel est vide', () => {
+  it('renvoie vers Matières quand le référentiel est vide', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(SchoolClassDetailComponent);
     fixture.componentRef.setInput('establishmentId', 'school-1');
@@ -48,7 +48,7 @@ describe('SchoolClassDetailComponent', () => {
     fixture.detectChanges();
 
     const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href$="/establishments/school-1/referentials"]');
-    expect(link?.textContent).toContain('Matières et niveaux');
+    expect(link?.textContent).toContain('Matières');
     http.verify();
   });
 });

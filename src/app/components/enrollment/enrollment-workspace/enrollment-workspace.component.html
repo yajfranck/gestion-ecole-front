@@ -1,14 +1,15 @@
-<section class="rounded-xl border border-[#e1e7e0] bg-white" aria-labelledby="enrollments-title">
-  <div class="border-b border-[#e9ede8] px-5 py-4 sm:px-6">
-    <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#819087]">Année scolaire</p>
-    <h2 id="enrollments-title" class="mt-1 text-lg font-semibold text-[#26372d]">Inscrire un élève dans une classe</h2>
-    <p class="mt-1 text-sm text-[#69756d]">Les élèves viennent des dossiers de l’établissement. Une inscription par élève et par année scolaire; elle est conservée dans l’historique.</p>
+<section class="section" aria-labelledby="enrollments-title">
+  <div class="section-header">
+    <div>
+      <h2 id="enrollments-title" class="section-title">Inscriptions</h2>
+      <p class="section-hint">Une inscription par élève et par année scolaire, conservée dans l’historique. Les élèves viennent des dossiers de l’établissement.</p>
+    </div>
   </div>
 
   @if (isLoading()) {
-    <p class="px-5 py-5 text-sm text-[#849087]" aria-label="Chargement des inscriptions">Chargement des inscriptions…</p>
+    <p class="state-loading" aria-live="polite">Chargement des inscriptions…</p>
   } @else if (loadError()) {
-    <div class="px-5 py-5" role="alert"><p class="text-sm text-[#8a3e2d]">{{ loadError() }}</p><button class="mt-2 text-sm font-semibold text-[#47745d] underline" type="button" (click)="load()">Réessayer</button></div>
+    <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
   } @else {
     @if (students().length === 0 || classes().length === 0) {
       <p class="border-b border-[#edf0ec] px-5 py-4 text-sm text-[#69756d] sm:px-6">
@@ -19,34 +20,12 @@
       </p>
     }
 
-    <form class="grid gap-4 border-b border-[#edf0ec] p-5 sm:grid-cols-2 sm:p-6" (ngSubmit)="create()">
-      <label class="block text-sm font-medium text-[#35473b]" for="enrollment-student">Élève
-        <select class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="enrollment-student" name="enrollmentStudentId" [(ngModel)]="studentId" required>
-          <option value="" disabled>Choisir un élève</option>
-          @for (student of students(); track student.id) {
-            <option [value]="student.id" [disabled]="hasEnrollment(student.id)">{{ student.firstName }} {{ student.lastName }}{{ hasEnrollment(student.id) ? ' · déjà inscrit' : '' }}</option>
-          }
-        </select>
-      </label>
-      <label class="block text-sm font-medium text-[#35473b]" for="enrollment-class">Classe
-        <select class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="enrollment-class" name="enrollmentClassId" [(ngModel)]="schoolClassId" required>
-          <option value="" disabled>Choisir une classe</option>
-          @for (schoolClass of classes(); track schoolClass.id) {
-            <option [value]="schoolClass.id">{{ schoolClass.name }} · {{ levelNameFor(schoolClass.gradeLevelId) }}</option>
-          }
-        </select>
-      </label>
-      <button class="min-h-11 rounded-lg bg-[#244a37] px-4 text-sm font-semibold text-white hover:bg-[#193b2b] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2" type="submit" [disabled]="isCreating() || students().length === 0 || classes().length === 0 || !studentId || hasEnrollment(studentId)">
-        {{ isCreating() ? 'Inscription…' : 'Confirmer l’inscription' }}
-      </button>
-    </form>
-
     @if (successMessage()) {
       <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}</output>
     }
 
     @if (enrollments().length === 0) {
-      <p class="px-5 py-5 text-sm text-[#69756d] sm:px-6">Aucune inscription enregistrée pour cette année scolaire.</p>
+      <p class="state-empty">Aucune inscription enregistrée pour cette année scolaire.</p>
     } @else {
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
@@ -63,8 +42,37 @@
         </table>
       </div>
     }
-    @if (actionError()) {
-      <p class="border-t border-[#edf0ec] px-5 py-3 text-sm text-[#8a3e2d] sm:px-6" role="alert">{{ actionError() }}</p>
-    }
+
+    <details class="border-t border-[#edf0ec]" [open]="enrollments().length === 0">
+      <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">Nouvelle inscription</summary>
+      <form class="form-grid pt-1" (ngSubmit)="create()" [attr.aria-busy]="isCreating()">
+        <label class="form-field">
+          <span class="form-label is-required">Élève</span>
+          <select class="form-control" id="enrollment-student" name="enrollmentStudentId" [(ngModel)]="studentId" required>
+            <option value="" disabled>Choisir un élève</option>
+            @for (student of students(); track student.id) {
+              <option [value]="student.id" [disabled]="hasEnrollment(student.id)">{{ student.firstName }} {{ student.lastName }}{{ hasEnrollment(student.id) ? ' · déjà inscrit' : '' }}</option>
+            }
+          </select>
+          <span class="form-hint">Les élèves déjà inscrits cette année ne sont pas sélectionnables.</span>
+        </label>
+        <label class="form-field">
+          <span class="form-label is-required">Classe</span>
+          <select class="form-control" id="enrollment-class" name="enrollmentClassId" [(ngModel)]="schoolClassId" required>
+            <option value="" disabled>Choisir une classe</option>
+            @for (schoolClass of classes(); track schoolClass.id) {
+              <option [value]="schoolClass.id">{{ schoolClass.name }}</option>
+            }
+          </select>
+        </label>
+        @if (actionError()) {
+          <p class="form-error" role="alert">{{ actionError() }}</p>
+        }
+        <p class="form-legend">* Champ obligatoire</p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit" [disabled]="isCreating() || students().length === 0 || classes().length === 0 || !studentId || hasEnrollment(studentId)">{{ isCreating() ? 'Inscription…' : 'Confirmer l’inscription' }}</button>
+        </div>
+      </form>
+    </details>
   }
 </section>

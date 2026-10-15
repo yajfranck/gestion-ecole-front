@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucidePlus } from '@lucide/angular';
 import { AcademicPeriod } from '../../../models/academic-period/academic-period.model';
 import { AcademicPeriodService } from '../../../service/academic-period-service/academic-period.service';
 
 @Component({
   selector: 'app-academic-period-list',
-  imports: [FormsModule, LucidePlus],
+  imports: [FormsModule],
   templateUrl: './academic-period-list.component.html',
   styleUrl: './academic-period-list.component.css'
 })

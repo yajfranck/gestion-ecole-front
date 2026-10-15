@@ -1,33 +1,46 @@
-<details class="rounded-xl border border-[#e1e7e0] bg-white" open>
-  <summary class="cursor-pointer border-b border-[#e9ede8] px-5 py-4 text-sm font-semibold text-[#26372d] sm:px-6">Inviter un membre du personnel</summary>
-  @if (positions().length === 0 && !isLoadingPositions()) {
-    <p class="px-5 pt-4 text-sm text-[#805d26] sm:px-6">Créez d’abord un poste actif dans l’onglet Postes.</p>
-  }
-  @if (positionError()) {
-    <p class="px-5 pt-4 text-sm text-[#8a3e2d]" role="alert">{{ positionError() }}</p>
-  }
-  <form class="grid gap-4 p-5 sm:grid-cols-2 sm:p-6" (ngSubmit)="invite()">
-    <label class="text-xs font-semibold text-[#58685d]">Matricule
-      <input class="employee-field" name="employeeNumber" [(ngModel)]="employeeNumber" maxlength="40" required>
-    </label>
-    <label class="text-xs font-semibold text-[#58685d]">Poste
-      <select class="employee-field" name="positionId" [(ngModel)]="positionId" required [disabled]="positions().length === 0">
-        <option value="" disabled>Choisir un poste</option>
-        @for (position of positions(); track position.id) { <option [value]="position.id">{{ position.name }}</option> }
-      </select>
-    </label>
-    <label class="text-xs font-semibold text-[#58685d]">Prénom
-      <input class="employee-field" name="firstName" [(ngModel)]="firstName" required>
-    </label>
-    <label class="text-xs font-semibold text-[#58685d]">Nom
-      <input class="employee-field" name="lastName" [(ngModel)]="lastName" required>
-    </label>
-    <label class="text-xs font-semibold text-[#58685d] sm:col-span-2">Adresse e-mail
-      <input class="employee-field" name="email" type="email" [(ngModel)]="email" required>
-    </label>
-    @if (errorMessage()) { <p class="text-sm text-[#8a3e2d] sm:col-span-2" role="alert">{{ errorMessage() }}</p> }
-    <button class="min-h-11 rounded-lg bg-[#244a37] px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2" type="submit" [disabled]="isSaving() || positions().length === 0">
-      {{ isSaving() ? 'Envoi en cours…' : 'Envoyer l’invitation' }}
-    </button>
+<details class="form-panel" open>
+  <summary>Inviter un membre du personnel</summary>
+  <form class="form-grid" (ngSubmit)="invite()" [attr.aria-busy]="isSaving()">
+    @if (positions().length === 0 && !isLoadingPositions()) {
+      <p class="form-error">Créez d’abord un poste actif dans l’onglet Postes.</p>
+    }
+    @if (positionError()) {
+      <p class="form-error" role="alert">{{ positionError() }}</p>
+    }
+    <fieldset class="form-row min-w-0 border-0 p-0">
+      <legend class="form-title mb-3">Identité</legend>
+      <label class="form-field">
+        <span class="form-label is-required">Prénom</span>
+        <input class="form-control" name="firstName" [(ngModel)]="firstName" required>
+      </label>
+      <label class="form-field">
+        <span class="form-label is-required">Nom</span>
+        <input class="form-control" name="lastName" [(ngModel)]="lastName" required>
+      </label>
+      <label class="form-field form-field-wide">
+        <span class="form-label is-required">Adresse e-mail</span>
+        <input class="form-control md:max-w-md" name="email" type="email" [(ngModel)]="email" required>
+        <span class="form-hint">L’invitation pour définir le mot de passe est envoyée à cette adresse.</span>
+      </label>
+    </fieldset>
+    <fieldset class="form-row min-w-0 border-0 p-0">
+      <legend class="form-title mb-3">Affectation</legend>
+      <label class="form-field form-field-compact">
+        <span class="form-label is-required">Matricule</span>
+        <input class="form-control font-mono" name="employeeNumber" [(ngModel)]="employeeNumber" maxlength="40" required>
+      </label>
+      <label class="form-field">
+        <span class="form-label is-required">Poste</span>
+        <select class="form-control" name="positionId" [(ngModel)]="positionId" required [disabled]="positions().length === 0">
+          <option value="" disabled>Choisir un poste</option>
+          @for (position of positions(); track position.id) { <option [value]="position.id">{{ position.name }}</option> }
+        </select>
+      </label>
+    </fieldset>
+    @if (errorMessage()) { <p class="form-error" role="alert">{{ errorMessage() }}</p> }
+    <p class="form-legend">* Champ obligatoire</p>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit" [disabled]="isSaving() || positions().length === 0">{{ isSaving() ? 'Envoi en cours…' : 'Envoyer l’invitation' }}</button>
+    </div>
   </form>
 </details>

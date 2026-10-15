@@ -2,14 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
-import { LucidePlus } from '@lucide/angular';
 import { Student } from '../../../models/student/student.model';
 import { StudentService } from '../../../service/student-service/student.service';
 import { StudentGuardiansComponent } from '../student-guardians/student-guardians.component';
 
 @Component({
   selector: 'app-student-list',
-  imports: [FormsModule, LucidePlus, StudentGuardiansComponent],
+  imports: [FormsModule, StudentGuardiansComponent],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.css'
 })

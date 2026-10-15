@@ -1,18 +1,14 @@
 <section>
-  <header class="mb-6">
-    <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">Année scolaire</p>
-    @if (isLoading()) {
-      <div class="h-10 w-64 animate-pulse rounded bg-[#e7ece6]" aria-label="Chargement de l’année"></div>
-    } @else if (errorMessage()) {
-      <div class="flex flex-col items-start gap-3 sm:flex-row sm:items-center" role="alert">
-        <p class="text-sm text-[#8a3e2d]">{{ errorMessage() }}</p>
-        <button class="text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
-      </div>
-    } @else if (academicYear(); as year) {
-      <h1 class="page-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">{{ year.name }}</h1>
-      <p class="mt-2 text-sm text-[#69756d]">{{ year.startsOn }} au {{ year.endsOn }}</p>
-    }
-  </header>
+  @if (isLoading()) {
+    <div class="mb-4 h-8 w-48 animate-pulse rounded bg-[#e7ece6]" aria-label="Chargement de l’année"></div>
+  } @else if (errorMessage()) {
+    <div class="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center" role="alert">
+      <p class="text-sm text-[#8a3e2d]">{{ errorMessage() }}</p>
+      <button class="text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
+    </div>
+  } @else if (academicYear(); as year) {
+    <h2 class="sr-only">Année scolaire {{ year.name }}</h2>
+  }
 
   @if (!isLoading() && !errorMessage() && academicYear()?.id === academicYearId()) {
     <router-outlet />

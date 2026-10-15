@@ -46,7 +46,7 @@ export class EstablishmentNavComponent {
       label: 'Référentiels et dossiers',
       items: [
         { label: 'Élèves', path: ['students'] },
-        { label: 'Matières et niveaux', path: ['referentials'] }
+        { label: 'Matières', path: ['referentials'] }
       ]
     }
   ];

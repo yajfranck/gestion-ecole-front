@@ -26,7 +26,7 @@ describe('EstablishmentNavComponent', () => {
     const fixture = create();
     const root = fixture.nativeElement as HTMLElement;
 
-    expect(labels(root)).toEqual(['Configuration', 'Personnel', 'Postes', 'Rôles', 'Permissions', 'Élèves', 'Matières et niveaux']);
+    expect(labels(root)).toEqual(['Configuration', 'Personnel', 'Postes', 'Rôles', 'Permissions', 'Élèves', 'Matières']);
     expect(root.querySelectorAll('[role="group"]').length).toBe(4);
   });
 

@@ -15,22 +15,18 @@ describe('AcademicYearService', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
-  it('uses the establishment, school-year, level and class endpoints', () => {
+  it('uses the establishment, school-year and class endpoints', () => {
     service.getAcademicYears('school-1').subscribe();
     http.expectOne(`${base}/school-years`).flush([]);
     service.createAcademicYear('school-1', { name: '2026-2027', startsOn: '2026-09-01', endsOn: '2027-06-30' }).subscribe();
     const year = http.expectOne(`${base}/school-years`);
     expect(year.request.method).toBe('POST');
     year.flush({});
-    service.getGradeLevels('school-1').subscribe();
-    http.expectOne(`${base}/grade-levels`).flush([]);
-    service.createGradeLevel('school-1', { code: 'CP', name: 'Cours préparatoire', displayOrder: 1 }).subscribe();
-    http.expectOne(`${base}/grade-levels`).flush({});
     service.getClasses('school-1', 'year-1').subscribe();
     http.expectOne(`${base}/school-years/year-1/classes`).flush([]);
-    service.createClass('school-1', 'year-1', { gradeLevelId: 'level-1', code: 'CP-A', name: 'CP A' }).subscribe();
+    service.createClass('school-1', 'year-1', { code: 'CP-A', name: 'CP A' }).subscribe();
     const schoolClass = http.expectOne(`${base}/school-years/year-1/classes`);
-    expect(schoolClass.request.body).toEqual({ gradeLevelId: 'level-1', code: 'CP-A', name: 'CP A' });
+    expect(schoolClass.request.body).toEqual({ code: 'CP-A', name: 'CP A' });
     schoolClass.flush({});
   });
 
@@ -50,19 +46,11 @@ describe('AcademicYearService', () => {
     archive.flush(null);
   });
 
-  it('updates and archives grade levels and classes', () => {
-    service.updateGradeLevel('school-1', 'level-1', { code: 'P1', name: 'Primary 1', displayOrder: 2 }).subscribe();
-    const level = http.expectOne(`${base}/grade-levels/level-1`);
-    expect(level.request.method).toBe('PATCH');
-    expect(level.request.body).toEqual({ code: 'P1', name: 'Primary 1', displayOrder: 2 });
-    level.flush({});
-    service.archiveGradeLevel('school-1', 'level-1').subscribe();
-    const archiveLevel = http.expectOne(`${base}/grade-levels/level-1`);
-    expect(archiveLevel.request.method).toBe('DELETE');
-    archiveLevel.flush(null);
-    service.updateClass('school-1', 'year-1', 'class-1', { gradeLevelId: 'level-1', code: 'P1-B', name: 'P1 B' }).subscribe();
+  it('updates and archives classes without a grade level', () => {
+    service.updateClass('school-1', 'year-1', 'class-1', { code: 'P1-B', name: 'P1 B' }).subscribe();
     const schoolClass = http.expectOne(`${base}/school-years/year-1/classes/class-1`);
     expect(schoolClass.request.method).toBe('PATCH');
+    expect(schoolClass.request.body).toEqual({ code: 'P1-B', name: 'P1 B' });
     schoolClass.flush({});
     service.archiveClass('school-1', 'year-1', 'class-1').subscribe();
     const archiveClass = http.expectOne(`${base}/school-years/year-1/classes/class-1`);

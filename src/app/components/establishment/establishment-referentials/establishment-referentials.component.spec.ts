@@ -19,17 +19,16 @@ describe('EstablishmentReferentialsComponent', () => {
     ]
   }));
 
-  it('regroupe les niveaux et les matières propres à l’établissement, sans dépendre d’une année', () => {
+  it('affiche les matières propres à l’établissement, sans appel aux niveaux supprimés', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(EstablishmentReferentialsComponent);
     fixture.detectChanges();
-    http.expectOne(`${base}/grade-levels`).flush([]);
     http.expectOne(`${base}/subjects`).flush([]);
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent;
-    expect(text).toContain('Niveaux');
     expect(text).toContain('Matières');
+    expect(text).not.toContain('Niveau');
     http.verify();
   });
 });

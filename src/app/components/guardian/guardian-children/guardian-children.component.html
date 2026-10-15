@@ -1,26 +1,21 @@
-<section>
-  <header class="mb-7">
-    <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">Espace parent</p>
-    <h1 class="page-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">Mes enfants</h1>
-    <p class="mt-2 text-sm leading-6 text-[#69756d]">Élèves actifs liés à votre compte.</p>
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1 class="page-heading">Mes enfants</h1>
+      <p class="page-subtitle">Élèves actifs liés à votre compte.</p>
+    </div>
   </header>
 
   @if (isLoading()) {
-    <div class="h-24 animate-pulse rounded-xl border border-[#e1e7e0] bg-white" aria-label="Chargement des enfants"></div>
+    <section class="section"><p class="state-loading" aria-live="polite">Chargement des enfants…</p></section>
   } @else if (errorMessage()) {
-    <div class="flex flex-col items-start gap-4 rounded-xl border border-[#e8c4b6] bg-[#fff4ef] p-5 sm:flex-row sm:items-center sm:justify-between" role="alert">
-      <p class="text-sm leading-6 text-[#8a3e2d]">{{ errorMessage() }}</p>
-      <button class="text-sm font-semibold text-[#8a3e2d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
-    </div>
+    <section class="section"><div class="state-error" role="alert"><p>{{ errorMessage() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div></section>
   } @else if (children().length === 0) {
-    <div class="rounded-xl border border-dashed border-[#cbd6cb] bg-white px-6 py-12 text-center">
-      <p class="text-base font-semibold text-[#35473b]">Aucun enfant lié à votre compte</p>
-      <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[#7b877e]">Contactez l’établissement pour vérifier le lien avec l’élève.</p>
-    </div>
+    <section class="section"><p class="state-empty">Aucun enfant lié à votre compte. Contactez l’établissement pour vérifier le lien avec l’élève.</p></section>
   } @else {
     <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       @for (child of children(); track child.id) {
-        <li class="rounded-xl border border-[#e1e7e0] bg-white p-5">
+        <li class="section section-body">
           <p class="text-base font-semibold text-[#26372d]">{{ child.firstName }} {{ child.lastName }}</p>
           <p class="mt-1 font-mono text-xs text-[#78837b]">{{ child.studentNumber }}</p>
         </li>

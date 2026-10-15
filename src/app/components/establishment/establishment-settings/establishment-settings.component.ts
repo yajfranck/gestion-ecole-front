@@ -2,25 +2,28 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { LucidePlus } from '@lucide/angular';
 import { AcademicYear } from '../../../models/academic-year/academic-year.model';
+import { Establishment } from '../../../models/establishment/establishment.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
+import { EstablishmentService } from '../../../service/establishment-service/establishment.service';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 
 @Component({
   selector: 'app-establishment-settings',
-  imports: [FormsModule, RouterLink, LucidePlus],
+  imports: [FormsModule, RouterLink],
   templateUrl: './establishment-settings.component.html',
   styleUrl: './establishment-settings.component.css'
 })
 export class EstablishmentSettingsComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly academicYearService = inject(AcademicYearService);
+  private readonly establishmentService = inject(EstablishmentService);
   private readonly workspaceContext = inject(WorkspaceContextService);
 
   protected readonly workspace = this.workspaceContext.current;
   protected readonly establishmentId = signal('');
   protected readonly years = signal<AcademicYear[]>([]);
+  protected readonly establishment = signal<Establishment | null>(null);
   protected readonly isLoading = signal(true);
   protected readonly isCreating = signal(false);
   protected readonly loadError = signal<string | null>(null);
@@ -32,6 +35,9 @@ export class EstablishmentSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.establishmentId.set(this.route.snapshot.paramMap.get('establishmentId') ?? '');
+    this.establishmentService.getAccessible().subscribe({
+      next: (establishments) => this.establishment.set(establishments.find((item) => item.id === this.establishmentId()) ?? null)
+    });
     this.load();
   }
 

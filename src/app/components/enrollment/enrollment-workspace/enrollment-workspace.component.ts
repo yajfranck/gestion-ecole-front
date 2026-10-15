@@ -3,7 +3,6 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Enrollment } from '../../../models/enrollment/enrollment.model';
-import { GradeLevel } from '../../../models/grade-level/grade-level.model';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { Student } from '../../../models/student/student.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
@@ -26,7 +25,6 @@ export class EnrollmentWorkspaceComponent implements OnInit {
   protected readonly academicYearId = signal('');
   protected readonly students = signal<Student[]>([]);
   protected readonly classes = signal<SchoolClass[]>([]);
-  protected readonly gradeLevels = signal<GradeLevel[]>([]);
   protected readonly enrollments = signal<Enrollment[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly isCreating = signal(false);
@@ -52,19 +50,13 @@ export class EnrollmentWorkspaceComponent implements OnInit {
     this.studentService.getStudents(establishmentId).subscribe({
       next: (students) => {
         this.students.set(students);
-        this.academicYearService.getGradeLevels(establishmentId).subscribe({
-          next: (levels) => {
-            this.gradeLevels.set(levels);
-            this.academicYearService.getClasses(establishmentId, academicYearId).subscribe({
-              next: (classes) => {
-                this.classes.set(classes);
-                this.enrollmentService.getEnrollments(establishmentId, academicYearId).subscribe({
-                  next: (enrollments) => {
-                    this.enrollments.set(enrollments);
-                    this.isLoading.set(false);
-                  },
-                  error: (error: unknown) => this.failLoad(error)
-                });
+        this.academicYearService.getClasses(establishmentId, academicYearId).subscribe({
+          next: (classes) => {
+            this.classes.set(classes);
+            this.enrollmentService.getEnrollments(establishmentId, academicYearId).subscribe({
+              next: (enrollments) => {
+                this.enrollments.set(enrollments);
+                this.isLoading.set(false);
               },
               error: (error: unknown) => this.failLoad(error)
             });
@@ -101,10 +93,6 @@ export class EnrollmentWorkspaceComponent implements OnInit {
 
   protected hasEnrollment(studentId: string): boolean {
     return this.enrollments().some((enrollment) => enrollment.studentId === studentId);
-  }
-
-  protected levelNameFor(gradeLevelId: string): string {
-    return this.gradeLevels().find((level) => level.id === gradeLevelId)?.name ?? 'Niveau';
   }
 
   protected studentNameFor(studentId: string): string {

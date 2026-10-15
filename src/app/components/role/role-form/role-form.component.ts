@@ -1,7 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucidePlus } from '@lucide/angular';
 import { RolePermission } from '../../../models/permission/permission.model';
 import { EstablishmentRole } from '../../../models/role/role.model';
 import { PermissionService } from '../../../service/permission-service/permission.service';
@@ -11,7 +10,7 @@ import { describePermission } from '../../permission/permission-list/permission-
 @Component({
   selector: 'app-role-form',
   standalone: true,
-  imports: [FormsModule, LucidePlus],
+  imports: [FormsModule],
   templateUrl: './role-form.component.html',
   styleUrl: './role-form.component.css'
 })

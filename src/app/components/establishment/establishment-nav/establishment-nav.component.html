@@ -1,4 +1,4 @@
-<nav class="mb-6 flex flex-wrap gap-x-8 gap-y-4 rounded-xl border border-[#e1e7e0] bg-white px-4 py-3" aria-label="Navigation de l’établissement">
+<nav class="mb-4 flex flex-wrap gap-x-8 gap-y-4 rounded-xl border border-[#e1e7e0] bg-white px-4 py-3" aria-label="Navigation de l’établissement">
   @for (group of establishmentGroups; track group.label) {
     <div role="group" [attr.aria-label]="group.label">
       <p class="px-3 pb-1 text-[10px] font-bold uppercase tracking-[0.17em] text-[#819087]">{{ group.label }}</p>

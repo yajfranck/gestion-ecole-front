@@ -3,7 +3,7 @@ import { DatePipe } from '@angular/common';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucidePlus } from '@lucide/angular';
-import { GradeLevel } from '../../../models/grade-level/grade-level.model';
+import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { Student } from '../../../models/student/student.model';
 import {
   CreateTuitionFeeRequest,
@@ -19,7 +19,7 @@ import {
 } from '../../../models/tuition/tuition.model';
 import { TuitionService } from '../../../service/tuition-service/tuition.service';
 
-type FeeScope = 'ACADEMIC_YEAR' | 'GRADE_LEVEL' | 'STUDENT';
+type FeeScope = 'ACADEMIC_YEAR' | 'SCHOOL_CLASS' | 'STUDENT';
 type FinanceView = 'payments' | 'fees' | 'history' | 'settings';
 
 @Component({
@@ -36,7 +36,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   readonly academicYearId = input.required<string>();
   readonly academicYearStartsOn = input('');
   readonly academicYearEndsOn = input('');
-  readonly gradeLevels = input<GradeLevel[]>([]);
+  readonly classes = input<SchoolClass[]>([]);
   readonly students = input<Student[]>([]);
 
   protected readonly activeView = signal<FinanceView>('payments');
@@ -90,7 +90,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   protected feeCurrency = 'XOF';
   protected feeDueDate = '';
   protected feeScope: FeeScope = 'ACADEMIC_YEAR';
-  protected feeGradeLevelId = '';
+  protected feeSchoolClassId = '';
   protected feeStudentId = '';
   protected paymentAmount: number | null = null;
   protected paymentMethodCode = '';
@@ -348,8 +348,8 @@ export class TuitionWorkspaceComponent implements OnInit {
       this.feesError.set('Vérifiez le nom, le type, le montant positif, la devise et la date d’échéance.');
       return;
     }
-    if (this.feeScope === 'GRADE_LEVEL' && !this.feeGradeLevelId) {
-      this.feesError.set('Choisissez un niveau pour ce frais.');
+    if (this.feeScope === 'SCHOOL_CLASS' && !this.feeSchoolClassId) {
+      this.feesError.set('Choisissez une classe pour ce frais.');
       return;
     }
     if (this.feeScope === 'STUDENT' && !this.feeStudentId) {
@@ -363,7 +363,7 @@ export class TuitionWorkspaceComponent implements OnInit {
       amount,
       currency,
       dueDate: this.feeDueDate,
-      gradeLevelId: this.feeScope === 'GRADE_LEVEL' ? this.feeGradeLevelId : null,
+      schoolClassId: this.feeScope === 'SCHOOL_CLASS' ? this.feeSchoolClassId : null,
       studentId: this.feeScope === 'STUDENT' ? this.feeStudentId : null
     };
     this.isCreatingFee.set(true);
@@ -375,7 +375,7 @@ export class TuitionWorkspaceComponent implements OnInit {
         this.feeAmount = null;
         this.feeDueDate = '';
         this.feeScope = 'ACADEMIC_YEAR';
-        this.feeGradeLevelId = '';
+        this.feeSchoolClassId = '';
         this.feeStudentId = '';
         this.isCreatingFee.set(false);
         this.successMessage.set(`Frais « ${fee.name} » créé ; ${chargesCreated} créance(s) générée(s).`);
@@ -511,8 +511,8 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected scopeLabel(fee: TuitionFee): string {
-    if (fee.scope === 'GRADE_LEVEL') {
-      return `Niveau : ${this.gradeLevels().find((level) => level.id === fee.gradeLevelId)?.name ?? 'inconnu'}`;
+    if (fee.scope === 'SCHOOL_CLASS') {
+      return `Classe : ${this.classes().find((item) => item.id === fee.schoolClassId)?.name ?? 'inconnue'}`;
     }
     if (fee.scope === 'STUDENT') {
       const student = this.students().find((item) => item.id === fee.studentId);

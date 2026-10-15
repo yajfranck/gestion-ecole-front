@@ -2,10 +2,183 @@
 
 html,
 body {
-	min-height: 100%;
-	margin: 0;
+        min-height: 100%;
+        margin: 0;
 }
 
 body {
-	font-family: 'DM Sans', sans-serif;
+        font-family: 'DM Sans', sans-serif;
+}
+
+/* Convention commune des formulaires : panneau, champs, actions. */
+@layer components {
+  .form-panel {
+    @apply rounded-xl border border-[#e1e7e0] bg-white;
+  }
+
+  .form-panel > summary {
+    @apply flex min-h-12 cursor-pointer list-none items-center gap-2 px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6;
+  }
+
+  .form-panel > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .form-panel > summary::after {
+    content: '+';
+    margin-left: auto;
+    color: #47745d;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .form-panel[open] > summary {
+    @apply border-b border-[#e9ede8];
+  }
+
+  .form-panel[open] > summary::after {
+    content: '\2212';
+  }
+
+  .form-grid {
+    @apply grid gap-x-5 gap-y-4 p-5 sm:p-6 md:grid-cols-2;
+  }
+
+  .form-edit {
+    @apply grid gap-x-5 gap-y-4 rounded-lg border border-[#e1e7e0] bg-white p-4 md:grid-cols-2;
+  }
+
+  .form-title {
+    @apply flex flex-wrap items-center gap-2 text-sm font-semibold text-[#26372d] md:col-span-2;
+  }
+
+  .form-mode {
+    @apply rounded-full bg-[#f7f1e6] px-2 py-0.5 text-[11px] font-semibold text-[#8a672f];
+  }
+
+  .form-row {
+    @apply grid gap-x-5 gap-y-4 md:col-span-2 md:grid-cols-2;
+  }
+
+  .form-field {
+    @apply flex min-w-0 flex-col gap-1.5;
+  }
+
+  .form-field-wide {
+    @apply md:col-span-2;
+  }
+
+  .form-field-compact {
+    @apply md:max-w-60;
+  }
+
+  .form-label {
+    @apply text-sm font-medium text-[#35473b];
+  }
+
+  .form-label.is-required::after {
+    content: ' *';
+    color: #8a3e2d;
+  }
+
+  .form-control {
+    @apply min-h-11 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm text-[#1d2b24] outline-none transition focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/20 disabled:bg-[#f3f5f2] disabled:opacity-70;
+  }
+
+  textarea.form-control {
+    @apply min-h-24 resize-y py-2;
+  }
+
+  .form-hint {
+    @apply text-xs leading-5 text-[#78837b];
+  }
+
+  .form-error {
+    @apply rounded-lg border border-[#e8c4b6] bg-[#fff4ef] px-3 py-2 text-sm leading-5 text-[#8a3e2d] md:col-span-2;
+  }
+
+  .form-success {
+    @apply rounded-lg border border-[#bdd6c5] bg-[#eef7f0] px-3 py-2 text-sm leading-5 text-[#28563b] md:col-span-2;
+  }
+
+  .form-legend {
+    @apply text-xs text-[#78837b] md:col-span-2;
+  }
+
+  .form-actions {
+    @apply flex flex-col-reverse gap-2 border-t border-[#edf0ec] pt-4 sm:flex-row sm:items-center sm:justify-end md:col-span-2;
+  }
+
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d] disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply bg-[#244a37] text-white hover:bg-[#193b2b];
+  }
+
+  .btn-secondary {
+    @apply border border-[#dfe5de] bg-white text-[#35473b] hover:bg-[#f5f8f4];
+  }
+
+  .btn-danger {
+    @apply border border-[#e8c4b6] bg-white text-[#8a3e2d] hover:bg-[#fff4ef];
+  }
+
+  /* Structure commune des pages : en-tête compact, sections, états. */
+  .page {
+    @apply flex min-w-0 flex-col gap-5;
+  }
+
+  .page-header {
+    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-2;
+  }
+
+  .page-heading {
+    @apply text-xl font-semibold leading-snug text-[#1d2b24];
+  }
+
+  .page-subtitle {
+    @apply mt-0.5 text-sm text-[#69756d];
+  }
+
+  .section {
+    @apply min-w-0 rounded-xl border border-[#e1e7e0] bg-white;
+  }
+
+  .section-header {
+    @apply flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-[#e9ede8] px-5 py-3 sm:px-6;
+  }
+
+  .section-title {
+    @apply text-base font-semibold text-[#26372d];
+  }
+
+  .section-hint {
+    @apply text-xs leading-5 text-[#78837b];
+  }
+
+  .section-body {
+    @apply p-5 sm:p-6;
+  }
+
+  .state-loading {
+    @apply px-5 py-5 text-sm text-[#849087] sm:px-6;
+  }
+
+  .state-empty {
+    @apply px-5 py-6 text-center text-sm text-[#69756d] sm:px-6;
+  }
+
+  .state-error {
+    @apply flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm text-[#8a3e2d] sm:px-6;
+  }
+
+  .state-retry {
+    @apply min-h-9 text-sm font-semibold text-[#47745d] underline underline-offset-4;
+  }
+
+  .table-wrap {
+    @apply max-w-full overflow-x-auto;
+  }
 }

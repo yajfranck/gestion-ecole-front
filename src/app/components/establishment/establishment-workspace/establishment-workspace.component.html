@@ -1,17 +1,10 @@
 <section>
-  <nav class="mb-5 text-sm text-[#758178]" aria-label="Fil d’Ariane">
+  <nav class="mb-3 text-sm text-[#758178]" aria-label="Fil d’Ariane">
     <a class="text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Établissements</a>
     <span class="px-2" aria-hidden="true">/</span>
     <span class="text-[#35473b]">{{ establishment()?.name || 'Espace établissement' }}</span>
   </nav>
-
-  <header class="mb-6">
-    <p class="mb-2 text-xs font-bold uppercase tracking-[0.15em] text-[#718076]">Établissement</p>
-    <h1 class="page-title text-3xl leading-tight text-[#1d2b24] sm:text-4xl">{{ establishment()?.name || 'Établissement' }}</h1>
-    @if (establishment(); as current) {
-      <p class="mt-2 text-sm text-[#69756d]">Code établissement : {{ current.code }}</p>
-    }
-  </header>
+  <h1 class="sr-only">{{ establishment()?.name || 'Établissement' }}</h1>
 
   @if (isLoading()) {
     <div class="h-36 animate-pulse rounded-xl border border-[#e1e7e0] bg-white" aria-label="Chargement de l’établissement"></div>

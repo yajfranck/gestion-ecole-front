@@ -2,13 +2,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { LucidePlus } from '@lucide/angular';
 import { Establishment } from '../../../models/establishment/establishment.model';
 import { EstablishmentService } from '../../../service/establishment-service/establishment.service';
 
 @Component({
   selector: 'app-establishments',
-  imports: [FormsModule, RouterLink, LucidePlus],
+  imports: [FormsModule, RouterLink],
   templateUrl: './establishment-list.component.html',
   styleUrl: './establishment-list.component.css'
 })

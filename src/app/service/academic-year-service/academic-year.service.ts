@@ -3,7 +3,6 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AcademicYear } from '../../models/academic-year/academic-year.model';
-import { GradeLevel } from '../../models/grade-level/grade-level.model';
 import { SchoolClass } from '../../models/school-class/school-class.model';
 
 @Injectable({ providedIn: 'root' })
@@ -50,39 +49,6 @@ export class AcademicYearService {
     );
   }
 
-  getGradeLevels(establishmentId: string): Observable<GradeLevel[]> {
-    return this.http.get<GradeLevel[]>(
-      `${this.apiUrl}/establishments/${establishmentId}/grade-levels`
-    );
-  }
-
-  createGradeLevel(
-    establishmentId: string,
-    request: Pick<GradeLevel, 'code' | 'name' | 'displayOrder'>
-  ): Observable<GradeLevel> {
-    return this.http.post<GradeLevel>(
-      `${this.apiUrl}/establishments/${establishmentId}/grade-levels`,
-      request
-    );
-  }
-
-  updateGradeLevel(
-    establishmentId: string,
-    gradeLevelId: string,
-    request: Pick<GradeLevel, 'code' | 'name' | 'displayOrder'>
-  ): Observable<GradeLevel> {
-    return this.http.patch<GradeLevel>(
-      `${this.apiUrl}/establishments/${establishmentId}/grade-levels/${gradeLevelId}`,
-      request
-    );
-  }
-
-  archiveGradeLevel(establishmentId: string, gradeLevelId: string): Observable<void> {
-    return this.http.delete<void>(
-      `${this.apiUrl}/establishments/${establishmentId}/grade-levels/${gradeLevelId}`
-    );
-  }
-
   getClasses(establishmentId: string, academicYearId: string): Observable<SchoolClass[]> {
     return this.http.get<SchoolClass[]>(
       `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/classes`
@@ -92,7 +58,7 @@ export class AcademicYearService {
   createClass(
     establishmentId: string,
     academicYearId: string,
-    request: Pick<SchoolClass, 'gradeLevelId' | 'code' | 'name'>
+    request: Pick<SchoolClass, 'code' | 'name'>
   ): Observable<SchoolClass> {
     return this.http.post<SchoolClass>(
       `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/classes`,
@@ -104,7 +70,7 @@ export class AcademicYearService {
     establishmentId: string,
     academicYearId: string,
     schoolClassId: string,
-    request: Pick<SchoolClass, 'gradeLevelId' | 'code' | 'name'>
+    request: Pick<SchoolClass, 'code' | 'name'>
   ): Observable<SchoolClass> {
     return this.http.patch<SchoolClass>(
       `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/classes/${schoolClassId}`,

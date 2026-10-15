@@ -22,8 +22,7 @@ describe('EnrollmentWorkspaceComponent', () => {
 
   function flushAll(http: HttpTestingController, enrollments: unknown[] = []): void {
     http.expectOne(`${base}/students`).flush([{ id: 'st-1', establishmentId: 'school-1', studentNumber: 'STU-1', firstName: 'Ada', lastName: 'Lovelace', enabled: true }]);
-    http.expectOne(`${base}/grade-levels`).flush([{ id: 'l-1', establishmentId: 'school-1', code: 'P1', name: 'Primary 1', displayOrder: 1, enabled: true }]);
-    http.expectOne(`${base}/school-years/year-1/classes`).flush([{ id: 'c-1', establishmentId: 'school-1', academicYearId: 'year-1', gradeLevelId: 'l-1', code: 'P1-A', name: 'Primary 1 A', enabled: true }]);
+    http.expectOne(`${base}/school-years/year-1/classes`).flush([{ id: 'c-1', establishmentId: 'school-1', academicYearId: 'year-1', code: 'P1-A', name: 'Primary 1 A', enabled: true }]);
     http.expectOne(`${base}/school-years/year-1/enrollments`).flush(enrollments);
   }
 

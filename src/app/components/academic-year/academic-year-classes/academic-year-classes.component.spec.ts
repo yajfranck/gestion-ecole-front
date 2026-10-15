@@ -24,14 +24,13 @@ describe('AcademicYearClassesComponent', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(AcademicYearClassesComponent);
     fixture.detectChanges();
-    http.expectOne(`${base}/grade-levels`).flush([]);
     http.expectOne(`${base}/school-years/year-1/classes`).flush([]);
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent;
     expect(text).toContain('Classes de l’année');
-    expect(text).toContain('référentiels de l’établissement');
-    expect(text).not.toContain('Ajouter une matière');
+    expect(text).toContain('Ajouter une classe');
+    expect(text).not.toContain('Niveau');
     http.verify();
   });
 });

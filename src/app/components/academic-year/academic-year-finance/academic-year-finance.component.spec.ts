@@ -15,7 +15,7 @@ describe('AcademicYearFinanceComponent', () => {
     providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
-  it('charge niveaux et élèves de l’établissement pour l’année sélectionnée', () => {
+  it('charge classes de l’année et élèves de l’établissement pour l’année sélectionnée', () => {
     const http = TestBed.inject(HttpTestingController);
     const context = TestBed.inject(WorkspaceContextService);
     context.selectEstablishment({ id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' });
@@ -23,7 +23,7 @@ describe('AcademicYearFinanceComponent', () => {
 
     const fixture = TestBed.createComponent(AcademicYearFinanceComponent);
     fixture.detectChanges();
-    http.expectOne(`${base}/grade-levels`).flush([]);
+    http.expectOne(`${base}/school-years/year-1/classes`).flush([]);
     http.expectOne(`${base}/students`).flush([]);
     fixture.detectChanges();
 
@@ -39,7 +39,7 @@ describe('AcademicYearFinanceComponent', () => {
 
     const fixture = TestBed.createComponent(AcademicYearFinanceComponent);
     fixture.detectChanges();
-    http.expectOne(`${base}/grade-levels`).flush(null, { status: 500, statusText: 'Server Error' });
+    http.expectOne(`${base}/school-years/year-1/classes`).flush(null, { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Impossible de charger l’espace financier');

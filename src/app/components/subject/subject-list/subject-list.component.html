@@ -1,8 +1,9 @@
-<section class="rounded-xl border border-[#e1e7e0] bg-white" aria-labelledby="subjects-title">
-  <div class="border-b border-[#e9ede8] px-5 py-4 sm:px-6">
-    <p class="text-xs font-bold uppercase tracking-[0.12em] text-[#819087]">Référentiel de l’établissement</p>
-    <h2 id="subjects-title" class="mt-1 text-lg font-semibold text-[#26372d]">Matières</h2>
-    <p class="mt-1 text-sm text-[#69756d]">Les matières sont communes à l’établissement et s’affectent aux classes de chaque année depuis la page Classes.</p>
+<section class="section" aria-labelledby="subjects-title">
+  <div class="section-header">
+    <div>
+      <h2 id="subjects-title" class="section-title">Matières</h2>
+      <p class="section-hint">Communes à l’établissement ; elles s’affectent aux classes de chaque année depuis la page Classes.</p>
+    </div>
   </div>
 
   @if (successMessage()) {
@@ -10,11 +11,11 @@
   }
 
   @if (isLoading()) {
-    <p class="px-5 py-5 text-sm text-[#849087]" aria-label="Chargement des matières">Chargement des matières…</p>
+    <p class="state-loading" aria-live="polite">Chargement des matières…</p>
   } @else if (loadError()) {
-    <div class="px-5 py-5" role="alert"><p class="text-sm text-[#8a3e2d]">{{ loadError() }}</p><button class="mt-2 text-sm font-semibold text-[#47745d] underline" type="button" (click)="load()">Réessayer</button></div>
+    <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
   } @else if (subjects().length === 0) {
-    <p class="px-5 py-5 text-sm text-[#69756d] sm:px-6">Aucune matière n’est configurée.</p>
+    <p class="state-empty">Aucune matière n’est configurée.</p>
   } @else {
     <div class="overflow-x-auto">
       <table class="min-w-full text-left text-sm">
@@ -35,24 +36,32 @@
     </div>
   }
 
-  <form class="grid gap-4 border-t border-[#edf0ec] p-5 sm:grid-cols-3 sm:p-6" (ngSubmit)="save()">
-    <h3 class="text-sm font-semibold text-[#35473b] sm:col-span-3">{{ editingId() ? 'Modifier la matière' : 'Ajouter une matière' }}</h3>
-    <label class="block text-sm font-medium text-[#35473b]" for="subject-code">Code
-      <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="subject-code" name="subjectCode" [(ngModel)]="code" maxlength="40" placeholder="MATH" required>
-    </label>
-    <label class="block text-sm font-medium text-[#35473b]" for="subject-name">Nom
-      <input class="mt-2 min-h-11 w-full rounded-lg border border-[#d7ddd6] px-3 text-sm outline-none focus:border-[#47745d] focus:ring-2 focus:ring-[#47745d]/15" id="subject-name" name="subjectName" [(ngModel)]="name" maxlength="100" placeholder="Mathématiques" required>
-    </label>
-    <div class="flex items-end gap-2">
-      <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[#244a37] px-4 text-sm font-semibold text-white hover:bg-[#193b2b] disabled:opacity-60" type="submit" [disabled]="isSaving()">
-        @if (isSaving()) { Enregistrement… } @else if (editingId()) { Enregistrer } @else { <svg lucidePlus [size]="16" aria-hidden="true"></svg> Ajouter }
-      </button>
+  <details class="border-t border-[#edf0ec]" [open]="!!editingId() || (!isLoading() && subjects().length === 0)">
+    <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">{{ editingId() ? 'Modifier la matière' : 'Ajouter une matière' }}</summary>
+    <form class="form-grid pt-1" (ngSubmit)="save()" [attr.aria-busy]="isSaving()">
       @if (editingId()) {
-        <button class="min-h-11 rounded-lg border border-[#dfe5de] px-4 text-sm font-semibold text-[#35473b]" type="button" (click)="cancelEditing()">Annuler</button>
+        <p class="form-title"><span>Modification de la matière</span><span class="form-mode">Modification</span></p>
       }
-    </div>
-    @if (formError()) {
-      <p class="text-sm text-[#8a3e2d] sm:col-span-3" role="alert">{{ formError() }}</p>
-    }
-  </form>
+      <label class="form-field form-field-wide">
+        <span class="form-label is-required">Nom</span>
+        <input class="form-control md:max-w-md" id="subject-name" name="subjectName" [(ngModel)]="name" maxlength="100" required>
+        <span class="form-hint">Exemple : Mathématiques.</span>
+      </label>
+      <label class="form-field form-field-compact">
+        <span class="form-label is-required">Code</span>
+        <input class="form-control font-mono" id="subject-code" name="subjectCode" [(ngModel)]="code" maxlength="40" required>
+        <span class="form-hint">Unique dans l’établissement, par exemple MATH.</span>
+      </label>
+      @if (formError()) {
+        <p class="form-error" role="alert">{{ formError() }}</p>
+      }
+      <p class="form-legend">* Champ obligatoire</p>
+      <div class="form-actions">
+        @if (editingId()) {
+          <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="cancelEditing()">Annuler</button>
+        }
+        <button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : (editingId() ? 'Enregistrer' : 'Créer la matière') }}</button>
+      </div>
+    </form>
+  </details>
 </section>

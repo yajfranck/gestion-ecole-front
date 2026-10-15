@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucidePlus } from '@lucide/angular';
 import { Subject } from '../../../models/subject/subject.model';
 import { SubjectService } from '../../../service/subject-service/subject.service';
 
 @Component({
   selector: 'app-subject-list',
-  imports: [FormsModule, LucidePlus],
+  imports: [FormsModule],
   templateUrl: './subject-list.component.html',
   styleUrl: './subject-list.component.css'
 })

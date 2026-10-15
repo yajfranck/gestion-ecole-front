@@ -25,22 +25,32 @@
     </ul>
   }
 
-  <form class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_1.4fr_auto]" (ngSubmit)="link()">
-    <label class="text-xs font-semibold text-[#536258]">Prénom
-      <input class="mt-1.5 min-h-10 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm font-normal" [name]="'guardianFirstName' + studentId()" [(ngModel)]="firstName" maxlength="100" required>
+  <form class="form-edit mt-4" (ngSubmit)="link()" [attr.aria-busy]="isLinking()">
+    <p class="form-title">Lier un tuteur</p>
+    <div class="form-row">
+      <label class="form-field">
+        <span class="form-label is-required">Prénom</span>
+        <input class="form-control" [name]="'guardianFirstName' + studentId()" [(ngModel)]="firstName" maxlength="100" required>
+      </label>
+      <label class="form-field">
+        <span class="form-label is-required">Nom</span>
+        <input class="form-control" [name]="'guardianLastName' + studentId()" [(ngModel)]="lastName" maxlength="100" required>
+      </label>
+    </div>
+    <label class="form-field form-field-wide">
+      <span class="form-label is-required">Adresse e-mail</span>
+      <input class="form-control md:max-w-md" [name]="'guardianEmail' + studentId()" type="email" [(ngModel)]="email" maxlength="254" required>
+      <span class="form-hint">Une invitation est envoyée si ce tuteur n’a pas encore d’accès parent.</span>
     </label>
-    <label class="text-xs font-semibold text-[#536258]">Nom
-      <input class="mt-1.5 min-h-10 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm font-normal" [name]="'guardianLastName' + studentId()" [(ngModel)]="lastName" maxlength="100" required>
-    </label>
-    <label class="text-xs font-semibold text-[#536258]">E-mail
-      <input class="mt-1.5 min-h-10 w-full rounded-lg border border-[#d7ddd6] bg-white px-3 text-sm font-normal" [name]="'guardianEmail' + studentId()" type="email" [(ngModel)]="email" maxlength="254" required>
-    </label>
-    <button class="min-h-10 self-end rounded-lg bg-[#244a37] px-3 text-sm font-semibold text-white hover:bg-[#193b2b] disabled:opacity-60" type="submit" [disabled]="isLinking()">{{ isLinking() ? 'Liaison…' : 'Lier un tuteur' }}</button>
+    @if (actionError()) {
+      <p class="form-error" role="alert">{{ actionError() }}</p>
+    }
+    @if (successMessage()) {
+      <output class="form-success">{{ successMessage() }}</output>
+    }
+    <p class="form-legend">* Champ obligatoire</p>
+    <div class="form-actions">
+      <button class="btn btn-primary" type="submit" [disabled]="isLinking()">{{ isLinking() ? 'Liaison…' : 'Lier le tuteur' }}</button>
+    </div>
   </form>
-  @if (actionError()) {
-    <p class="mt-2 text-sm text-[#8a3e2d]" role="alert">{{ actionError() }}</p>
-  }
-  @if (successMessage()) {
-    <output class="mt-2 block text-sm text-[#28563b]">{{ successMessage() }}</output>
-  }
 }

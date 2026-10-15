@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { GradeLevel } from '../../../models/grade-level/grade-level.model';
+import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { Student } from '../../../models/student/student.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { StudentService } from '../../../service/student-service/student.service';
@@ -19,7 +19,7 @@ export class AcademicYearFinanceComponent implements OnInit {
   private readonly workspaceContext = inject(WorkspaceContextService);
 
   protected readonly year = this.workspaceContext.academicYear;
-  protected readonly gradeLevels = signal<GradeLevel[]>([]);
+  protected readonly classes = signal<SchoolClass[]>([]);
   protected readonly students = signal<Student[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
@@ -34,9 +34,9 @@ export class AcademicYearFinanceComponent implements OnInit {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.academicYearService.getGradeLevels(year.establishmentId).subscribe({
-      next: (levels) => {
-        this.gradeLevels.set(levels);
+    this.academicYearService.getClasses(year.establishmentId, year.id).subscribe({
+      next: (classes) => {
+        this.classes.set(classes);
         this.studentService.getStudents(year.establishmentId).subscribe({
           next: (students) => {
             this.students.set(students);

@@ -1,13 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucidePlus } from '@lucide/angular';
 import { EstablishmentRole } from '../../../models/role/role.model';
 import { PositionService } from '../../../service/position-service/position.service';
 
 @Component({
   selector: 'app-position-form',
-  imports: [FormsModule, LucidePlus],
+  imports: [FormsModule],
   templateUrl: './position-form.component.html',
   styleUrl: './position-form.component.css'
 })
