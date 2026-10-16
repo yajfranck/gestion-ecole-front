@@ -40,6 +40,13 @@
       </a>
       </section>
 
+      @if (workspace(); as current) {
+        <section class="nav-section shrink-0" aria-label="Établissement">
+          <p class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.17em] text-white/50">Établissement</p>
+          <a class="nav-link inline-flex w-full items-center rounded-lg px-3 py-2.5 text-sm text-white/75 transition hover:bg-white/10 hover:text-white" [routerLink]="['/establishments', current.establishmentId]" routerLinkActive="is-active" [routerLinkActiveOptions]="{ exact: true }" ariaCurrentWhenActive="page">Configuration</a>
+        </section>
+      }
+
       <section class="nav-section shrink-0" aria-label="Compte">
         <p class="px-3 pb-1 pt-2 text-[10px] font-bold uppercase tracking-[0.17em] text-white/50">Compte</p>
         <a class="nav-link inline-flex w-full items-center rounded-lg px-3 py-2.5 text-sm text-white/75 transition hover:bg-white/10 hover:text-white" routerLink="/account/profile" routerLinkActive="is-active" ariaCurrentWhenActive="page">Mon profil</a>
@@ -50,23 +57,13 @@
   </aside>
 
   <div class="min-w-0 flex-1 lg:ml-[248px]">
-    <header class="flex min-h-[68px] items-center justify-between border-b border-[#e3e8e2] bg-white px-5 sm:px-8 lg:px-10">
-      <div class="flex min-w-0 items-center gap-2 text-xs text-[#77827a]">
+    <header class="relative z-40 flex min-h-[68px] items-center justify-between gap-3 border-b border-[#e3e8e2] bg-white px-5 sm:px-8 lg:px-10">
+      <div class="min-w-0 flex-1">
         @if (workspace(); as current) {
-          <span class="max-w-36 truncate font-medium text-[#35473b] sm:max-w-56">{{ current.establishmentName }}</span>
-          @if (current.academicYearName) {
-            <span aria-hidden="true">/</span>
-            <span class="max-w-28 truncate font-medium text-[#35473b] sm:max-w-40">{{ current.academicYearName }}</span>
-          }
-        } @else {
-          <span class="font-medium text-[#35473b]">Gestion École</span>
+          <app-establishment-nav [establishmentId]="current.establishmentId" />
         }
       </div>
-      <div class="flex items-center gap-4">
-        <span class="hidden items-center gap-2 text-xs font-medium text-[#5b6c60] sm:inline-flex">
-          <span class="size-2 rounded-full bg-[#5c9b6f]"></span>
-          Session active
-        </span>
+      <div class="flex shrink-0 items-center">
         <button
           class="logout-button inline-flex min-h-10 items-center gap-2 rounded-lg border border-[#dfe5de] px-3 text-sm font-semibold text-[#35473b] transition hover:border-[#b8c8bb] hover:bg-[#f5f8f4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d]"
           type="button"

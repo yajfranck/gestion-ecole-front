@@ -16,6 +16,7 @@ export class SchoolClassManagerComponent implements OnInit {
 
   readonly establishmentId = input.required<string>();
   readonly academicYearId = input.required<string>();
+  readonly initialClassId = input<string | null>(null);
 
   protected readonly classes = signal<SchoolClass[]>([]);
   protected readonly isLoading = signal(true);
@@ -44,6 +45,10 @@ export class SchoolClassManagerComponent implements OnInit {
     this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).subscribe({
       next: (classes) => {
         this.classes.set(classes);
+        const initial = this.initialClassId();
+        if (initial && this.expandedId() === null && classes.some((item) => item.id === initial)) {
+          this.expandedId.set(initial);
+        }
         this.isLoading.set(false);
       },
       error: (error: unknown) => {

@@ -1,16 +1,15 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
 import { AcademicYear } from '../../../models/academic-year/academic-year.model';
 import { Establishment } from '../../../models/establishment/establishment.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { EstablishmentService } from '../../../service/establishment-service/establishment.service';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
-import { EstablishmentNavComponent } from '../establishment-nav/establishment-nav.component';
 
 @Component({
   selector: 'app-establishment-workspace',
-  imports: [RouterLink, RouterOutlet, EstablishmentNavComponent],
+  imports: [RouterLink, RouterOutlet],
   templateUrl: './establishment-workspace.component.html',
   styleUrl: './establishment-workspace.component.css'
 })
@@ -22,6 +21,10 @@ export class EstablishmentWorkspaceComponent implements OnInit {
 
   protected readonly establishmentId = signal('');
   protected readonly establishment = signal<Establishment | null>(null);
+  protected readonly establishmentName = computed(() => {
+    const context = this.workspaceContext.current();
+    return context?.establishmentId === this.establishmentId() ? context.establishmentName : this.establishment()?.name;
+  });
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
 

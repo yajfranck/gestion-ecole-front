@@ -16,7 +16,7 @@ describe('EnrollmentWorkspaceComponent', () => {
       provideHttpClient(),
       provideHttpClientTesting(),
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1', academicYearId: 'year-1' }) } } }
+      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1', academicYearId: 'year-1' }), queryParamMap: convertToParamMap({}) } } }
     ]
   }));
 
@@ -42,12 +42,44 @@ describe('EnrollmentWorkspaceComponent', () => {
 
   it('affiche les inscriptions existantes', () => {
     const http = TestBed.inject(HttpTestingController);
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: unknown } };
+    route.snapshot.queryParamMap = convertToParamMap({ studentId: 'st-1', classId: 'c-1' });
+    const fixture = TestBed.createComponent(EnrollmentWorkspaceComponent);
+    fixture.detectChanges();
+    flushAll(http);
+    fixture.detectChanges();
+
+    const component = fixture.componentInstance as unknown as { studentId: string; schoolClassId: string };
+    expect(component.studentId).toBe('st-1');
+    expect(component.schoolClassId).toBe('c-1');
+    http.verify();
+  });
+
+  it('ignore un élève ou une classe inconnus dans l’URL', () => {
+    const http = TestBed.inject(HttpTestingController);
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: unknown } };
+    route.snapshot.queryParamMap = convertToParamMap({ studentId: 'inconnu', classId: 'inconnue' });
+    const fixture = TestBed.createComponent(EnrollmentWorkspaceComponent);
+    fixture.detectChanges();
+    flushAll(http);
+
+    const component = fixture.componentInstance as unknown as { studentId: string; schoolClassId: string };
+    expect(component.studentId).toBe('');
+    expect(component.schoolClassId).toBe('');
+    http.verify();
+  });
+
+  it('affiche les inscriptions existantes avec liens vers l’élève et la classe', () => {
+    const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(EnrollmentWorkspaceComponent);
     fixture.detectChanges();
     flushAll(http, [{ id: 'e-1', establishmentId: 'school-1', studentId: 'st-1', academicYearId: 'year-1', schoolClassId: 'c-1', createdAt: '2026-10-01T00:00:00Z' }]);
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('déjà inscrit');
+    const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('tbody a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('/establishments/school-1/students?studentId=st-1');
+    expect(hrefs).toContain('/establishments/school-1/school-years/year-1/classes?classId=c-1');
     http.verify();
   });
 });

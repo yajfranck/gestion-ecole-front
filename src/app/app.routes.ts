@@ -22,6 +22,9 @@ import { AcademicYearCalendarComponent } from './components/academic-year/academ
 import { AcademicYearFinanceComponent } from './components/academic-year/academic-year-finance/academic-year-finance.component';
 import { EmployeeDetailComponent } from './components/employee/employee-detail/employee-detail.component';
 import { GuardianChildrenComponent } from './components/guardian/guardian-children/guardian-children.component';
+import { AttendanceSheetComponent } from './components/attendance/attendance-sheet/attendance-sheet.component';
+import { AttendanceHistoryComponent } from './components/attendance/attendance-history/attendance-history.component';
+import { pendingChangesGuard } from './shared/pending-changes.service';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },
@@ -66,7 +69,9 @@ export const routes: Routes = [
 						path: 'school-years/:academicYearId',
 						component: AcademicYearWorkspaceComponent,
 						children: [
-							{ path: 'classes', component: AcademicYearClassesComponent },
+														{ path: 'classes', component: AcademicYearClassesComponent },
+														{ path: 'attendance', component: AttendanceSheetComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+														{ path: 'attendance/history/:studentId', component: AttendanceHistoryComponent },
 							{ path: 'enrollments', component: EnrollmentWorkspaceComponent },
 							{ path: 'calendar', component: AcademicYearCalendarComponent },
 							{ path: 'finance', component: AcademicYearFinanceComponent },

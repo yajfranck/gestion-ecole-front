@@ -1,22 +1,30 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Student } from '../../../models/student/student.model';
 import { StudentService } from '../../../service/student-service/student.service';
+import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 import { StudentGuardiansComponent } from '../student-guardians/student-guardians.component';
 
 @Component({
   selector: 'app-student-list',
-  imports: [FormsModule, StudentGuardiansComponent],
+  imports: [FormsModule, RouterLink, StudentGuardiansComponent],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.css'
 })
 export class StudentListComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly studentService = inject(StudentService);
+  private readonly workspaceContext = inject(WorkspaceContextService);
 
   protected readonly establishmentId = signal('');
+  // Année sélectionnée, uniquement si elle appartient à cet établissement.
+  protected readonly academicYearId = computed(() => {
+    const context = this.workspaceContext.current();
+    return context?.establishmentId === this.establishmentId() ? context.academicYearId : null;
+  });
+  protected readonly lastCreated = signal<Student | null>(null);
   protected readonly students = signal<Student[]>([]);
   protected readonly isLoading = signal(true);
   protected readonly isCreating = signal(false);
@@ -35,6 +43,7 @@ export class StudentListComponent implements OnInit {
 
   ngOnInit(): void {
     this.establishmentId.set(this.route.snapshot.paramMap.get('establishmentId') ?? '');
+    this.expandedId.set(this.route.snapshot.queryParamMap.get('studentId'));
     this.load();
   }
 
@@ -60,12 +69,14 @@ export class StudentListComponent implements OnInit {
 
     this.actionError.set(null);
     this.successMessage.set(null);
+    this.lastCreated.set(null);
     this.isCreating.set(true);
     this.studentService.createStudent(this.establishmentId(), { firstName, lastName }).subscribe({
       next: (student) => {
         this.firstName = '';
         this.lastName = '';
         this.isCreating.set(false);
+        this.lastCreated.set(student);
         this.successMessage.set(`${student.firstName} ${student.lastName} a été ajouté avec le numéro ${student.studentNumber}.`);
         this.load();
       },

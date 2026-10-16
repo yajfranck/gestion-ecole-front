@@ -14,6 +14,13 @@ describe('EstablishmentService', () => {
     http = TestBed.inject(HttpTestingController);
   });
   afterEach(() => http.verify());
+  it('envoie seulement les champs fournis avec PATCH', () => {
+    service.update('school-1', { name: 'Nouveau nom' }).subscribe();
+    const request = http.expectOne(`${environment.apiUrl}/establishments/school-1`);
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({ name: 'Nouveau nom' });
+    request.flush({ id: 'school-1', code: 'S1', name: 'Nouveau nom', enabled: true });
+  });
   it('lists accessible establishments and onboards one with its first administrator', () => {
     service.getAccessible().subscribe();
     http.expectOne(`${environment.apiUrl}/establishments`).flush([]);

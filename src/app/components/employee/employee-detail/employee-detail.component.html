@@ -21,11 +21,15 @@
       <dl class="section-body grid gap-5 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Matricule</dt><dd class="mt-1 font-mono text-[#35473b]">{{ current.employeeNumber }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">E-mail</dt><dd class="mt-1 break-all text-[#35473b]">{{ current.email }}</dd></div>
-        <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Poste</dt><dd class="mt-1 text-[#35473b]">{{ current.positionName }}</dd></div>
+        <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Poste</dt><dd class="mt-1 text-[#35473b]">{{ current.positionName }}
+          @if (!isSelf && establishmentId()) { <a class="ml-2 text-xs font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'team', 'positions']">Voir les postes</a> }
+        </dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Connexion</dt><dd class="mt-1 text-[#35473b]">{{ current.loginEnabled ? 'Activée' : 'Non activée' }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Administrateur d’établissement</dt><dd class="mt-1 text-[#35473b]">{{ current.establishmentAdmin ? 'Oui' : 'Non' }}</dd></div>
         <div class="sm:col-span-2 lg:col-span-3">
-          <dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Rôles effectifs</dt>
+          <dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Rôles effectifs
+            @if (!isSelf && establishmentId()) { <a class="ml-2 text-xs font-semibold normal-case tracking-normal text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'team', 'roles']">Voir les rôles</a> }
+          </dt>
           <dd class="mt-2 flex flex-wrap gap-2">
             @for (role of current.roles; track role) {
               <span class="rounded-full bg-[#edf5ee] px-2.5 py-1 text-xs font-semibold text-[#3d714e]">{{ role }}</span>

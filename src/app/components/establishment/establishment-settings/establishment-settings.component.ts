@@ -7,6 +7,7 @@ import { Establishment } from '../../../models/establishment/establishment.model
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { EstablishmentService } from '../../../service/establishment-service/establishment.service';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-establishment-settings',
@@ -19,6 +20,13 @@ export class EstablishmentSettingsComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly establishmentService = inject(EstablishmentService);
   private readonly workspaceContext = inject(WorkspaceContextService);
+  protected readonly access = inject(WorkspaceAccessService);
+  protected readonly editing = signal(false);
+  protected readonly isSaving = signal(false);
+  protected readonly updateError = signal<string | null>(null);
+  protected readonly updateSuccess = signal<string | null>(null);
+  protected editCode = '';
+  protected editName = '';
 
   protected readonly workspace = this.workspaceContext.current;
   protected readonly establishmentId = signal('');
@@ -59,6 +67,54 @@ export class EstablishmentSettingsComponent implements OnInit {
 
   protected select(year: AcademicYear): void {
     this.workspaceContext.selectAcademicYear(year);
+  }
+
+  protected edit(): void {
+    const establishment = this.establishment();
+    if (!establishment || !this.access.canUpdateEstablishment(establishment.id)) return;
+    this.editCode = establishment.code;
+    this.editName = establishment.name;
+    this.updateError.set(null);
+    this.updateSuccess.set(null);
+    this.editing.set(true);
+  }
+
+  protected saveEstablishment(): void {
+    const establishment = this.establishment();
+    if (!establishment || this.isSaving() || !this.access.canUpdateEstablishment(establishment.id)) return;
+    const code = this.editCode.trim();
+    const name = this.editName.trim();
+    if (!code || code.length > 40 || !name || name.length > 200) {
+      this.updateError.set('Le code est obligatoire (40 caractères maximum), ainsi que le nom (200 caractères maximum).');
+      return;
+    }
+    const request: Partial<Pick<Establishment, 'code' | 'name'>> = {};
+    if (code !== establishment.code) request.code = code;
+    if (name !== establishment.name) request.name = name;
+    if (!Object.keys(request).length) {
+      this.editing.set(false);
+      return;
+    }
+    this.isSaving.set(true);
+    this.updateError.set(null);
+    this.establishmentService.update(establishment.id, request).subscribe({
+      next: (updated) => {
+        this.establishment.set(updated);
+        this.workspaceContext.selectEstablishment(updated);
+        this.isSaving.set(false);
+        this.editing.set(false);
+        this.updateSuccess.set('Établissement modifié.');
+      },
+      error: (error: unknown) => {
+        this.isSaving.set(false);
+        const status = error instanceof HttpErrorResponse ? error.status : 0;
+        this.updateError.set(status === 409 ? 'Ce code est déjà utilisé par un établissement.'
+          : status === 403 ? 'Accès refusé : vous ne pouvez pas modifier cet établissement.'
+          : status === 400 ? 'Données invalides : vérifiez le code et le nom.'
+          : status === 404 ? 'Cet établissement est absent ou désactivé.'
+          : 'Impossible de modifier l’établissement. Votre saisie est conservée.');
+      }
+    });
   }
 
   protected createAcademicYear(): void {

@@ -28,7 +28,7 @@ describe('EstablishmentWorkspaceComponent', () => {
     });
   });
 
-  it('fournit un seul cadre (en-tête, navigation, contenu) une fois établissement et années chargés', () => {
+  it('fournit le contenu sans dupliquer la navigation du layout', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(EstablishmentWorkspaceComponent);
     fixture.detectChanges();
@@ -40,7 +40,7 @@ describe('EstablishmentWorkspaceComponent', () => {
 
     const root = fixture.nativeElement as HTMLElement;
     expect(root.textContent).toContain('École school-1');
-    expect(root.querySelector('app-establishment-nav')).toBeTruthy();
+    expect(root.querySelector('app-establishment-nav')).toBeNull();
     expect(root.querySelector('router-outlet')).toBeTruthy();
     http.verify();
   });

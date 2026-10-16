@@ -9,6 +9,21 @@
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Code</dt><dd class="mt-1 font-mono text-[#35473b]">{{ current.code }}</dd></div>
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">État</dt><dd class="mt-1 text-[#35473b]">{{ current.enabled ? 'Actif' : 'Désactivé' }}</dd></div>
       </dl>
+      @if (access.canUpdateEstablishment(current.id) && !editing()) {
+        <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="edit()">Modifier</button></div>
+      }
+      @if (editing()) {
+        <form class="form-grid" (ngSubmit)="saveEstablishment()" [attr.aria-busy]="isSaving()">
+          <label class="form-field"><span class="form-label is-required">Code</span><input class="form-control" name="establishmentCode" [(ngModel)]="editCode" maxlength="40" required [disabled]="isSaving()"></label>
+          <label class="form-field"><span class="form-label is-required">Nom</span><input class="form-control" name="establishmentName" [(ngModel)]="editName" maxlength="200" required [disabled]="isSaving()"></label>
+          @if (updateError()) { <p class="form-error" role="alert">{{ updateError() }}</p> }
+          <div class="form-actions">
+            <button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+            <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="editing.set(false)">Annuler</button>
+          </div>
+        </form>
+      }
+      @if (updateSuccess()) { <p class="px-5 py-3 text-sm text-[#28563b]" role="status">{{ updateSuccess() }}</p> }
     } @else {
       <p class="state-loading" aria-live="polite">Chargement des informations…</p>
     }
@@ -54,7 +69,8 @@
                   @if (workspace()?.academicYearId !== year.id) {
                     <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="select(year)">Sélectionner</button>
                   }
-                  <a class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'classes']">Ouvrir</a>
+                  <a class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'classes']" [attr.aria-label]="'Ouvrir les classes de ' + year.name">Classes</a>
+                  <a class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'enrollments']" [attr.aria-label]="'Ouvrir les inscriptions de ' + year.name">Inscriptions</a>
                 </td>
               </tr>
             }

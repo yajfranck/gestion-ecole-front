@@ -7,7 +7,15 @@
   </div>
 
   @if (successMessage()) {
-    <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}</output>
+    <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}
+      @if (lastCreated(); as created) {
+        @if (academicYearId(); as yearId) {
+          <a class="ml-2 font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', yearId, 'enrollments']" [queryParams]="{ studentId: created.id }">Inscrire cet élève</a>
+        } @else {
+          <span class="ml-2 text-[#69756d]">Pour l’inscrire, <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId()]">sélectionnez d’abord une année scolaire</a>.</span>
+        }
+      }
+    </output>
   }
 
   @if (isLoading()) {
@@ -28,6 +36,10 @@
               <td class="whitespace-nowrap px-5 py-3 font-medium text-[#35473b] sm:px-6">{{ student.studentNumber }}</td>
               <td class="whitespace-nowrap px-5 py-3 text-[#536258]">{{ student.firstName }} {{ student.lastName }}</td>
               <td class="whitespace-nowrap px-5 py-3 text-right">
+                @if (academicYearId(); as yearId) {
+                  <a class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', yearId, 'enrollments']" [queryParams]="{ studentId: student.id }">Inscrire</a>
+                  <a class="inline-flex min-h-9 items-center rounded-lg px-2 text-xs font-semibold text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', yearId, 'finance']" [queryParams]="{ studentId: student.id }">Situation financière</a>
+                }
                 <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" [attr.aria-expanded]="expandedId() === student.id" (click)="toggleDetail(student)">{{ expandedId() === student.id ? 'Masquer' : 'Fiche et tuteurs' }}</button>
                 <button class="ml-2 min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(student)" [disabled]="isUpdating() || !!archivingId()">Modifier</button>
                 <button class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" (click)="archive(student)" [disabled]="!!archivingId() || isUpdating()">{{ archivingId() === student.id ? 'Archivage…' : 'Archiver' }}</button>

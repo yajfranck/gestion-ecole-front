@@ -38,6 +38,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   readonly academicYearEndsOn = input('');
   readonly classes = input<SchoolClass[]>([]);
   readonly students = input<Student[]>([]);
+  readonly initialStudentId = input<string | null>(null);
 
   protected readonly activeView = signal<FinanceView>('payments');
   protected readonly paymentMethods = signal<TuitionPaymentMethod[]>([]);
@@ -88,6 +89,10 @@ export class TuitionWorkspaceComponent implements OnInit {
   protected paymentMethodEditName = '';
   protected feeAmount: number | null = null;
   protected feeCurrency = 'XOF';
+  protected readonly currencyOptions = [
+    { code: 'XAF', label: 'Franc CFA d’Afrique centrale' },
+    { code: 'XOF', label: 'Franc CFA d’Afrique de l’Ouest' }
+  ] as const;
   protected feeDueDate = '';
   protected feeScope: FeeScope = 'ACADEMIC_YEAR';
   protected feeSchoolClassId = '';
@@ -97,6 +102,11 @@ export class TuitionWorkspaceComponent implements OnInit {
   protected paymentReference = '';
 
   ngOnInit(): void {
+    const studentId = this.initialStudentId();
+    if (studentId && this.students().some((student) => student.id === studentId)) {
+      this.activeView.set('history');
+      this.loadStudentCharges(studentId);
+    }
     this.loadPaymentMethods();
     this.loadFeeTypes();
     this.loadFees();
@@ -341,11 +351,15 @@ export class TuitionWorkspaceComponent implements OnInit {
 
   protected createFee(): void {
     const name = this.feeName.trim();
-    const currency = this.feeCurrency.trim().toUpperCase();
+    const currency = this.feeCurrency;
     const amount = Number(this.feeAmount);
+    if (!this.currencyOptions.some((option) => option.code === currency)) {
+      this.feesError.set('Choisissez une devise valide : XAF ou XOF.');
+      return;
+    }
     if (!name || name.length > 120 || !this.feeTypeId() || !Number.isFinite(amount) || amount <= 0 ||
-        !/^[A-Z]{3}$/.test(currency) || !this.feeDueDate || this.isCreatingFee()) {
-      this.feesError.set('Vérifiez le nom, le type, le montant positif, la devise et la date d’échéance.');
+        !this.feeDueDate || this.isCreatingFee()) {
+      this.feesError.set('Vérifiez le nom, le type, le montant positif et la date d’échéance.');
       return;
     }
     if (this.feeScope === 'SCHOOL_CLASS' && !this.feeSchoolClassId) {

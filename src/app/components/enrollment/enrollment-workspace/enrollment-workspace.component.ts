@@ -31,14 +31,19 @@ export class EnrollmentWorkspaceComponent implements OnInit {
   protected readonly loadError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
+  protected readonly lastEnrollment = signal<Enrollment | null>(null);
 
   protected studentId = '';
   protected schoolClassId = '';
+  private requestedStudentId = '';
+  private requestedClassId = '';
 
   ngOnInit(): void {
     const params = this.route.snapshot.paramMap;
     this.establishmentId.set(params.get('establishmentId') ?? '');
     this.academicYearId.set(params.get('academicYearId') ?? '');
+    this.requestedStudentId = this.route.snapshot.queryParamMap.get('studentId') ?? '';
+    this.requestedClassId = this.route.snapshot.queryParamMap.get('classId') ?? '';
     this.load();
   }
 
@@ -56,6 +61,7 @@ export class EnrollmentWorkspaceComponent implements OnInit {
             this.enrollmentService.getEnrollments(establishmentId, academicYearId).subscribe({
               next: (enrollments) => {
                 this.enrollments.set(enrollments);
+                this.preselectRequestedStudent();
                 this.isLoading.set(false);
               },
               error: (error: unknown) => this.failLoad(error)
@@ -73,14 +79,16 @@ export class EnrollmentWorkspaceComponent implements OnInit {
 
     this.actionError.set(null);
     this.successMessage.set(null);
+    this.lastEnrollment.set(null);
     this.isCreating.set(true);
     this.enrollmentService.createEnrollment(this.establishmentId(), this.academicYearId(), {
       studentId: this.studentId,
       schoolClassId: this.schoolClassId
     }).subscribe({
-      next: () => {
+      next: (enrollment) => {
         this.studentId = '';
         this.isCreating.set(false);
+        this.lastEnrollment.set(enrollment);
         this.successMessage.set('L’inscription a été enregistrée.');
         this.reloadEnrollments();
       },
@@ -93,6 +101,20 @@ export class EnrollmentWorkspaceComponent implements OnInit {
 
   protected hasEnrollment(studentId: string): boolean {
     return this.enrollments().some((enrollment) => enrollment.studentId === studentId);
+  }
+
+  // Ne préremplit que des élèves/classes connus ; l'élève ne doit pas être déjà inscrit.
+  private preselectRequestedStudent(): void {
+    const id = this.requestedStudentId;
+    const classId = this.requestedClassId;
+    this.requestedStudentId = '';
+    this.requestedClassId = '';
+    if (classId && this.classes().some((item) => item.id === classId)) {
+      this.schoolClassId = classId;
+    }
+    if (id && this.students().some((student) => student.id === id) && !this.hasEnrollment(id)) {
+      this.studentId = id;
+    }
   }
 
   protected studentNameFor(studentId: string): string {

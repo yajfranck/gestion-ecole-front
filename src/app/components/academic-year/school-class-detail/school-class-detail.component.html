@@ -44,12 +44,12 @@
     } @else if (studentError()) {
       <div class="mt-3" role="alert"><p class="text-sm text-[#8a3e2d]">{{ studentError() }}</p><button class="mt-1 text-sm font-semibold text-[#47745d] underline" type="button" (click)="loadStudents()">Réessayer</button></div>
     } @else if (students().length === 0) {
-      <p class="mt-3 text-sm text-[#69756d]">Aucun élève inscrit dans cette classe.</p>
+      <p class="mt-3 text-sm text-[#69756d]">Aucun élève inscrit dans cette classe. <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'enrollments']" [queryParams]="{ classId: schoolClassId() }">Inscrire un élève dans cette classe</a></p>
     } @else {
       <ul class="mt-3 divide-y divide-[#edf0ec] rounded-lg border border-[#e1e7e0] bg-white">
         @for (student of students(); track student.id) {
           <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-            <span class="text-[#35473b]">{{ student.lastName }} {{ student.firstName }}</span>
+            <a class="text-[#35473b] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'students']" [queryParams]="{ studentId: student.id }" [attr.aria-label]="'Voir la fiche de ' + student.firstName + ' ' + student.lastName">{{ student.lastName }} {{ student.firstName }}</a>
             <span class="font-mono text-xs text-[#78837b]">{{ student.studentNumber }}</span>
           </li>
         }

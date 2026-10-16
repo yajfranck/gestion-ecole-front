@@ -1,0 +1,29 @@
+<div class="space-y-4">
+  <header class="page-header"><div><a class="text-sm text-[#47745d]" routerLink="../..">Présences et absences</a><h2 class="page-title">Historique {{ studentName }}</h2></div></header>
+  @if (year(); as currentYear) {
+    @if (access.hasPermission('can_attendance_read', currentYear.establishmentId)) {
+      <section class="section">
+        <form class="form-grid" (ngSubmit)="load()">
+          <label class="form-field"><span class="form-label">Du</span><input class="form-control" type="date" name="from" [(ngModel)]="from" [min]="currentYear.startsOn" [max]="to" [disabled]="loading()" required></label>
+          <label class="form-field"><span class="form-label">Au</span><input class="form-control" type="date" name="to" [(ngModel)]="to" [min]="from" [max]="currentYear.endsOn" [disabled]="loading()" required></label>
+          <div class="form-actions"><button class="btn btn-primary" type="submit" [disabled]="loading()">{{ loading() ? 'Chargement…' : 'Consulter' }}</button></div>
+        </form>
+        @if (error()) { <p class="state-error" role="alert">{{ error() }}</p> }
+        @if (history(); as result) {
+          @if (!result.records.length) { <p class="state-empty">Aucun pointage sur cette période.</p> }
+          @else {
+            <div class="table-wrap"><table class="w-full min-w-xl text-left text-sm">
+              <caption class="sr-only">Pointages du {{ result.from }} au {{ result.to }}</caption>
+              <thead><tr><th class="px-5 py-3">Date</th><th class="px-4 py-3">Pointage</th><th class="px-4 py-3">Justifiée</th><th class="px-4 py-3">Commentaire</th></tr></thead>
+              <tbody class="divide-y divide-[#edf0ec]">
+                @for (record of result.records; track record.date) {
+                  <tr><td class="px-5 py-3">{{ record.date }}</td><td class="px-4 py-3" [class.text-[#8a3e2d]]="record.status === 'ABSENT'">{{ record.status === 'PRESENT' ? 'Présent' : 'Absent' }}</td><td class="px-4 py-3">{{ record.status === 'ABSENT' ? (record.absenceJustified ? 'Oui' : 'Non') : '—' }}</td><td class="max-w-sm whitespace-normal break-words px-4 py-3">{{ record.comment || '—' }}</td></tr>
+                }
+              </tbody>
+            </table></div>
+          }
+        }
+      </section>
+    } @else { <p class="state-error" role="status">La consultation des présences n’est pas autorisée pour votre compte dans cet établissement.</p> }
+  }
+</div>

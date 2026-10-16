@@ -16,7 +16,7 @@ describe('AcademicYearClassesComponent', () => {
       provideHttpClient(),
       provideHttpClientTesting(),
       provideRouter([]),
-      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1', academicYearId: 'year-1' }) } } }
+      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1', academicYearId: 'year-1' }), queryParamMap: convertToParamMap({}) } } }
     ]
   }));
 

@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { Student } from '../../../models/student/student.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
@@ -17,7 +18,9 @@ export class AcademicYearFinanceComponent implements OnInit {
   private readonly academicYearService = inject(AcademicYearService);
   private readonly studentService = inject(StudentService);
   private readonly workspaceContext = inject(WorkspaceContextService);
+  private readonly route = inject(ActivatedRoute);
 
+  protected readonly initialStudentId = this.route.snapshot.queryParamMap.get('studentId');
   protected readonly year = this.workspaceContext.academicYear;
   protected readonly classes = signal<SchoolClass[]>([]);
   protected readonly students = signal<Student[]>([]);

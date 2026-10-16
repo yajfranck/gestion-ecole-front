@@ -1,0 +1,65 @@
+<div class="space-y-4">
+  <header class="page-header"><h2 class="page-title">Présences et absences</h2></header>
+  @if (!canRead()) {
+    <p class="state-error" role="status">La consultation des présences n’est pas autorisée pour votre compte dans cet établissement.</p>
+  } @else {
+    <section class="section">
+      <div class="form-grid">
+        <label class="form-field"><span class="form-label">Classe</span>
+          <select #classSelect class="form-control" [value]="classId()" [disabled]="pending.saving()" (change)="changeClass(classSelect.value, classSelect)">
+            <option value="">Choisir une classe</option>
+            @for (schoolClass of classes(); track schoolClass.id) { <option [value]="schoolClass.id">{{ schoolClass.name }}</option> }
+          </select>
+        </label>
+        <label class="form-field"><span class="form-label">Date</span><input #dateInput class="form-control" type="date" [value]="date()" [min]="year()?.startsOn" [max]="year()?.endsOn" [disabled]="pending.saving()" (change)="changeDate(dateInput.value, dateInput)"></label>
+      </div>
+      @if (loading()) { <p class="state-loading" role="status">Chargement…</p> }
+      @if (error()) {
+        <div class="state-error" role="alert"><p>{{ error() }}</p>
+          <button class="state-retry" type="button" [disabled]="pending.saving()" (click)="classes().length ? discard() : reset()">{{ conflict() ? 'Recharger et abandonner la saisie' : 'Réessayer' }}</button>
+        </div>
+      }
+      @if (!loading() && !error() && !classes().length) { <p class="state-empty">Aucune classe active dans cette année scolaire.</p> }
+      @if (loaded()) {
+        <div class="flex flex-wrap items-center gap-4 border-y border-[#edf0ec] px-5 py-3 text-sm" aria-live="polite">
+          <span class="text-[#28563b]">Présents : {{ present() }}</span><span class="text-[#8a3e2d]">Absents : {{ absent() }}</span><span>Non renseignés : {{ unreported() }}</span>
+          @if (!canWrite()) { <span>Lecture seule</span> }
+        </div>
+        @if (rows().length === 0) { <p class="state-empty">Aucun élève actif inscrit dans cette classe.</p> }
+        @else {
+          @if (canWrite()) {
+            <div class="flex flex-wrap gap-3 px-5 py-3"><button class="btn btn-secondary" type="button" [disabled]="pending.saving() || !unreported() || conflict()" (click)="markUnreported()">Marquer les non renseignés présents</button></div>
+          }
+          <div class="table-wrap"><table class="w-full min-w-3xl text-left text-sm">
+            <caption class="sr-only">Appel du {{ date() }}</caption>
+            <thead><tr><th class="px-5 py-3">Élève</th><th class="px-4 py-3">Pointage</th><th class="px-4 py-3">Justifiée</th><th class="px-4 py-3">Commentaire</th><th class="px-4 py-3">Historique</th></tr></thead>
+            <tbody class="divide-y divide-[#edf0ec]">
+              @for (row of rows(); track row.studentId) {
+                <tr>
+                  <td class="px-5 py-3"><span class="block font-medium">{{ row.lastName }} {{ row.firstName }}</span><span class="text-xs text-[#758178]">{{ row.studentNumber }}</span></td>
+                  <td class="px-4 py-3">
+                    <select class="form-control min-w-40" [attr.aria-label]="'Pointage de ' + row.firstName + ' ' + row.lastName" [ngModel]="row.status" (ngModelChange)="status(row.studentId, $event)" [disabled]="!canWrite() || pending.saving() || conflict()">
+                      @if (wasUnreported(row.studentId)) { <option value="NON_RENSEIGNE">Non renseigné</option> }
+                      <option value="PRESENT">Présent</option><option value="ABSENT">Absent</option>
+                    </select>
+                  </td>
+                  <td class="px-4 py-3"><input type="checkbox" class="h-4 w-4 accent-[#28563b]" [attr.aria-label]="'Absence justifiée pour ' + row.firstName" [ngModel]="row.absenceJustified" (ngModelChange)="update(row.studentId, { absenceJustified: $event })" [disabled]="!canWrite() || row.status !== 'ABSENT' || pending.saving() || conflict()"></td>
+                  <td class="px-4 py-3"><input class="form-control min-w-48" maxlength="500" [attr.aria-label]="'Commentaire pour ' + row.firstName" [ngModel]="row.comment" (ngModelChange)="update(row.studentId, { comment: $event })" [disabled]="!canWrite() || row.status === 'NON_RENSEIGNE' || pending.saving() || conflict()"></td>
+                  <td class="px-4 py-3"><a class="font-semibold text-[#47745d]" [routerLink]="['history', row.studentId]" [queryParams]="{ name: row.firstName + ' ' + row.lastName }">Historique</a></td>
+                </tr>
+              }
+            </tbody>
+          </table></div>
+          @if (canWrite()) {
+            <div class="form-actions flex-wrap">
+              @if (pending.dirty()) { <span class="text-sm text-[#8a3e2d]" role="status">Modifications non enregistrées</span> }
+              <button class="btn btn-secondary" type="button" [disabled]="!pending.dirty() || pending.saving()" (click)="discard()">Annuler</button>
+              <button class="btn btn-primary" type="button" [disabled]="!pending.dirty() || pending.saving() || conflict()" (click)="save()">{{ pending.saving() ? 'Enregistrement…' : 'Enregistrer l’appel' }}</button>
+            </div>
+          }
+        }
+      }
+      @if (success()) { <p class="px-5 py-3 text-sm text-[#28563b]" role="status">{{ success() }}</p> }
+    </section>
+  }
+</div>

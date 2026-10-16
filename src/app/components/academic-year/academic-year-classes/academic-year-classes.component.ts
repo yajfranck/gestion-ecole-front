@@ -13,10 +13,12 @@ export class AcademicYearClassesComponent implements OnInit {
 
   protected readonly establishmentId = signal('');
   protected readonly academicYearId = signal('');
+  protected readonly selectedClassId = signal<string | null>(null);
 
   ngOnInit(): void {
     const params = this.route.snapshot.paramMap;
     this.establishmentId.set(params.get('establishmentId') ?? '');
     this.academicYearId.set(params.get('academicYearId') ?? '');
+    this.selectedClassId.set(this.route.snapshot.queryParamMap.get('classId'));
   }
 }

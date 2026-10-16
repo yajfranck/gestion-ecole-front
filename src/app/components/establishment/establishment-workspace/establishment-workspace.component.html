@@ -2,9 +2,9 @@
   <nav class="mb-3 text-sm text-[#758178]" aria-label="Fil d’Ariane">
     <a class="text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Établissements</a>
     <span class="px-2" aria-hidden="true">/</span>
-    <span class="text-[#35473b]">{{ establishment()?.name || 'Espace établissement' }}</span>
+    <span class="text-[#35473b]">{{ establishmentName() || 'Espace établissement' }}</span>
   </nav>
-  <h1 class="sr-only">{{ establishment()?.name || 'Établissement' }}</h1>
+  <h1 class="sr-only">{{ establishmentName() || 'Établissement' }}</h1>
 
   @if (isLoading()) {
     <div class="h-36 animate-pulse rounded-xl border border-[#e1e7e0] bg-white" aria-label="Chargement de l’établissement"></div>
@@ -14,7 +14,6 @@
       <button class="text-sm font-semibold text-[#8a3e2d] underline underline-offset-4" type="button" (click)="load()">Réessayer</button>
     </div>
   } @else {
-    <app-establishment-nav [establishmentId]="establishmentId()" />
     <router-outlet />
   }
 </section>

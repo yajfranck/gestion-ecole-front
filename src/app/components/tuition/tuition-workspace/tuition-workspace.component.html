@@ -192,8 +192,11 @@
         </label>
         <label class="form-field form-field-compact">
           <span class="form-label is-required">Devise</span>
-          <input class="form-control font-mono uppercase" name="feeCurrency" [(ngModel)]="feeCurrency" maxlength="3" pattern="[A-Za-z]{3}" required>
-          <span class="form-hint">Code à 3 lettres, par exemple XOF.</span>
+          <select class="form-control" name="feeCurrency" [(ngModel)]="feeCurrency" required>
+            @for (currency of currencyOptions; track currency.code) {
+              <option [value]="currency.code">{{ currency.code }} — {{ currency.label }}</option>
+            }
+          </select>
         </label>
         <label class="form-field form-field-compact">
           <span class="form-label is-required">Échéance</span>

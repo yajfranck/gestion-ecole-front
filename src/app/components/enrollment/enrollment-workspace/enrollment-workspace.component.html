@@ -21,7 +21,12 @@
     }
 
     @if (successMessage()) {
-      <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}</output>
+      <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}
+        @if (lastEnrollment(); as created) {
+          <a class="ml-2 font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: created.schoolClassId }">Voir la classe</a>
+          <a class="ml-3 font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'finance']" [queryParams]="{ studentId: created.studentId }">Voir la situation financière</a>
+        }
+      </output>
     }
 
     @if (enrollments().length === 0) {
@@ -34,8 +39,8 @@
           <tbody class="divide-y divide-[#edf0ec]">
             @for (enrollment of enrollments(); track enrollment.id) {
               <tr>
-                <td class="px-5 py-3 font-medium text-[#35473b] sm:px-6">{{ studentNameFor(enrollment.studentId) }}</td>
-                <td class="px-5 py-3 text-[#69756d]">{{ classNameFor(enrollment.schoolClassId) }}</td>
+                <td class="px-5 py-3 font-medium sm:px-6"><a class="text-[#35473b] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'students']" [queryParams]="{ studentId: enrollment.studentId }" [attr.aria-label]="'Voir la fiche de ' + studentNameFor(enrollment.studentId)">{{ studentNameFor(enrollment.studentId) }}</a></td>
+                <td class="px-5 py-3"><a class="text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: enrollment.schoolClassId }" [attr.aria-label]="'Voir la classe ' + classNameFor(enrollment.schoolClassId)">{{ classNameFor(enrollment.schoolClassId) }}</a></td>
               </tr>
             }
           </tbody>

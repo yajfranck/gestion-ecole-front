@@ -17,6 +17,10 @@ export class EstablishmentService {
     return this.http.get<Establishment[]>(`${this.apiUrl}/establishments`);
   }
 
+  update(establishmentId: string, request: Partial<Pick<Establishment, 'code' | 'name'>>): Observable<Establishment> {
+    return this.http.patch<Establishment>(`${this.apiUrl}/establishments/${establishmentId}`, request);
+  }
+
   create(request: OnboardEstablishmentRequest): Observable<EstablishmentOnboardingResponse> {
     return this.http.post<EstablishmentOnboardingResponse>(`${this.apiUrl}/establishments`, request);
   }

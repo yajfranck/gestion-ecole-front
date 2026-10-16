@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 import { AcademicYearFinanceComponent } from './academic-year-finance.component';
@@ -12,7 +13,7 @@ describe('AcademicYearFinanceComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [AcademicYearFinanceComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   }));
 
   it('charge classes de l’année et élèves de l’établissement pour l’année sélectionnée', () => {
