@@ -14,6 +14,7 @@ import { AttendanceSheetComponent } from './attendance-sheet.component';
 describe('AttendanceSheetComponent', () => {
   const base = `${environment.apiUrl}/establishments/school-1/school-years/year-1`;
   const year = { id: 'year-1', establishmentId: 'school-1', name: '2026-2027', startsOn: '2026-09-01', endsOn: '2027-06-30', enabled: true };
+  const room = { id: 'room-1', establishmentId: 'school-1', academicYearId: 'year-1', schoolClassId: 'class-1', code: 'A', name: 'Salle A', maxStudents: 40, enabled: true };
   const entry = (studentId: string, status: AttendanceEntry['status']): AttendanceEntry => ({
     studentId, studentNumber: studentId, firstName: studentId, lastName: 'Élève', status, absenceJustified: false,
     comment: null, createdBy: null, updatedBy: null, createdAt: null, updatedAt: status === 'NON_RENSEIGNE' ? null : '2026-10-16T08:00:00Z'
@@ -36,7 +37,7 @@ describe('AttendanceSheetComponent', () => {
 
   afterEach(() => TestBed.inject(HttpTestingController).verify({ ignoreCancelled: true }));
 
-  function setup() {
+  function setup(availableRooms = [room]) {
     const fixture = TestBed.createComponent(AttendanceSheetComponent);
     fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
@@ -45,10 +46,13 @@ describe('AttendanceSheetComponent', () => {
     const component = fixture.componentInstance;
     component['date'].set('2026-10-16');
     component['classId'].set('class-1');
-    component['load']();
-    const sheet: AttendanceSheet = { establishmentId: 'school-1', academicYearId: 'year-1', schoolClassId: 'class-1', date: '2026-10-16', presentCount: 1, absentCount: 1, unreportedCount: 1,
+    component['loadRooms']();
+    http.expectOne(`${base}/classes/class-1/classrooms`).flush(availableRooms);
+    const classroomId = availableRooms.length === 1 ? availableRooms[0].id : null;
+    const sheet: AttendanceSheet = { establishmentId: 'school-1', academicYearId: 'year-1', schoolClassId: 'class-1', classroomId, date: '2026-10-16', presentCount: 1, absentCount: 1, unreportedCount: 1,
       entries: [entry('student-1', 'NON_RENSEIGNE'), entry('student-2', 'ABSENT'), entry('student-3', 'PRESENT')] };
-    http.expectOne(`${base}/classes/class-1/attendance?date=2026-10-16`).flush(sheet);
+    const query = classroomId ? `?date=2026-10-16&classroomId=${classroomId}` : '?date=2026-10-16';
+    http.expectOne(`${base}/classes/class-1/attendance${query}`).flush(sheet);
     fixture.detectChanges();
     return { fixture, component, http, sheet, pending: TestBed.inject(PendingChangesService) };
   }
@@ -75,7 +79,7 @@ describe('AttendanceSheetComponent', () => {
     component['save']();
     component['save']();
     const request = http.expectOne(`${base}/classes/class-1/attendance/2026-10-16`);
-    expect(request.request.body.entries).toEqual([{ studentId: 'student-2', status: 'PRESENT', absenceJustified: false, comment: null, expectedUpdatedAt: '2026-10-16T08:00:00Z' }]);
+    expect(request.request.body).toEqual({ classroomId: 'room-1', entries: [{ studentId: 'student-2', status: 'PRESENT', absenceJustified: false, comment: null, expectedUpdatedAt: '2026-10-16T08:00:00Z' }] });
     request.flush({ ...sheet, entries: sheet.entries.map((row) => row.studentId === 'student-2' ? { ...row, status: 'PRESENT' } : row) });
     expect(pending.dirty()).toBeFalse();
     expect(pending.saving()).toBeFalse();
@@ -86,7 +90,7 @@ describe('AttendanceSheetComponent', () => {
     component['update']('student-1', { status: 'ABSENT', absenceJustified: true, comment: 'Maladie' });
     component['save']();
     const request = http.expectOne(`${base}/classes/class-1/attendance/2026-10-16`);
-    expect(request.request.body.entries).toEqual([{ studentId: 'student-1', status: 'ABSENT', absenceJustified: true, comment: 'Maladie' }]);
+    expect(request.request.body).toEqual({ classroomId: 'room-1', entries: [{ studentId: 'student-1', status: 'ABSENT', absenceJustified: true, comment: 'Maladie' }] });
     request.flush(sheet);
   });
 
@@ -151,6 +155,17 @@ describe('AttendanceSheetComponent', () => {
     component['load']();
     expect(component['error']()).toContain('année scolaire');
     http.expectNone((request) => request.url.includes('/attendance'));
+  });
+
+  it('conserve la lecture agrégée de la classe sans permettre la saisie sur toutes les salles', () => {
+    const { component, fixture, http } = setup([room, { ...room, id: 'room-2', code: 'B', name: 'Salle B' }]);
+    expect(component['classroomId']()).toBe('');
+    expect(component['loaded']()).toBeTrue();
+    expect(component['canEdit']()).toBeFalse();
+    expect(fixture.nativeElement.textContent).toContain('lecture seule');
+    component['markUnreported']();
+    expect(component['pending'].dirty()).toBeFalse();
+    http.expectNone((request) => request.method === 'PUT');
   });
 
   it('protège la fermeture de page quand une saisie est en cours', () => {

@@ -2,9 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { GuardianChild } from '../../../models/guardian/guardian.model';
 import { GuardianService } from '../../../service/guardian-service/guardian.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-guardian-children',
+  imports: [RouterLink],
   templateUrl: './guardian-children.component.html',
   styleUrl: './guardian-children.component.css'
 })

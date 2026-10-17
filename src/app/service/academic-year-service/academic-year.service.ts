@@ -3,7 +3,7 @@ import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AcademicYear } from '../../models/academic-year/academic-year.model';
-import { SchoolClass } from '../../models/school-class/school-class.model';
+import { CreateSchoolClassRequest, SchoolClass, SchoolClassRequest } from '../../models/school-class/school-class.model';
 
 @Injectable({ providedIn: 'root' })
 export class AcademicYearService {
@@ -58,7 +58,7 @@ export class AcademicYearService {
   createClass(
     establishmentId: string,
     academicYearId: string,
-    request: Pick<SchoolClass, 'code' | 'name'>
+    request: CreateSchoolClassRequest
   ): Observable<SchoolClass> {
     return this.http.post<SchoolClass>(
       `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/classes`,
@@ -70,7 +70,7 @@ export class AcademicYearService {
     establishmentId: string,
     academicYearId: string,
     schoolClassId: string,
-    request: Pick<SchoolClass, 'code' | 'name'>
+    request: Partial<SchoolClassRequest>
   ): Observable<SchoolClass> {
     return this.http.patch<SchoolClass>(
       `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/classes/${schoolClassId}`,

@@ -25,6 +25,9 @@ import { GuardianChildrenComponent } from './components/guardian/guardian-childr
 import { AttendanceSheetComponent } from './components/attendance/attendance-sheet/attendance-sheet.component';
 import { AttendanceHistoryComponent } from './components/attendance/attendance-history/attendance-history.component';
 import { pendingChangesGuard } from './shared/pending-changes.service';
+import { GuardianChildDetailComponent } from './components/guardian/guardian-child-detail/guardian-child-detail.component';
+import { LicenseWorkspaceComponent } from './components/license/license-workspace/license-workspace.component';
+import { LearningWorkspaceComponent } from './components/learning/learning-workspace/learning-workspace.component';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },
@@ -40,7 +43,10 @@ export const routes: Routes = [
 			{ path: 'account/password', component: ChangePasswordComponent },
 			{ path: 'account/profile', component: EmployeeDetailComponent, data: { self: true } },
 			{ path: 'parent/children', component: GuardianChildrenComponent },
+			{ path: 'parent/children/:studentId', component: GuardianChildDetailComponent },
+			{ path: 'parent/children/:studentId/school-years/:academicYearId/learning', component: LearningWorkspaceComponent, canDeactivate: [pendingChangesGuard] },
 			{ path: 'establishments', component: EstablishmentsComponent },
+			{ path: 'establishments/:establishmentId/license', component: LicenseWorkspaceComponent },
 			{
 				path: 'establishments/:establishmentId/employees',
 				redirectTo: 'establishments/:establishmentId/team/employees',
@@ -69,10 +75,11 @@ export const routes: Routes = [
 						path: 'school-years/:academicYearId',
 						component: AcademicYearWorkspaceComponent,
 						children: [
+							{ path: 'learning', component: LearningWorkspaceComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 														{ path: 'classes', component: AcademicYearClassesComponent },
 														{ path: 'attendance', component: AttendanceSheetComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 														{ path: 'attendance/history/:studentId', component: AttendanceHistoryComponent },
-							{ path: 'enrollments', component: EnrollmentWorkspaceComponent },
+							{ path: 'enrollments', component: EnrollmentWorkspaceComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 							{ path: 'calendar', component: AcademicYearCalendarComponent },
 							{ path: 'finance', component: AcademicYearFinanceComponent },
 							{ path: '', redirectTo: 'classes', pathMatch: 'full' }

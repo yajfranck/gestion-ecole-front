@@ -48,6 +48,7 @@ export interface TuitionFee {
   dueDate: string;
   scope: TuitionFeeScope;
   schoolClassId: string | null;
+  schoolClassIds: string[];
   studentId: string | null;
   createdAt: string;
 }
@@ -59,6 +60,7 @@ export interface CreateTuitionFeeRequest {
   currency: string;
   dueDate: string;
   schoolClassId?: string | null;
+  schoolClassIds?: string[] | null;
   studentId?: string | null;
 }
 

@@ -1,0 +1,65 @@
+<section class="page">
+  <header class="page-header"><div>
+    @if (parent()) { <a class="text-sm text-[#244a37] underline" [routerLink]="['/parent/children', scope() && $any(scope()).studentId]" [queryParams]="{ academicYearId: scope()?.academicYearId }">Dossier enfant</a> }
+    <h1 class="page-heading">Cours et devoirs</h1>
+  </div>@if (allowed('create')) { <button class="btn btn-primary" (click)="edit()" [disabled]="pending.saving()">Nouveau contenu</button> }</header>
+  @if (!parent()) {
+    <label class="form-field sm:max-w-sm"><span class="form-label">Classe</span><select #classSelect class="form-control" [value]="classId()" (change)="selectClass(classSelect.value, classSelect)" [disabled]="loading() || pending.saving()"><option value="">Choisir une classe</option>@for (schoolClass of classes(); track schoolClass.id) { <option [value]="schoolClass.id">{{ schoolClass.name }}</option> }</select></label>
+    @if (!classes().length && !loading() && !error()) { <p class="state-empty">Aucune classe disponible pour cette année.</p> }
+  }
+  @if (error()) { <p class="state-error" role="alert">{{ error() }}</p> }
+  @if (success()) { <p class="form-success" role="status">{{ success() }}</p> }
+  @if (scope()) {
+    <form class="flex flex-wrap items-end gap-3" (ngSubmit)="load()"><label class="form-field"><span class="form-label">Type</span><select class="form-control" name="typeFilter" [(ngModel)]="type" [disabled]="pending.saving()"><option value="">Tous</option><option value="LESSON">Cours</option><option value="ASSIGNMENT">Devoirs</option></select></label><button class="btn btn-secondary" [disabled]="loading() || pending.saving()">Filtrer</button></form>
+  }
+  @if (loading()) { <p class="state-loading" role="status">Chargement des contenus…</p> }
+  @if (page(); as result) {
+    <div class="table-wrap"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Titre</th><th>Type</th><th>État</th><th>Date limite</th><th></th></tr></thead><tbody>
+      @for (item of result.contents; track item.id) { <tr><td class="max-w-sm break-words">{{ item.title }}</td><td>{{ types[item.type] }}</td><td><span class="badge" [class.published]="item.status === 'PUBLISHED'" [class.archived]="item.status === 'ARCHIVED'">{{ statuses[item.status] }}</span></td><td>{{ item.dueDate | date:'dd/MM/yyyy' }}</td><td><button class="btn btn-secondary" (click)="open(item)" [disabled]="pending.saving() || item.status === 'ARCHIVED'">Consulter</button></td></tr> }
+      @empty { <tr><td colspan="5">Aucun contenu disponible.</td></tr> }
+    </tbody></table></div>
+    <div class="flex flex-wrap items-center justify-between gap-3 text-sm"><span>{{ result.totalElements }} contenu(s) · Page {{ result.page + 1 }}</span><div class="flex gap-2"><button class="btn btn-secondary" [disabled]="result.page === 0 || loading() || pending.saving()" (click)="load(result.page - 1)">Précédent</button><button class="btn btn-secondary" [disabled]="(result.page + 1) * result.size >= result.totalElements || loading() || pending.saving()" (click)="load(result.page + 1)">Suivant</button></div></div>
+  }
+  @if (detailsLoading()) { <p class="state-loading" role="status">Chargement du contenu et des documents…</p> }
+  @if (editing()) {
+    <section class="section section-body"><h2 class="section-title">{{ selected() ? 'Modifier le contenu' : 'Nouveau brouillon' }}</h2>
+      <form #form="ngForm" class="mt-4 grid gap-4 sm:grid-cols-2" (ngSubmit)="save()">
+        <label class="form-field"><span class="form-label">Type</span><select class="form-control" name="type" [(ngModel)]="draft.type" (ngModelChange)="change()" [disabled]="!!selected() || pending.saving()"><option value="LESSON">Cours</option><option value="ASSIGNMENT">Devoir</option></select></label>
+        <label class="form-field"><span class="form-label">Titre</span><input class="form-control" name="title" [(ngModel)]="draft.title" (ngModelChange)="change()" maxlength="160" required [disabled]="pending.saving()"></label>
+        <label class="form-field sm:col-span-2">
+          <span class="form-label is-required">Matière</span>
+          <select class="form-control" name="subjectId" [(ngModel)]="draft.subjectId" (ngModelChange)="change()" required [disabled]="pending.saving() || subjectsLoading() || !subjects().length">
+            <option value="" disabled>Choisir une matière de la classe</option>
+            @for (subject of subjects(); track subject.id) { <option [value]="subject.id">{{ subject.name }} · {{ subject.code }}</option> }
+          </select>
+          <span class="form-hint">Le cours ou devoir est rattaché à la classe sélectionnée et à cette matière.</span>
+        </label>
+        @if (subjectsLoading()) { <p class="text-sm sm:col-span-2" role="status">Chargement des matières de la classe…</p> }
+        @else if (subjectsError()) {
+          <div class="state-error sm:col-span-2" role="alert"><p>Impossible de charger les matières. {{ subjectsError() }}</p><button type="button" class="state-retry" (click)="loadSubjects()">Réessayer</button></div>
+        } @else if (!subjects().length) {
+          <p class="state-empty sm:col-span-2">Aucune matière active n’est affectée à cette classe. Faites affecter une matière avant de créer un cours ou un devoir.</p>
+        } @else if (draft.subjectId && !validSubject()) {
+          <p class="form-error sm:col-span-2" role="alert">La matière de ce contenu n’est plus disponible dans cette classe. Choisissez une autre matière.</p>
+        }
+        <label class="form-field sm:col-span-2"><span class="form-label">Description</span><textarea class="form-control" name="description" [(ngModel)]="draft.description" (ngModelChange)="change()" maxlength="2000" [disabled]="pending.saving()"></textarea></label>
+        <label class="form-field sm:col-span-2"><span class="form-label">{{ draft.type === 'ASSIGNMENT' ? 'Consignes' : 'Contenu' }}</span><textarea class="form-control min-h-48" name="body" [(ngModel)]="draft.body" (ngModelChange)="change()" maxlength="100000" [disabled]="pending.saving()"></textarea></label>
+        @if (draft.type === 'ASSIGNMENT') { <label class="form-field"><span class="form-label">Date limite</span><input class="form-control" type="date" name="due" [(ngModel)]="draft.dueDate" (ngModelChange)="change()" [disabled]="pending.saving()"></label> }
+        @if (allowed('update') && (!selected() || selected()!.status === 'DRAFT')) {
+          <label class="form-field sm:col-span-2"><span class="form-label">Documents</span><input #fileInput class="form-control py-2" type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.docx,.pptx" (change)="chooseFiles(fileInput)" [disabled]="pending.saving()"></label>
+          <ul class="sm:col-span-2">@for (file of files(); track $index) { <li class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"><span class="min-w-0 break-all">{{ file.name }} · {{ file.size }} octets</span><button type="button" class="btn btn-secondary" (click)="removeFile($index)" [disabled]="pending.saving()">Retirer</button></li> }</ul>
+        }
+        @if (pending.saving()) { <p class="text-sm" role="status">Enregistrement et envoi des documents… {{ uploadProgress() !== null ? uploadProgress() + ' %' : '' }}</p> }
+        <div class="form-actions sm:col-span-2"><button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="pending.saving()">Annuler</button><button class="btn btn-primary" [disabled]="form.invalid || !draft.title.trim() || !validSubject() || subjectsLoading() || pending.saving()">Enregistrer</button></div>
+      </form>
+    </section>
+  } @else if (selected(); as detail) {
+    <section class="section section-body"><header class="page-header"><h2 class="section-title break-words">{{ detail.title }}</h2><div class="flex flex-wrap gap-2">
+      @if (allowed('update') && detail.status !== 'ARCHIVED') { <button class="btn btn-secondary" (click)="edit(detail)" [disabled]="pending.saving()">Modifier</button> }
+      @if (allowed('publish') && detail.status === 'DRAFT') { <button class="btn btn-primary" (click)="transition(detail, 'publish')" [disabled]="pending.saving()">Publier</button> }
+      @if (allowed('archive') && detail.status !== 'ARCHIVED') { <button class="btn btn-secondary" (click)="transition(detail, 'archive')" [disabled]="pending.saving()">Archiver</button> }
+    </div></header><p class="mt-3 whitespace-pre-wrap break-words text-sm">{{ detail.description }}</p><div class="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{{ detail.body }}</div>
+      <ul class="mt-4">@for (file of attachments(); track file.id) { <li class="flex items-center justify-between gap-3 border-t border-[#e1e7e0] py-3"><span class="min-w-0 break-all text-sm">{{ file.fileName }} · {{ file.size }} octets</span><button class="btn btn-secondary shrink-0" [disabled]="!!downloadId()" (click)="download(file)" [attr.aria-label]="'Télécharger ' + file.fileName" [title]="'Télécharger ' + file.fileName"><svg lucideDownload class="size-4" aria-hidden="true"></svg></button></li> } @empty { @if (!detailsLoading()) { <li class="text-sm text-[#69756d]">Aucun document.</li> } }</ul>
+    </section>
+  }
+</section>

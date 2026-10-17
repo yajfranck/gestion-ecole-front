@@ -6,10 +6,12 @@ import { ClassStudent } from '../../../models/enrollment/enrollment.model';
 import { SchoolClassSubject, Subject } from '../../../models/subject/subject.model';
 import { EnrollmentService } from '../../../service/enrollment-service/enrollment.service';
 import { SubjectService } from '../../../service/subject-service/subject.service';
+import { Classroom } from '../../../models/classroom/classroom.model';
+import { ClassroomManagerComponent } from '../../classroom/classroom-manager/classroom-manager.component';
 
 @Component({
   selector: 'app-school-class-detail',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ClassroomManagerComponent],
   templateUrl: './school-class-detail.component.html',
   styleUrl: './school-class-detail.component.css'
 })
@@ -30,6 +32,17 @@ export class SchoolClassDetailComponent implements OnInit {
   protected readonly subjectError = signal<string | null>(null);
   protected readonly studentError = signal<string | null>(null);
   protected selectedSubjectId = '';
+  protected readonly classrooms = signal<Classroom[]>([]);
+  protected classroomId = '';
+  private studentsRevision = 0;
+
+  protected setClassrooms(rooms: Classroom[]): void {
+    this.classrooms.set(rooms);
+    if (this.classroomId && !rooms.some((room) => room.id === this.classroomId)) {
+      this.classroomId = '';
+      this.loadStudents();
+    }
+  }
 
   protected readonly assignedSubjects = computed(() => {
     const byId = new Map(this.subjects().map((subject) => [subject.id, subject]));
@@ -67,14 +80,17 @@ export class SchoolClassDetailComponent implements OnInit {
   }
 
   protected loadStudents(): void {
+    const revision = ++this.studentsRevision;
     this.isLoadingStudents.set(true);
     this.studentError.set(null);
-    this.enrollmentService.getClassStudents(this.establishmentId(), this.academicYearId(), this.schoolClassId()).subscribe({
+    this.enrollmentService.getClassStudents(this.establishmentId(), this.academicYearId(), this.schoolClassId(), this.classroomId || undefined).subscribe({
       next: (students) => {
+        if (revision !== this.studentsRevision) return;
         this.students.set(students);
         this.isLoadingStudents.set(false);
       },
       error: (error: unknown) => {
+        if (revision !== this.studentsRevision) return;
         this.studentError.set(this.errorMessage(error));
         this.isLoadingStudents.set(false);
       }

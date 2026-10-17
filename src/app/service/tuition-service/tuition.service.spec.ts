@@ -91,6 +91,26 @@ describe('TuitionService', () => {
     http.expectOne(`${feesUrl}/outstanding`).flush([]);
   });
 
+  it('transmet les classes ciblées et restitue leur sélection persistée', () => {
+    const feesUrl = `${apiUrl}/establishments/school-1/school-years/year-1/tuition-fees`;
+    const body = { name: 'Scolarité', feeTypeId: 'type-1', amount: 120000, currency: 'XOF', dueDate: '2026-10-31', schoolClassIds: ['class-1', 'class-2'] };
+    service.createTuitionFee('school-1', 'year-1', body).subscribe(({ fee, chargesCreated }) => {
+      expect(fee.schoolClassIds).toEqual(['class-2', 'class-1']);
+      expect(fee.schoolClassId).toBeNull();
+      expect(fee.scope).toBe('SCHOOL_CLASS');
+      expect(chargesCreated).toBe(5);
+    });
+    const request = http.expectOne(feesUrl);
+    expect(request.request.body).toEqual(body);
+    request.flush({ fee: { id: 'fee-1', schoolClassIds: ['class-2', 'class-1'], schoolClassId: null, scope: 'SCHOOL_CLASS' }, chargesCreated: 5 });
+
+    service.applyTuitionFee('school-1', 'year-1', 'fee-1').subscribe(({ chargesCreated }) => expect(chargesCreated).toBe(0));
+    const apply = http.expectOne(`${feesUrl}/fee-1/apply`);
+    expect(apply.request.method).toBe('POST');
+    expect(apply.request.body).not.toEqual(jasmine.objectContaining({ schoolClassIds: jasmine.anything() }));
+    apply.flush({ chargesCreated: 0 });
+  });
+
   it('records a payment and retrieves its receipt', () => {
     const paymentRequest = { amount: 25000, paymentMethodCode: 'CASH', reference: 'C-01' };
     service.recordPayment('school-1', 'student-1', 'charge-1', paymentRequest).subscribe();

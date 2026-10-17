@@ -1,0 +1,6 @@
+:host { display: block; min-width: 0; }
+th, td { padding: 0.75rem 1rem; border-bottom: 1px solid #e1e7e0; }
+th { background: #f5f7f4; font-weight: 600; }
+.badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 0.25rem; background: #fff2d6; color: #795313; }
+.published { background: #e9f5ec; color: #28563b; }
+.archived { background: #edf0ec; color: #69756d; }

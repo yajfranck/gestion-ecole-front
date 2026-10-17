@@ -4,6 +4,7 @@ import { Router, provideRouter } from '@angular/router';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 import { EstablishmentNavComponent } from './establishment-nav.component';
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { LicenseAccessService } from '../../../core/license-access.service';
 
 describe('EstablishmentNavComponent', () => {
   const school = { id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' };
@@ -12,6 +13,7 @@ describe('EstablishmentNavComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
     imports: [EstablishmentNavComponent],
     providers: [provideZonelessChangeDetection(), provideRouter([{ path: '**', children: [] }]),
+      { provide: LicenseAccessService, useValue: { canUse: () => false } },
       { provide: WorkspaceAccessService, useValue: { hasPermission: () => false } }]
   }));
 

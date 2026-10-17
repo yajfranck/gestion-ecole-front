@@ -3,6 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { environment } from '../../../environments/environment';
+import { GuardianLink } from '../../models/guardian/guardian.model';
 import { GuardianService } from './guardian.service';
 
 describe('GuardianService', () => {
@@ -17,20 +18,30 @@ describe('GuardianService', () => {
   });
   afterEach(() => http.verify());
 
-  it('lists, links and unlinks guardians', () => {
+  it('lists and unlinks guardians', () => {
     service.getGuardians('school-1', 'student-1').subscribe();
     http.expectOne(url).flush([]);
-    const body = { firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' };
-    service.linkGuardian('school-1', 'student-1', body).subscribe();
-    const link = http.expectOne(url);
-    expect(link.request.method).toBe('POST');
-    expect(link.request.body).toEqual(body);
-    link.flush({});
     service.unlinkGuardian('school-1', 'student-1', 'g-1').subscribe();
     const unlink = http.expectOne(`${url}/g-1`);
     expect(unlink.request.method).toBe('DELETE');
     unlink.flush(null);
   });
+
+  for (const accessStatus of ['INVITATION_SENT', 'ACCESS_ALREADY_ACTIVE'] as const) {
+    it(`lie un tuteur et restitue le statut ${accessStatus} de la réponse 201`, () => {
+      const body = { firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' };
+      const response: GuardianLink = { guardian: { id: 'g-1', ...body }, accessStatus };
+      let result: GuardianLink | undefined;
+      service.linkGuardian('school-1', 'student-1', body).subscribe((link) => result = link);
+
+      const request = http.expectOne(url);
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual(body);
+      request.flush(response, { status: 201, statusText: 'Created' });
+
+      expect(result).toEqual(response);
+    });
+  }
 
   it('accepts an invitation and loads the children of the current guardian', () => {
     service.acceptInvitation({ token: 't', password: 'secret-password-1' }).subscribe();

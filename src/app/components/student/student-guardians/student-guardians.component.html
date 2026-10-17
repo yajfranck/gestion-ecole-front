@@ -25,8 +25,9 @@
     </ul>
   }
 
-  <form class="form-edit mt-4" (ngSubmit)="link()" [attr.aria-busy]="isLinking()">
+  <form class="form-edit mt-4" #guardianForm="ngForm" (ngSubmit)="link(guardianForm)" [attr.aria-busy]="isLinking()">
     <p class="form-title">Lier un tuteur</p>
+    <p class="form-hint">Toute personne peut être tuteur, y compris un membre du personnel ou un administrateur. Utilisez son adresse e-mail existante pour réutiliser son compte.</p>
     <div class="form-row">
       <label class="form-field">
         <span class="form-label is-required">Prénom</span>
@@ -37,10 +38,11 @@
         <input class="form-control" [name]="'guardianLastName' + studentId()" [(ngModel)]="lastName" maxlength="100" required>
       </label>
     </div>
+    <p class="form-hint">Le prénom et le nom servent à créer une nouvelle fiche. Une fiche existante conserve son identité.</p>
     <label class="form-field form-field-wide">
       <span class="form-label is-required">Adresse e-mail</span>
-      <input class="form-control md:max-w-md" [name]="'guardianEmail' + studentId()" type="email" [(ngModel)]="email" maxlength="254" required>
-      <span class="form-hint">Une invitation est envoyée si ce tuteur n’a pas encore d’accès parent.</span>
+      <input class="form-control md:max-w-md" [name]="'guardianEmail' + studentId()" type="email" email [(ngModel)]="email" (blur)="email = email.trim().toLowerCase()" maxlength="254" required>
+      <span class="form-hint">Si un compte existe, il est réutilisé avec ses rôles et son mot de passe conservés. Sinon, une invitation valable 48 heures est envoyée à cette adresse.</span>
     </label>
     @if (actionError()) {
       <p class="form-error" role="alert">{{ actionError() }}</p>

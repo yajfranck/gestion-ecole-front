@@ -1,4 +1,4 @@
-1. our chaque demande ou implémentation, check les points suivants
+1. pour chaque demande ou implémentation, check les points suivants
 
 - la doc projet dans /Users/franckyaj/developpement/gestion-ecole/README.md
 - la doc api dans 

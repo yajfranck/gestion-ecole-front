@@ -26,6 +26,7 @@ describe('SchoolClassDetailComponent', () => {
     http.expectOne(`${base}/subjects`).flush([{ id: 's-1', establishmentId: 'school-1', code: 'MATH', name: 'Mathematics', enabled: true }]);
     http.expectOne(`${classUrl}/subjects`).flush([{ id: 'a-1', establishmentId: 'school-1', schoolClassId: 'class-1', subjectId: 's-1', enabled: true }]);
     http.expectOne(`${classUrl}/students`).flush([{ id: 'st-1', studentNumber: 'STU-00000001', firstName: 'Ada', lastName: 'Lovelace' }]);
+    http.expectOne(`${classUrl}/classrooms`).flush([]);
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent;
@@ -45,10 +46,20 @@ describe('SchoolClassDetailComponent', () => {
     http.expectOne(`${base}/subjects`).flush([]);
     http.expectOne(`${classUrl}/subjects`).flush([]);
     http.expectOne(`${classUrl}/students`).flush([]);
+    http.expectOne(`${classUrl}/classrooms`).flush([]);
     fixture.detectChanges();
 
     const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[href$="/establishments/school-1/referentials"]');
     expect(link?.textContent).toContain('Matières');
     http.verify();
+  });
+
+  it('filtre les élèves par salle sans changer la classe de l’URL', () => {
+    const http = TestBed.inject(HttpTestingController); const fixture = TestBed.createComponent(SchoolClassDetailComponent);
+    fixture.componentRef.setInput('establishmentId', 'school-1'); fixture.componentRef.setInput('academicYearId', 'year-1'); fixture.componentRef.setInput('schoolClassId', 'class-1'); fixture.detectChanges();
+    http.expectOne(`${base}/subjects`).flush([]); http.expectOne(`${classUrl}/subjects`).flush([]); http.expectOne(`${classUrl}/students`).flush([]);
+    http.expectOne(`${classUrl}/classrooms`).flush([{ id: 'room', establishmentId: 'school-1', academicYearId: 'year-1', schoolClassId: 'class-1', enabled: true, code: 'A', name: 'Salle A' }]); fixture.detectChanges();
+    fixture.componentInstance['classroomId'] = 'room'; fixture.componentInstance['loadStudents']();
+    http.expectOne(`${classUrl}/students?classroomId=room`).flush([{ id: 'student', firstName: 'Ada', lastName: 'Exemple' }]); fixture.detectChanges(); expect(fixture.nativeElement.textContent).toContain('Exemple Ada'); http.verify();
   });
 });

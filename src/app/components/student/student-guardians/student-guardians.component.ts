@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { Guardian } from '../../../models/guardian/guardian.model';
 import { Student } from '../../../models/student/student.model';
 import { GuardianService } from '../../../service/guardian-service/guardian.service';
@@ -54,24 +54,31 @@ export class StudentGuardiansComponent implements OnInit {
     });
   }
 
-  protected link(): void {
+  protected link(form: NgForm): void {
+    if (this.isLinking()) return;
+
     const firstName = this.firstName.trim();
     const lastName = this.lastName.trim();
-    const email = this.email.trim();
-    if (!firstName || !lastName || !email || this.isLinking()) return;
+    const email = this.email.trim().toLowerCase();
+    this.successMessage.set(null);
+    if (form.invalid || !firstName || !lastName || !email) {
+      form.control.markAllAsTouched();
+      this.actionError.set('Vérifiez le prénom, le nom (100 caractères maximum chacun) et l’adresse e-mail (254 caractères maximum).');
+      return;
+    }
 
     this.isLinking.set(true);
     this.actionError.set(null);
-    this.successMessage.set(null);
     this.guardianService.linkGuardian(this.establishmentId(), this.studentId(), { firstName, lastName, email }).subscribe({
       next: (link) => {
+        form.resetForm();
         this.firstName = '';
         this.lastName = '';
         this.email = '';
         this.isLinking.set(false);
         this.successMessage.set(link.accessStatus === 'INVITATION_SENT'
           ? `Le tuteur a été lié. Une invitation a été envoyée à ${link.guardian.email}.`
-          : 'Le tuteur a été lié. Son accès parent est déjà actif.');
+          : `Le tuteur a été lié au compte existant de ${link.guardian.email}, sans nouvelle invitation. Ses rôles et son mot de passe sont conservés. Pour accéder à ses enfants, le tuteur doit se reconnecter si cet accès vient d’être ajouté.`);
         this.load();
       },
       error: (error: unknown) => {
@@ -109,8 +116,8 @@ export class StudentGuardiansComponent implements OnInit {
     if (error instanceof HttpErrorResponse) {
       if (error.status === 400) return 'Vérifiez le prénom, le nom et l’adresse e-mail du tuteur.';
       if (error.status === 403) return 'Votre compte ne dispose pas de l’autorisation nécessaire pour cette opération.';
-      if (error.status === 404) return 'Cet élève ou ce lien est absent ou inaccessible.';
-      if (error.status === 409) return 'Ce tuteur est déjà lié à cet élève.';
+      if (error.status === 404) return 'L’élève, le tuteur ou ce lien est absent, désactivé ou inaccessible dans cet établissement.';
+      if (error.status === 409) return 'Ce tuteur est déjà lié à cet élève ou cette adresse e-mail est en conflit avec une autre identité. Vérifiez les liens existants et l’adresse saisie.';
       if (error.status === 503) return 'L’envoi de l’invitation est momentanément indisponible. Réessayez plus tard.';
     }
     return 'Impossible de charger ou d’enregistrer ces informations. Vérifiez le serveur puis réessayez.';

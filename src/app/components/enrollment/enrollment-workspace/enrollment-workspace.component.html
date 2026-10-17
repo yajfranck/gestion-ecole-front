@@ -27,20 +27,29 @@
           <a class="ml-3 font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'finance']" [queryParams]="{ studentId: created.studentId }">Voir la situation financière</a>
         }
       </output>
+      @if (lastEnrollment(); as created) { <ul class="px-5 py-3 text-sm text-[#35473b]">@for (payment of created.payments; track payment.id) { <li>Reçu {{ payment.receiptNumber }} · {{ payment.amount }} {{ payment.currency }} · {{ payment.paymentMethodName }} · Solde {{ payment.balance }} {{ payment.currency }}</li> }</ul> }
     }
 
+    @if (actionError()) { <p class="state-error" role="alert">{{ actionError() }}</p> }
+    @if (roomsError()) { <div class="state-error" role="alert"><p>{{ roomsError() }}</p><button type="button" class="state-retry" (click)="load()">Réessayer</button></div> }
     @if (enrollments().length === 0) {
       <p class="state-empty">Aucune inscription enregistrée pour cette année scolaire.</p>
     } @else {
       <div class="overflow-x-auto">
         <table class="min-w-full text-left text-sm">
           <caption class="sr-only">Inscriptions de l’année scolaire</caption>
-          <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-5 py-3 font-semibold sm:px-6">Élève</th><th class="px-5 py-3 font-semibold">Classe</th></tr></thead>
+          <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-5 py-3 font-semibold sm:px-6">Élève</th><th class="px-5 py-3 font-semibold">Classe</th><th class="px-5 py-3">Salle / groupe</th><th class="px-5 py-3">Décision à l’inscription</th></tr></thead>
           <tbody class="divide-y divide-[#edf0ec]">
             @for (enrollment of enrollments(); track enrollment.id) {
               <tr>
                 <td class="px-5 py-3 font-medium sm:px-6"><a class="text-[#35473b] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'students']" [queryParams]="{ studentId: enrollment.studentId }" [attr.aria-label]="'Voir la fiche de ' + studentNameFor(enrollment.studentId)">{{ studentNameFor(enrollment.studentId) }}</a></td>
                 <td class="px-5 py-3"><a class="text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: enrollment.schoolClassId }" [attr.aria-label]="'Voir la classe ' + classNameFor(enrollment.schoolClassId)">{{ classNameFor(enrollment.schoolClassId) }}</a></td>
+                <td class="px-5 py-3"><span>{{ roomNameFor(enrollment) }}</span>
+                  @if (access.authorities().includes('can_enrollment_update')) {
+                    @if (changingId() === enrollment.id) { <form class="mt-2 flex flex-wrap gap-2" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form> }
+                    @else { <button type="button" class="ml-2 text-[#47745d] underline" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
+                  }
+                </td><td class="px-5 py-3 text-xs">{{ enrollment.paymentDecisionBy ? (enrollment.advanceAccepted ? 'Avance acceptée' : 'Règlement intégral ou sans frais') : 'Inscription antérieure · décision non renseignée' }}@if (enrollment.paymentDecisionBy) { <span class="block">Par {{ enrollment.paymentDecisionBy }}</span> }</td>
               </tr>
             }
           </tbody>
@@ -50,34 +59,7 @@
 
     <details class="border-t border-[#edf0ec]" [open]="enrollments().length === 0">
       <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">Nouvelle inscription</summary>
-      <form class="form-grid pt-1" (ngSubmit)="create()" [attr.aria-busy]="isCreating()">
-        <label class="form-field">
-          <span class="form-label is-required">Élève</span>
-          <select class="form-control" id="enrollment-student" name="enrollmentStudentId" [(ngModel)]="studentId" required>
-            <option value="" disabled>Choisir un élève</option>
-            @for (student of students(); track student.id) {
-              <option [value]="student.id" [disabled]="hasEnrollment(student.id)">{{ student.firstName }} {{ student.lastName }}{{ hasEnrollment(student.id) ? ' · déjà inscrit' : '' }}</option>
-            }
-          </select>
-          <span class="form-hint">Les élèves déjà inscrits cette année ne sont pas sélectionnables.</span>
-        </label>
-        <label class="form-field">
-          <span class="form-label is-required">Classe</span>
-          <select class="form-control" id="enrollment-class" name="enrollmentClassId" [(ngModel)]="schoolClassId" required>
-            <option value="" disabled>Choisir une classe</option>
-            @for (schoolClass of classes(); track schoolClass.id) {
-              <option [value]="schoolClass.id">{{ schoolClass.name }}</option>
-            }
-          </select>
-        </label>
-        @if (actionError()) {
-          <p class="form-error" role="alert">{{ actionError() }}</p>
-        }
-        <p class="form-legend">* Champ obligatoire</p>
-        <div class="form-actions">
-          <button class="btn btn-primary" type="submit" [disabled]="isCreating() || students().length === 0 || classes().length === 0 || !studentId || hasEnrollment(studentId)">{{ isCreating() ? 'Inscription…' : 'Confirmer l’inscription' }}</button>
-        </div>
-      </form>
+      <app-enrollment-form [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="students()" [classes]="classes()" [enrollments]="enrollments()" [initialStudentId]="studentId" [initialClassId]="schoolClassId" [initialClassroomId]="requestedClassroomId" (created)="onCreated($event)" />
     </details>
   }
 </section>

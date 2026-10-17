@@ -1,115 +1,32 @@
-<section class="dashboard-page page">
-  <header class="page-header">
-    <div>
-      <h1 class="page-heading">Votre espace de gestion</h1>
-      <p class="page-subtitle">{{ dateLabel }} · Retrouvez ici les établissements accessibles à votre compte.</p>
-    </div>
-    <a
-      class="inline-flex min-h-11 w-fit items-center gap-2 rounded-lg bg-[#244a37] px-4 py-2.5 text-sm font-semibold text-white no-underline transition hover:bg-[#193b2b] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#244a37]"
-      routerLink="/establishments"
-    >
-      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z" />
-      </svg>
-      Voir les établissements
-    </a>
-  </header>
-
-  <div class="grid gap-4 sm:grid-cols-2">
-    <article class="summary-item rounded-xl border border-[#e1e7e0] bg-white p-5 sm:p-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-medium text-[#68756c]">Établissements accessibles</p>
-          @if (isLoading()) {
-            <div class="mt-3 h-9 w-16 animate-pulse rounded bg-[#edf1ec]" aria-label="Chargement"></div>
-          } @else if (errorMessage()) {
-            <p class="mt-2 text-2xl font-semibold text-[#69756d]" aria-label="Indisponible">—</p>
-          } @else {
-            <p class="mt-2 text-3xl font-semibold tabular-nums text-[#1d2b24]">{{ establishments().length }}</p>
-          }
-        </div>
-        <span class="metric-icon grid size-11 place-items-center rounded-lg bg-[#edf4ed] text-[#47745d]" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-            <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h.01M15 9h.01M9 13h.01M15 13h.01M10 21v-4h4v4" />
-          </svg>
-        </span>
-      </div>
-      <p class="mt-4 border-t border-[#edf0ec] pt-3 text-xs text-[#839087]">Selon les autorisations de votre compte</p>
-    </article>
-
-    <article class="summary-item rounded-xl border border-[#e1e7e0] bg-white p-5 sm:p-6">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <p class="text-sm font-medium text-[#68756c]">État de la session</p>
-          <p class="mt-2 text-xl font-semibold text-[#28563b]">Connectée</p>
-        </div>
-        <span class="metric-icon grid size-11 place-items-center rounded-lg bg-[#f7f1e6] text-[#9a6b2f]" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
-            <path d="M12 3 4.5 6v5.4c0 4.4 3.2 8.5 7.5 9.6 4.3-1.1 7.5-5.2 7.5-9.6V6L12 3Z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-        </span>
-      </div>
-      <p class="mt-4 border-t border-[#edf0ec] pt-3 text-xs text-[#839087]">Les accès aux données restent contrôlés par l’API</p>
-    </article>
-  </div>
-
-  <section class="section" aria-labelledby="establishments-heading">
-    <div class="section-header">
-      <h2 id="establishments-heading" class="section-title">Établissements</h2>
-      <a class="text-sm font-semibold text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Afficher la liste</a>
-    </div>
-
-    @if (isLoading()) {
-      <div class="space-y-3 p-5 sm:p-6" aria-label="Chargement des établissements">
-        <div class="h-14 animate-pulse rounded-lg bg-[#f1f4f0]"></div>
-        <div class="h-14 animate-pulse rounded-lg bg-[#f1f4f0]"></div>
-      </div>
-    } @else if (errorMessage()) {
-      <div class="flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6" role="alert">
-        <p class="max-w-2xl text-sm leading-6 text-[#8a3e2d]">{{ errorMessage() }}</p>
-        <button class="text-sm font-semibold text-[#47745d] hover:text-[#244a37]" type="button" (click)="loadEstablishments()">Réessayer</button>
-      </div>
-    } @else if (establishments().length === 0) {
-      <div class="px-5 py-10 text-center sm:px-8">
-        <p class="text-sm font-semibold text-[#35473b]">Aucun établissement accessible</p>
-        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-[#7b877e]">Si vous pensez qu’il s’agit d’une erreur, demandez à un administrateur de vérifier les accès de votre compte.</p>
-        <a class="mt-5 inline-flex min-h-10 items-center justify-center rounded-lg border border-[#dfe5de] px-4 text-sm font-semibold text-[#35473b] no-underline hover:bg-[#f5f8f4]" routerLink="/establishments">Ouvrir la gestion des établissements</a>
-      </div>
-    } @else {
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <caption class="sr-only">Établissements récemment accessibles</caption>
-          <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-5 py-3 font-semibold sm:px-6">Établissement</th><th class="px-5 py-3 font-semibold">Code</th><th class="px-5 py-3 font-semibold">État</th><th class="px-5 py-3 text-right font-semibold">Action</th></tr></thead>
-          <tbody class="divide-y divide-[#edf0ec]">
-            @for (establishment of establishments().slice(0, 4); track establishment.id) {
-              <tr>
-                <td class="px-5 py-3 font-semibold text-[#26372d] sm:px-6">{{ establishment.name }}</td>
-                <td class="px-5 py-3 font-mono text-xs text-[#849087]">{{ establishment.code }}</td>
-                <td class="px-5 py-3">
-                  @if (establishment.enabled) {
-                    <span class="rounded-full bg-[#edf5ee] px-2.5 py-1 text-xs font-semibold text-[#3d714e]">Actif</span>
-                  } @else {
-                    <span class="rounded-full bg-[#f3f1ed] px-2.5 py-1 text-xs font-semibold text-[#77756f]">Désactivé</span>
-                  }
-                </td>
-                <td class="px-5 py-3 text-right sm:px-6">
-                  @if (establishment.enabled) {
-                    <a class="text-sm font-semibold text-[#47745d] no-underline hover:text-[#244a37]" [routerLink]="['/establishments', establishment.id]">Ouvrir <span aria-hidden="true">→</span></a>
-                  } @else {
-                    <span class="text-xs text-[#78837b]">Indisponible</span>
-                  }
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-      @if (establishments().length > 4) {
-        <div class="border-t border-[#edf0ec] px-5 py-3 sm:px-6">
-          <a class="text-sm font-semibold text-[#47745d] no-underline hover:text-[#244a37]" routerLink="/establishments">Voir les {{ establishments().length }} établissements</a>
-        </div>
-      }
+<section class="page">
+  <header class="page-header"><div><h1 class="page-heading">Tableau de bord</h1><p class="page-subtitle">Vue d’ensemble de votre périmètre.</p></div><button type="button" class="btn btn-secondary" (click)="load(!!data())" [disabled]="isLoading()">Actualiser</button></header>
+  @if (isLoading()) { <p class="state-loading" role="status">Chargement du tableau de bord…</p> }
+  @if (errorMessage()) { <div class="state-error" role="alert"><p>{{ errorMessage() }}</p><button type="button" class="state-retry" (click)="load()">Réessayer</button></div> }
+  @if (data(); as dashboard) {
+    <p class="mb-4 text-xs text-[#78837b]">Calculé le {{ dashboard.generatedAt | date:'dd/MM/yyyy à HH:mm' }}</p>
+    @if (dashboard.platform; as platform) {
+      <section class="section section-body"><h2 class="section-title">Plateforme</h2>
+        <dl class="mt-4 grid gap-4 sm:grid-cols-3">
+          <div><dt>Établissements</dt><dd class="text-2xl font-semibold">{{ platform.totalEstablishments }}</dd></div><div><dt>Actifs</dt><dd>{{ platform.activeEstablishments }}</dd></div><div><dt>Désactivés</dt><dd>{{ platform.disabledEstablishments }}</dd></div>
+          <div><dt>Licences actives</dt><dd>{{ platform.activeLicenses }}</dd></div><div><dt>Licences suspendues</dt><dd>{{ platform.suspendedLicenses }}</dd></div><div><dt>Licences expirées</dt><dd>{{ platform.expiredLicenses }}</dd></div><div><dt>Licences à venir</dt><dd>{{ platform.upcomingLicenses }}</dd></div><div><dt>Établissements sans licence active</dt><dd>{{ platform.establishmentsWithoutActiveLicense }}</dd></div>
+        </dl><a class="btn btn-secondary mt-4" routerLink="/establishments">Gérer les établissements</a>
+      </section>
     }
-  </section>
+    @if (dashboard.establishment; as school) {
+      <h2 class="section-title">{{ school.name }}</h2>
+      <form class="my-4 flex flex-wrap items-end gap-3" (ngSubmit)="load(true)">
+        <label class="form-field">Année scolaire<select class="form-control" name="year" [(ngModel)]="yearId" (ngModelChange)="date = ''" [disabled]="isLoading() || !years().length"><option value="" disabled>Choisir une année</option>@for (year of years(); track year.id) { <option [value]="year.id">{{ year.name }}</option> }</select></label>
+        <label class="form-field">Date de référence<input class="form-control" name="date" type="date" [(ngModel)]="date" [min]="selectedYear()?.startsOn" [max]="selectedYear()?.endsOn" [disabled]="isLoading() || !yearId"></label>
+        <button class="btn btn-primary" [disabled]="isLoading() || !yearId">Appliquer</button>
+      </form>
+      @if (yearsError()) { <p class="form-hint">{{ yearsError() }} <button type="button" class="state-retry" (click)="loadYears()">Réessayer</button></p> }
+      @if (!school.academicYear) { <p class="state-empty">Aucune année scolaire disponible. Les compteurs annuels sont vides.</p> }
+      <section class="section section-body"><h3 class="section-title">Effectifs</h3><dl class="mt-4 grid gap-4 text-sm sm:grid-cols-5"><div><dt>Élèves actifs</dt><dd class="text-2xl font-semibold">{{ school.counts.students }}</dd></div><div><dt>Personnel actif</dt><dd>{{ school.counts.employees }}</dd></div><div><dt>Matières actives</dt><dd>{{ school.counts.subjects }}</dd></div><div><dt>Classes de l’année</dt><dd>{{ school.counts.classes }}</dd></div><div><dt>Inscriptions de l’année</dt><dd>{{ school.counts.enrollments }}</dd></div></dl></section>
+      <section class="section section-body mt-4"><h3 class="section-title">Licence</h3><p class="mt-2 text-sm">{{ licenseLabels[school.license.state] }} · {{ school.license.offerCode || 'Aucune offre' }}</p><p class="text-sm">Du {{ school.license.validFrom | date:'dd/MM/yyyy' }} au {{ school.license.validUntil | date:'dd/MM/yyyy' }}</p></section>
+      <section class="section section-body mt-4"><h3 class="section-title">Inscriptions par classe · {{ school.academicYear?.name }}</h3><div class="overflow-x-auto"><table class="mt-3 w-full text-left text-sm"><thead><tr><th>Classe</th><th>Série</th><th>Élèves inscrits</th></tr></thead><tbody>@for (item of school.classes; track item.id) { <tr><td class="py-2"><a class="text-[#47745d] underline" [routerLink]="['/establishments', school.id, 'school-years', school.academicYear?.id, 'classes']" [queryParams]="{ classId: item.id }">{{ item.name }}</a></td><td>{{ item.series || '—' }}</td><td>{{ item.students }}</td></tr> } @empty { <tr><td colspan="3" class="py-3">Aucune classe active pour cette année.</td></tr> }</tbody></table></div></section>
+      <section class="section section-body mt-4"><h3 class="section-title">Présences</h3>@if (school.attendance; as attendance) { <p class="my-2 text-sm">Le {{ attendance.date | date:'dd/MM/yyyy' }}</p><dl class="grid gap-3 text-sm sm:grid-cols-4"><div><dt>Présents</dt><dd>{{ attendance.present }}</dd></div><div><dt>Absents</dt><dd>{{ attendance.absent }}</dd></div><div><dt>Dont justifiés</dt><dd>{{ attendance.justifiedAbsent }}</dd></div><div><dt>Non renseignés</dt><dd>{{ attendance.notRecorded }}</dd></div></dl> } @else { <p class="state-empty">Fonctionnalité Présences indisponible dans la licence.</p> }</section>
+      <section class="section section-body mt-4"><h3 class="section-title">Finances par devise</h3>@if (school.finance; as finance) { <div class="overflow-x-auto"><table class="mt-3 w-full text-left text-sm"><thead><tr><th>Devise</th><th>Facturé</th><th>Payé</th><th>Solde</th><th>Solde en retard</th></tr></thead><tbody>@for (total of finance; track total.currency) { <tr><td class="py-2">{{ total.currency }}</td><td>{{ total.amountBilled | currency:total.currency:'code' }}</td><td>{{ total.amountPaid | currency:total.currency:'code' }}</td><td>{{ total.balance | currency:total.currency:'code' }}</td><td>{{ total.overdueBalance | currency:total.currency:'code' }}</td></tr> } @empty { <tr><td colspan="5" class="py-3">Aucune créance pour cette année.</td></tr> }</tbody></table></div> } @else { <p class="state-empty">Fonctionnalité Frais indisponible dans la licence.</p> }</section>
+      <section class="section section-body mt-4"><h3 class="section-title">Cours et devoirs</h3>@if (school.learning; as learning) { <dl class="mt-3 grid gap-3 text-sm sm:grid-cols-4"><div><dt>Cours brouillons</dt><dd>{{ learning.draftLessons }}</dd></div><div><dt>Cours publiés</dt><dd>{{ learning.publishedLessons }}</dd></div><div><dt>Devoirs brouillons</dt><dd>{{ learning.draftAssignments }}</dd></div><div><dt>Devoirs publiés</dt><dd>{{ learning.publishedAssignments }}</dd></div></dl> } @else { <p class="state-empty">Fonctionnalité Cours et devoirs indisponible dans la licence.</p> }</section>
+    }
+  }
 </section>

@@ -24,9 +24,15 @@ describe('AcademicYearService', () => {
     year.flush({});
     service.getClasses('school-1', 'year-1').subscribe();
     http.expectOne(`${base}/school-years/year-1/classes`).flush([]);
-    service.createClass('school-1', 'year-1', { code: 'CP-A', name: 'CP A' }).subscribe();
+    service.createClass('school-1', 'year-1', {
+      code: 'CP-A', name: 'CP A', series: null,
+      classrooms: [{ code: 'A', name: 'CP A', maxStudents: 40 }]
+    }).subscribe();
     const schoolClass = http.expectOne(`${base}/school-years/year-1/classes`);
-    expect(schoolClass.request.body).toEqual({ code: 'CP-A', name: 'CP A' });
+    expect(schoolClass.request.body).toEqual({
+      code: 'CP-A', name: 'CP A', series: null,
+      classrooms: [{ code: 'A', name: 'CP A', maxStudents: 40 }]
+    });
     schoolClass.flush({});
   });
 

@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive } from '@angular/ro
 import { LucideChevronDown } from '@lucide/angular';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { LicenseAccessService } from '../../../core/license-access.service';
 
 interface NavItem {
   label: string;
@@ -26,6 +27,7 @@ export class EstablishmentNavComponent {
   private readonly router = inject(Router);
   private readonly workspaceContext = inject(WorkspaceContextService);
   private readonly access = inject(WorkspaceAccessService);
+  private readonly license = inject(LicenseAccessService);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
   private readonly currentUrl = signal(this.router.url);
@@ -64,6 +66,8 @@ export class EstablishmentNavComponent {
     { label: 'Inscriptions', path: ['enrollments'] },
     ...(this.access.hasPermission('can_attendance_read', this.establishmentId())
       ? [{ label: 'Présences et absences', path: ['attendance'] }] : []),
+    ...(this.license.canUse('can_learning_content_read', 'LEARNING_CONTENT', this.establishmentId())
+      ? [{ label: 'Cours et devoirs', path: ['learning'] }] : []),
     { label: 'Calendrier', path: ['calendar'] },
     { label: 'Finances', path: ['finance'] }
   ]);

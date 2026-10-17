@@ -4,6 +4,7 @@ import { AuthService } from '../../core/auth.service';
 import { WorkspaceContextService } from '../workspace-context.service';
 import { PendingChangesService } from '../pending-changes.service';
 import { EstablishmentNavComponent } from '../../components/establishment/establishment-nav/establishment-nav.component';
+import { LicenseAccessService } from '../../core/license-access.service';
 
 @Component({
   selector: 'app-authenticated-layout',
@@ -12,6 +13,7 @@ import { EstablishmentNavComponent } from '../../components/establishment/establ
   styleUrl: './authenticated-layout.component.css'
 })
 export class AuthenticatedLayoutComponent {
+  protected readonly licenseAccess = inject(LicenseAccessService);
   private readonly authService = inject(AuthService);
   private readonly workspaceContext = inject(WorkspaceContextService);
   private readonly pending = inject(PendingChangesService);

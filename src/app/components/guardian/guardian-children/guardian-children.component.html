@@ -18,6 +18,7 @@
         <li class="section section-body">
           <p class="text-base font-semibold text-[#26372d]">{{ child.firstName }} {{ child.lastName }}</p>
           <p class="mt-1 font-mono text-xs text-[#78837b]">{{ child.studentNumber }}</p>
+          <a class="mt-3 inline-block text-sm font-semibold text-[#244a37] underline" [routerLink]="['/parent/children', child.id]">Consulter le dossier</a>
         </li>
       }
     </ul>

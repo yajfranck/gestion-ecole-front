@@ -34,4 +34,27 @@ describe('SchoolClassManagerComponent', () => {
     expect(text).not.toContain('Niveau');
     http.verify();
   });
+
+  it('crée une classe avec sa première salle et permet de retirer sa série', () => {
+    const http = TestBed.inject(HttpTestingController); const fixture = TestBed.createComponent(SchoolClassManagerComponent);
+    fixture.componentRef.setInput('establishmentId', 'school-1'); fixture.componentRef.setInput('academicYearId', 'year-1'); fixture.detectChanges();
+    const url = `${base}/school-years/year-1/classes`; http.expectOne(url).flush([]);
+    const component = fixture.componentInstance; component['newCode'] = 'T-S'; component['newName'] = 'Terminale'; component['newSeries'] = ' Scientifique ';
+    component['newClassroomCode'] = ' a '; component['newClassroomName'] = 'Salle A'; component['newClassroomMaxStudents'] = 40; component['create']();
+    const create = http.expectOne(url); expect(create.request.body).toEqual({ code: 'T-S', name: 'Terminale', series: 'Scientifique', classrooms: [{ code: 'A', name: 'Salle A', maxStudents: 40 }] }); create.flush({}); http.expectOne(url).flush([]);
+    const schoolClass = { id: 'class', establishmentId: 'school-1', academicYearId: 'year-1', code: 'T-S', name: 'Terminale', series: 'Scientifique', enabled: true };
+    component['startEditing'](schoolClass); component['series'] = ''; component['save'](schoolClass);
+    const update = http.expectOne(`${url}/class`); expect(update.request.method).toBe('PATCH'); expect(update.request.body.series).toBe(''); update.flush({}); http.expectOne(url).flush([]); http.verify();
+  });
+
+  it('n’envoie pas la création si la première salle a une capacité invalide', () => {
+    const http = TestBed.inject(HttpTestingController); const fixture = TestBed.createComponent(SchoolClassManagerComponent);
+    fixture.componentRef.setInput('establishmentId', 'school-1'); fixture.componentRef.setInput('academicYearId', 'year-1'); fixture.detectChanges();
+    const url = `${base}/school-years/year-1/classes`; http.expectOne(url).flush([]);
+    const component = fixture.componentInstance;
+    component['newCode'] = 'CP-A'; component['newName'] = 'CP A'; component['newClassroomCode'] = 'A'; component['newClassroomName'] = 'Salle A'; component['newClassroomMaxStudents'] = 0;
+    component['create']();
+    http.expectNone((request) => request.method === 'POST');
+    expect(component['createError']()).toContain('capacité');
+  });
 });

@@ -18,6 +18,7 @@ export interface AttendanceSheet {
   establishmentId: string;
   academicYearId: string;
   schoolClassId: string;
+  classroomId: string | null;
   date: string;
   presentCount: number;
   absentCount: number;

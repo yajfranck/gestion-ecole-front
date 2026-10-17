@@ -2,6 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 import { GuardianChildrenComponent } from './guardian-children.component';
 
@@ -10,7 +11,7 @@ describe('GuardianChildrenComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [GuardianChildrenComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [provideZonelessChangeDetection(), provideRouter([]), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   it('affiche les enfants liés au compte', () => {
@@ -21,6 +22,7 @@ describe('GuardianChildrenComponent', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Ada Lovelace');
+    expect(fixture.nativeElement.querySelector('a').getAttribute('href')).toBe('/parent/children/st-1');
     http.verify();
   });
 

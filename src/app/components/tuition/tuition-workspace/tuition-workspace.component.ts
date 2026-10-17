@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
-import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucidePlus } from '@lucide/angular';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
@@ -39,6 +39,8 @@ export class TuitionWorkspaceComponent implements OnInit {
   readonly classes = input<SchoolClass[]>([]);
   readonly students = input<Student[]>([]);
   readonly initialStudentId = input<string | null>(null);
+  protected readonly availableClasses = computed(() => this.classes().filter((schoolClass) => schoolClass.enabled &&
+    schoolClass.establishmentId === this.establishmentId() && schoolClass.academicYearId === this.academicYearId()));
 
   protected readonly activeView = signal<FinanceView>('payments');
   protected readonly paymentMethods = signal<TuitionPaymentMethod[]>([]);
@@ -95,7 +97,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   ] as const;
   protected feeDueDate = '';
   protected feeScope: FeeScope = 'ACADEMIC_YEAR';
-  protected feeSchoolClassId = '';
+  protected feeSchoolClassIds: string[] = [];
   protected feeStudentId = '';
   protected paymentAmount: number | null = null;
   protected paymentMethodCode = '';
@@ -362,8 +364,10 @@ export class TuitionWorkspaceComponent implements OnInit {
       this.feesError.set('Vérifiez le nom, le type, le montant positif et la date d’échéance.');
       return;
     }
-    if (this.feeScope === 'SCHOOL_CLASS' && !this.feeSchoolClassId) {
-      this.feesError.set('Choisissez une classe pour ce frais.');
+    if (this.feeScope === 'SCHOOL_CLASS' && (!this.feeSchoolClassIds.length ||
+        new Set(this.feeSchoolClassIds).size !== this.feeSchoolClassIds.length ||
+        this.feeSchoolClassIds.some((id) => !this.availableClasses().some((schoolClass) => schoolClass.id === id)))) {
+      this.feesError.set('Choisissez au moins une classe active de cette année, sans doublon.');
       return;
     }
     if (this.feeScope === 'STUDENT' && !this.feeStudentId) {
@@ -377,8 +381,8 @@ export class TuitionWorkspaceComponent implements OnInit {
       amount,
       currency,
       dueDate: this.feeDueDate,
-      schoolClassId: this.feeScope === 'SCHOOL_CLASS' ? this.feeSchoolClassId : null,
-      studentId: this.feeScope === 'STUDENT' ? this.feeStudentId : null
+      ...(this.feeScope === 'SCHOOL_CLASS' ? { schoolClassIds: [...this.feeSchoolClassIds] } : {}),
+      ...(this.feeScope === 'STUDENT' ? { studentId: this.feeStudentId } : {})
     };
     this.isCreatingFee.set(true);
     this.feesError.set(null);
@@ -389,7 +393,7 @@ export class TuitionWorkspaceComponent implements OnInit {
         this.feeAmount = null;
         this.feeDueDate = '';
         this.feeScope = 'ACADEMIC_YEAR';
-        this.feeSchoolClassId = '';
+        this.feeSchoolClassIds = [];
         this.feeStudentId = '';
         this.isCreatingFee.set(false);
         this.successMessage.set(`Frais « ${fee.name} » créé ; ${chargesCreated} créance(s) générée(s).`);
@@ -419,6 +423,13 @@ export class TuitionWorkspaceComponent implements OnInit {
         this.applyingFeeId.set(null);
       }
     });
+  }
+
+  protected toggleFeeClass(id: string, checked: boolean): void {
+    if (this.isCreatingFee() || !this.availableClasses().some((schoolClass) => schoolClass.id === id)) return;
+    this.feeSchoolClassIds = checked
+      ? [...new Set([...this.feeSchoolClassIds, id])]
+      : this.feeSchoolClassIds.filter((classId) => classId !== id);
   }
 
   protected loadOutstandingCharges(): void {
@@ -526,7 +537,9 @@ export class TuitionWorkspaceComponent implements OnInit {
 
   protected scopeLabel(fee: TuitionFee): string {
     if (fee.scope === 'SCHOOL_CLASS') {
-      return `Classe : ${this.classes().find((item) => item.id === fee.schoolClassId)?.name ?? 'inconnue'}`;
+      const ids = fee.schoolClassIds ?? (fee.schoolClassId ? [fee.schoolClassId] : []);
+      const names = ids.map((id) => this.classes().find((item) => item.id === id)?.name ?? 'Classe indisponible');
+      return `${ids.length > 1 ? 'Classes' : 'Classe'} : ${names.join(', ') || 'indisponible'}`;
     }
     if (fee.scope === 'STUDENT') {
       const student = this.students().find((item) => item.id === fee.studentId);

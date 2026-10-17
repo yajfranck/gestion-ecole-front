@@ -5,6 +5,7 @@ import { AuthService } from '../../core/auth.service';
 import { WorkspaceAccessService } from '../../core/workspace-access.service';
 import { WorkspaceContextService } from '../workspace-context.service';
 import { AuthenticatedLayoutComponent } from './authenticated-layout.component';
+import { LicenseAccessService } from '../../core/license-access.service';
 
 describe('AuthenticatedLayoutComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
@@ -13,6 +14,7 @@ describe('AuthenticatedLayoutComponent', () => {
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: AuthService, useValue: { logout: jasmine.createSpy('logout') } },
+      { provide: LicenseAccessService, useValue: { canRead: () => false, canUse: () => false, notice: () => null } },
       { provide: WorkspaceAccessService, useValue: { hasPermission: () => false } }
     ]
   }));

@@ -1,0 +1,43 @@
+<section class="page">
+  @if (!license.canRead()) { <p class="state-error" role="alert">La consultation des licences n’est pas autorisée pour votre compte.</p> } @else {
+  <header class="page-header"><h1 class="page-heading">Licence de l’établissement</h1><button class="btn btn-secondary" type="button" (click)="reload()" [disabled]="busy() || license.loading()">Actualiser</button></header>
+  @if (message()) { <p role="status" class="state-empty">{{ message() }}</p> }
+  @if (error() || license.error()) { <p role="alert" class="state-error">{{ error() || license.error() }}</p> }
+  @if (license.loading()) { <p class="state-loading" role="status">Chargement des licences…</p> }
+  @if (license.licenses(); as licenses) {
+    @if (!licenses.length) { <p class="state-empty">Aucune licence attribuée.</p> }
+    <div class="table-wrap"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Offre</th><th>État</th><th>Début</th><th>Fin exclusive</th><th>Fonctionnalités</th>@if (admin()) { <th>Actions</th> }</tr></thead><tbody>
+      @for (item of licenses; track item.id) {
+        <tr><td>{{ item.offerName }}</td><td><span class="badge">{{ states[item.state] }}</span></td><td>{{ item.validFrom | date:'short' }}</td><td>{{ item.validUntil ? (item.validUntil | date:'short') : 'Sans échéance' }}</td><td>
+          @if (license.offers(); as offers) {
+            @for (offer of offers; track offer.id) { @if (offer.id === item.offerId) { {{ offer.features.join(', ') }} } }
+          } @else { Non communiquées par le service }
+        </td>
+        @if (admin()) { <td><div class="flex flex-wrap gap-2">
+          @if (item.state === 'ACTIVE' || item.state === 'UPCOMING') { <button class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'suspend')">Suspendre</button> }
+          @if (item.state === 'SUSPENDED') { <button class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'reactivate')">Réactiver</button> }
+          @if (item.state === 'ACTIVE') { <button class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'end')">Terminer</button> }
+          <button class="btn btn-secondary" [disabled]="busy()" (click)="history(item)">Historique</button>
+        </div></td> }
+        </tr>
+      }
+    </tbody></table></div>
+  }
+  @if (!admin()) { <p class="mt-4 text-sm text-[#69756d]">L’attribution et le renouvellement relèvent de l’administration de la plateforme. Aucune demande de renouvellement en ligne n’est disponible.</p> }
+  @if (admin()) {
+    <section class="section section-body mt-4"><h2 class="section-title">Attribuer ou renouveler une offre</h2>
+      <form class="mt-4 grid gap-4 sm:grid-cols-3" (ngSubmit)="assign()" #form="ngForm">
+        <label class="form-field text-sm font-medium">Offre<select class="form-control" name="offer" [(ngModel)]="offerId" required><option value="">Choisir une offre</option>@for (offer of license.offers() || []; track offer.id) { <option [value]="offer.id">{{ offer.name }}</option> }</select></label>
+        <label class="form-field text-sm font-medium">Début (facultatif)<input class="form-control" type="datetime-local" name="from" [(ngModel)]="validFrom"></label>
+        <label class="form-field text-sm font-medium">Fin (facultative)<input class="form-control" type="datetime-local" name="until" [(ngModel)]="validUntil"></label>
+        <button class="btn btn-primary justify-self-start" [disabled]="form.invalid || busy() || license.loading()">{{ busy() ? 'Enregistrement…' : 'Attribuer l’offre' }}</button>
+      </form>
+    </section>
+    @if (eventLicense()) {
+      <section class="section section-body mt-4"><h2 class="section-title">Historique de la licence {{ eventLicense() }}</h2>
+        @if (events(); as entries) { @for (entry of entries; track entry.id) { <p class="border-b py-3 text-sm">{{ entry.createdAt | date:'short' }} · {{ entry.action }} · {{ entry.actor }}<br>{{ entry.details }}</p> } @empty { <p class="state-empty">Aucun événement.</p> } }
+      </section>
+    }
+  }
+  }
+</section>

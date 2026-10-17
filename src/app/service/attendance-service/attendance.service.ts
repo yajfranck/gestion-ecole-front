@@ -7,12 +7,14 @@ import { AttendanceHistory, AttendanceInput, AttendanceSheet } from '../../model
 export class AttendanceService {
   private readonly http = inject(HttpClient);
 
-  getSheet(establishmentId: string, academicYearId: string, schoolClassId: string, date: string) {
-    return this.http.get<AttendanceSheet>(`${this.base(establishmentId, academicYearId)}/classes/${schoolClassId}/attendance`, { params: { date } });
+  getSheet(establishmentId: string, academicYearId: string, schoolClassId: string, date: string, classroomId?: string) {
+    return this.http.get<AttendanceSheet>(`${this.base(establishmentId, academicYearId)}/classes/${schoolClassId}/attendance`, {
+      params: { date, ...(classroomId ? { classroomId } : {}) }
+    });
   }
 
-  save(establishmentId: string, academicYearId: string, schoolClassId: string, date: string, entries: AttendanceInput[]) {
-    return this.http.put<AttendanceSheet>(`${this.base(establishmentId, academicYearId)}/classes/${schoolClassId}/attendance/${date}`, { entries });
+  save(establishmentId: string, academicYearId: string, schoolClassId: string, date: string, classroomId: string, entries: AttendanceInput[]) {
+    return this.http.put<AttendanceSheet>(`${this.base(establishmentId, academicYearId)}/classes/${schoolClassId}/attendance/${date}`, { classroomId, entries });
   }
 
   getHistory(establishmentId: string, academicYearId: string, studentId: string, from: string, to: string) {

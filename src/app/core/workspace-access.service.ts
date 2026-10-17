@@ -24,7 +24,7 @@ export class WorkspaceAccessService {
     effect((onCleanup) => {
       const authorities = this.authorities();
       this.employee.set(null);
-      if (!authorities.some((value) => ['can_establishment_update', 'can_attendance_read', 'can_attendance_write'].includes(value))) return;
+      if (!authorities.some((value) => value === 'can_establishment_update' || value === 'can_license_read' || value.startsWith('can_attendance_') || value.startsWith('can_learning_content_'))) return;
       const subscription = this.employees.getMe().subscribe({
         next: (employee) => this.employee.set(employee),
         error: () => this.employee.set(null)

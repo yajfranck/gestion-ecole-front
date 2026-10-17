@@ -209,18 +209,23 @@
           <span class="form-label is-required">Portée</span>
           <select class="form-control" name="feeScope" [(ngModel)]="feeScope">
             <option value="ACADEMIC_YEAR">Toute l’année scolaire</option>
-            <option value="SCHOOL_CLASS">Une classe</option>
+            <option value="SCHOOL_CLASS">Une ou plusieurs classes</option>
             <option value="STUDENT">Un élève</option>
           </select>
         </label>
         @if (feeScope === 'SCHOOL_CLASS') {
-          <label class="form-field">
-            <span class="form-label is-required">Classe</span>
-            <select class="form-control" name="feeSchoolClass" [(ngModel)]="feeSchoolClassId" required>
-              <option value="" disabled>Choisir une classe</option>
-              @for (schoolClass of classes(); track schoolClass.id) { <option [value]="schoolClass.id">{{ schoolClass.name }}</option> }
-            </select>
-          </label>
+          <fieldset class="form-field min-w-0 border-0 p-0">
+            <legend class="form-label is-required mb-2">Classes concernées</legend>
+            <div class="grid max-h-60 gap-2 overflow-y-auto rounded-lg border border-[#e1e7e0] bg-white p-3">
+              @for (schoolClass of availableClasses(); track schoolClass.id) {
+                <label class="flex items-center gap-2 text-sm text-[#35473b]">
+                  <input #classCheckbox type="checkbox" class="size-4 accent-[#47745d]" [name]="'feeClass' + schoolClass.id" [checked]="feeSchoolClassIds.includes(schoolClass.id)" (change)="toggleFeeClass(schoolClass.id, classCheckbox.checked)" [disabled]="isCreatingFee()">
+                  <span>{{ schoolClass.name }} · {{ schoolClass.code }}</span>
+                </label>
+              } @empty { <p class="form-hint">Aucune classe active disponible pour cette année.</p> }
+            </div>
+            <p class="form-hint">Sélectionnez au moins une classe. Le même montant et la même échéance s’appliquent à chaque élève concerné.</p>
+          </fieldset>
         }
         @if (feeScope === 'STUDENT') {
           <label class="form-field">
@@ -235,14 +240,14 @@
       @if (feesError()) { <p class="form-error" role="alert">{{ feesError() }}</p> }
       <p class="form-legend">* Champ obligatoire. Les créances sont créées pour les élèves inscrits concernés.</p>
       <div class="form-actions">
-        <button class="btn btn-primary" type="submit" [disabled]="isCreatingFee() || isLoadingFeeTypes() || !feeTypes().length || !feeTypeId()">{{ isCreatingFee() ? 'Création…' : 'Créer le frais et ses créances' }}</button>
+        <button class="btn btn-primary" type="submit" [disabled]="isCreatingFee() || isLoadingFeeTypes() || !feeTypes().length || !feeTypeId() || (feeScope === 'SCHOOL_CLASS' && !feeSchoolClassIds.length)">{{ isCreatingFee() ? 'Création…' : 'Créer le frais et ses créances' }}</button>
       </div>
     </form>
   </section>
 
   <section class="border-t border-[#e1e7e0] pt-5" aria-labelledby="fees-title">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div><h3 id="fees-title" class="text-sm font-semibold text-[#35473b]">Frais définis pour l’année</h3><p class="mt-1 text-xs text-[#78837b]">Les frais sont immuables ; appliquez-les à nouveau après de nouvelles inscriptions.</p></div>
+      <div><h3 id="fees-title" class="text-sm font-semibold text-[#35473b]">Frais définis pour l’année</h3><p class="mt-1 text-xs text-[#78837b]">Les frais sont immuables. Les nouvelles inscriptions appliquent automatiquement les frais correspondants ; la réapplication crée uniquement les créances manquantes.</p></div>
       <button class="min-h-9 text-sm font-semibold text-[#47745d] underline" type="button" (click)="loadFees()">Actualiser</button>
     </div>
     @if (isLoadingFees()) {
