@@ -72,20 +72,21 @@
                 <td class="px-4 py-4 text-xs leading-5 text-[#69756d]">{{ row.progress }}@if (row.enrollment?.paymentDecisionBy) { <span class="block">Par {{ row.enrollment?.paymentDecisionBy }}</span> }</td>
                 <td class="whitespace-nowrap px-4 py-4 text-xs tabular-nums text-[#69756d]">@if (row.updatedAt) { {{ row.updatedAt | date:'dd/MM/yyyy à HH:mm' }} } @else { — }</td>
                 <td class="px-4 py-3 sm:pr-6">
-                  <div class="flex items-center justify-end gap-2">
+                  <app-table-actions [label]="'Actions de l’inscription de ' + row.studentName">
                     @if (row.draft; as draft) {
-                      <button class="btn btn-primary" type="button" aria-haspopup="dialog" [disabled]="!canStart()" (click)="startJourney($event, draft)">Reprendre</button>
-                      <button class="btn btn-secondary size-11! p-0!" type="button" [attr.aria-label]="'Supprimer le brouillon de ' + row.studentName" title="Supprimer le brouillon" (click)="removeDraft(draft)"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+                      <button appTableAction="resume" type="button" aria-haspopup="dialog" [disabled]="!canStart()" (click)="startJourney($event, draft)">Reprendre</button>
+                      <button appTableAction="trash" actionDanger type="button" [attr.aria-label]="'Supprimer le brouillon de ' + row.studentName" (click)="removeDraft(draft)">Supprimer le brouillon</button>
                     } @else if (row.enrollment; as enrollment) {
-                      @if (access.hasPermission('can_enrollment_update', establishmentId())) {
-                        @if (changingId() === enrollment.id) {
-                          <app-form-modal title="Changer de salle" [busy]="moving()" (closed)="changingId.set(null)" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+                      <button *appPermission="'can_enrollment_update'" appTableAction="move" type="button" aria-haspopup="dialog" (click)="startChangingRoom(enrollment)">Changer de salle</button>
+                    }
+                  </app-table-actions>
+                  @if (row.enrollment; as enrollment) {
+                    @if (access.hasPermission('can_enrollment_update', establishmentId()) && changingId() === enrollment.id) {
+                      <app-form-modal title="Changer de salle" [busy]="moving()" (closed)="changingId.set(null)" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
                             <form class="form-grid" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form>
                           </ng-template></app-form-modal>
-                        } @else { <button *appPermission="'can_enrollment_update'" class="btn btn-secondary whitespace-nowrap" type="button" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
-                      } @else { <span class="text-[#78837b]">—</span> }
                     }
-                  </div>
+                  }
                 </td>
               </tr>
             }

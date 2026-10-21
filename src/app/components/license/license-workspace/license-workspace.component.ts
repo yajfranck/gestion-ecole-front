@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { PermissionDirective } from '../../../shared/permission/permission.directive';
@@ -20,7 +22,7 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
 
 @Component({
   selector: 'app-license-workspace',
-  imports: [PermissionDirective, DatePipe, DialogComponent, EstablishmentLicenseFormComponent],
+  imports: [TableActionDirective, TableActionsComponent, PermissionDirective, DatePipe, DialogComponent, EstablishmentLicenseFormComponent],
   templateUrl: './license-workspace.component.html',
   styleUrl: './license-workspace.component.css'
 })

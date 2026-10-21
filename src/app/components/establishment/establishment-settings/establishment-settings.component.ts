@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { PermissionDirective } from '../../../shared/permission/permission.directive';
@@ -14,7 +16,7 @@ import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-establishment-settings',
-  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, FormsModule, RouterLink],
   templateUrl: './establishment-settings.component.html',
   styleUrl: './establishment-settings.component.css'
 })

@@ -1,3 +1,4 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
@@ -15,20 +16,19 @@ import { SchoolClassGridComponent } from '../school-class-grid/school-class-grid
 import { ClassSubjectManagerComponent } from '../../subject/class-subject-manager/class-subject-manager.component';
 import { ClassroomManagerComponent } from '../../classroom/classroom-manager/classroom-manager.component';
 import { Classroom } from '../../../models/classroom/classroom.model';
-import { SchoolClassCapacityService } from '../../../service/school-class-capacity-service/school-class-capacity.service';
+import { schoolClassCapacity } from '../../../shared/school-class-capacity';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 
 @Component({
   selector: 'app-school-class-manager',
-  providers: [SchoolClassCapacityService],
-  imports: [FormModalComponent, FormsModule, DialogComponent, SchoolClassDetailComponent, SchoolClassFormComponent, SchoolClassGridComponent, ClassSubjectManagerComponent, ClassroomManagerComponent],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, FormsModule, DialogComponent, SchoolClassDetailComponent, SchoolClassFormComponent, SchoolClassGridComponent, ClassSubjectManagerComponent, ClassroomManagerComponent],
   templateUrl: './school-class-manager.component.html',
   styleUrl: './school-class-manager.component.css'
 })
 export class SchoolClassManagerComponent implements OnInit {
   private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
-  protected readonly capacity = inject(SchoolClassCapacityService);
 
   constructor() {
     this.toast.connect(this.successMessage, 'success');
@@ -45,6 +45,7 @@ export class SchoolClassManagerComponent implements OnInit {
   readonly initialClassId = input<string | null>(null);
 
   protected readonly classes = signal<SchoolClass[]>([]);
+  protected readonly classIndicators = computed(() => Object.fromEntries(this.classes().map(schoolClass => [schoolClass.id, schoolClassCapacity(schoolClass)] as const)));
   protected readonly isLoading = signal(true);
   protected readonly isSaving = signal(false);
   protected readonly archivingId = signal<string | null>(null);
@@ -82,18 +83,25 @@ export class SchoolClassManagerComponent implements OnInit {
 
   protected openManagement(schoolClass: SchoolClass, kind: 'subjects' | 'rooms', event: Event): void {
     if (this.managementBusy() || !this.can('read') || (kind === 'subjects' && !this.access.hasPermission('can_class_subject_read', this.establishmentId()))) return;
-    this.management.set({ kind, schoolClass, trigger: event.currentTarget as HTMLElement | null });
+    const target = event.currentTarget as HTMLElement | null;
+    const trigger = target?.closest('app-table-actions')?.querySelector<HTMLButtonElement>('button[aria-haspopup="menu"]') ?? target;
+    this.management.set({ kind, schoolClass, trigger });
   }
 
   protected closeManagement(): void { if (!this.managementBusy()) this.management.set(null); }
 
   protected updateClassrooms(schoolClassId: string, rooms: Classroom[]): void {
-    this.capacity.setClassrooms(schoolClassId, rooms);
+    const active = rooms.filter(room => room.enabled && room.establishmentId === this.establishmentId() && room.academicYearId === this.academicYearId() && room.schoolClassId === schoolClassId);
+    this.classes.update(classes => classes.map(schoolClass => schoolClass.id === schoolClassId ? {
+      ...schoolClass,
+      classroomCount: active.length,
+      totalCapacity: active.reduce((total, room) => total + room.maxStudents, 0)
+    } : schoolClass));
     if (this.classDetail()?.schoolClassId() === schoolClassId) this.classDetail()?.setClassrooms(rooms);
   }
 
   protected refreshCapacity(): void {
-    this.capacity.load(this.establishmentId(), this.academicYearId(), this.classes().map(schoolClass => schoolClass.id));
+    this.load();
   }
 
   protected can(action: 'read' | 'create' | 'update' | 'delete'): boolean {
@@ -139,7 +147,6 @@ export class SchoolClassManagerComponent implements OnInit {
     this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (classes) => {
         this.classes.set(classes.filter(schoolClass => schoolClass.enabled && schoolClass.establishmentId === this.establishmentId() && schoolClass.academicYearId === this.academicYearId()));
-        this.refreshCapacity();
         const initial = this.initialClassId();
         if (initial && this.expandedId() === null && classes.some((item) => item.id === initial)) {
           this.expandedId.set(initial);

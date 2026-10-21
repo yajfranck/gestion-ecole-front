@@ -41,7 +41,7 @@
           <ng-template #attendanceTable let-editMode="editMode">
           <div class="table-wrap"><table class="w-full min-w-3xl text-left text-sm">
             <caption class="sr-only">Appel du {{ date() }}</caption>
-            <thead><tr><th class="px-5 py-3">Élève</th><th class="px-4 py-3">Pointage</th><th class="px-4 py-3">Justifiée</th><th class="px-4 py-3">Commentaire</th><th class="px-4 py-3">Historique</th></tr></thead>
+            <thead><tr><th class="px-5 py-3">Élève</th><th class="px-4 py-3">Pointage</th><th class="px-4 py-3">Justifiée</th><th class="px-4 py-3">Commentaire</th><th class="px-4 py-3">Actions</th></tr></thead>
             <tbody class="divide-y divide-[#edf0ec]">
               @for (row of rows(); track row.studentId) {
                 <tr>
@@ -54,7 +54,9 @@
                   </td>
                   <td class="px-4 py-3"><input type="checkbox" class="h-4 w-4 accent-[#28563b]" [attr.aria-label]="'Absence justifiée pour ' + row.firstName" [ngModel]="row.absenceJustified" (ngModelChange)="update(row.studentId, { absenceJustified: $event })" [disabled]="!editMode || !canEdit() || row.status !== 'ABSENT' || pending.saving() || conflict()"></td>
                   <td class="px-4 py-3"><input class="form-control min-w-48" maxlength="500" [attr.aria-label]="'Commentaire pour ' + row.firstName" [ngModel]="row.comment" (ngModelChange)="update(row.studentId, { comment: $event })" [disabled]="!editMode || !canEdit() || row.status === 'NON_RENSEIGNE' || pending.saving() || conflict()"></td>
-                  <td class="px-4 py-3"><a class="font-semibold text-[#47745d]" [routerLink]="['history', row.studentId]" [queryParams]="{ name: row.firstName + ' ' + row.lastName }">Historique</a></td>
+                  <td class="text-right px-4 py-3">
+<app-table-actions [label]="'Actions de ' + row.firstName + ' ' + row.lastName"><a [routerLink]="['history', row.studentId]" [queryParams]="{ name: row.firstName + ' ' + row.lastName }" appTableAction="history">Historique</a></app-table-actions>
+</td>
                 </tr>
               }
             </tbody>

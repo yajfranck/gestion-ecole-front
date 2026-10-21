@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
@@ -15,7 +17,7 @@ import { RoleFormComponent } from '../role-form/role-form.component';
 @Component({
   selector: 'app-roles',
   standalone: true,
-  imports: [FormModalComponent, PermissionDirective, RoleFormComponent, LucidePlus],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, RoleFormComponent, LucidePlus],
   templateUrl: './role-list.component.html',
   styleUrl: './role-list.component.css'
 })

@@ -14,8 +14,10 @@
   }
   @if (loading()) { <p class="state-loading" role="status">Chargement des contenus…</p> }
   @if (page(); as result) {
-    <div class="table-wrap"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Titre</th><th>Type</th><th>État</th><th>Date limite</th><th></th></tr></thead><tbody>
-      @for (item of result.contents; track item.id) { <tr><td class="max-w-sm break-words">{{ item.title }}</td><td>{{ types[item.type] }}</td><td><span class="badge" [class.published]="item.status === 'PUBLISHED'" [class.archived]="item.status === 'ARCHIVED'">{{ statuses[item.status] }}</span></td><td>{{ item.dueDate | date:'dd/MM/yyyy' }}</td><td><button class="btn btn-secondary" (click)="open(item)" [disabled]="pending.saving() || item.status === 'ARCHIVED'">Consulter</button></td></tr> }
+    <div class="table-wrap"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Titre</th><th>Type</th><th>État</th><th>Date limite</th><th>Actions</th></tr></thead><tbody>
+      @for (item of result.contents; track item.id) { <tr><td class="max-w-sm break-words">{{ item.title }}</td><td>{{ types[item.type] }}</td><td><span class="badge" [class.published]="item.status === 'PUBLISHED'" [class.archived]="item.status === 'ARCHIVED'">{{ statuses[item.status] }}</span></td><td>{{ item.dueDate | date:'dd/MM/yyyy' }}</td><td class="text-right">
+<app-table-actions [label]="'Actions de ' + item.title"><button (click)="open(item)" [disabled]="pending.saving() || item.status === 'ARCHIVED'" appTableAction="view">Consulter</button></app-table-actions>
+</td></tr> }
       @empty { <tr><td colspan="5">Aucun contenu disponible.</td></tr> }
     </tbody></table></div>
     <div class="flex flex-wrap items-center justify-between gap-3 text-sm"><span>{{ result.totalElements }} contenu(s) · Page {{ result.page + 1 }}</span><div class="flex gap-2"><button class="btn btn-secondary" [disabled]="result.page === 0 || loading() || pending.saving()" (click)="load(result.page - 1)">Précédent</button><button class="btn btn-secondary" [disabled]="(result.page + 1) * result.size >= result.totalElements || loading() || pending.saving()" (click)="load(result.page + 1)">Suivant</button></div></div>

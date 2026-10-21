@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { Component, computed, DestroyRef, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -16,7 +18,7 @@ import { validDateRange } from '../../../shared/date-range';
 
 @Component({
   selector: 'app-guardian-child-detail',
-  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe],
+  imports: [TableActionDirective, TableActionsComponent, FormsModule, RouterLink, CurrencyPipe, DatePipe],
   templateUrl: './guardian-child-detail.component.html',
   styleUrl: './guardian-child-detail.component.css'
 })

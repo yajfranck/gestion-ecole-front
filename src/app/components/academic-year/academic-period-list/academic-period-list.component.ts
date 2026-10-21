@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
@@ -11,7 +13,7 @@ import { AcademicPeriodService } from '../../../service/academic-period-service/
 
 @Component({
   selector: 'app-academic-period-list',
-  imports: [FormModalComponent, PermissionDirective, FormsModule],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, FormsModule],
   templateUrl: './academic-period-list.component.html',
   styleUrl: './academic-period-list.component.css'
 })

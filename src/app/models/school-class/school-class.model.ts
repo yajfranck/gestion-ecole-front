@@ -6,6 +6,9 @@ export interface SchoolClass {
   name: string;
   series?: string | null;
   enabled: boolean;
+  classroomCount: number;
+  totalCapacity: number;
+  enrolledStudentCount: number;
 }
 
 export type SchoolClassRequest = Pick<SchoolClass, 'code' | 'name' | 'series'>;

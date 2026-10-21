@@ -48,6 +48,7 @@ export const ESTABLISHMENT_NAVIGATION = [
 export const YEAR_NAVIGATION: PermissionNavItem[] = [
   { label: 'Classes', permission: FEATURE_PERMISSIONS.classes, path: ['classes'] },
   { label: 'Inscriptions', permission: FEATURE_PERMISSIONS.enrollments, path: ['enrollments'] },
+  { label: 'Emploi du temps', permission: FEATURE_PERMISSIONS.timetable, path: ['timetable'] },
   { label: 'Présences et absences', permission: FEATURE_PERMISSIONS.attendance, path: ['attendance'] },
   { label: 'Cours et devoirs', permission: FEATURE_PERMISSIONS.learning, path: ['learning'] },
   { label: 'Calendrier', permission: FEATURE_PERMISSIONS.calendar, path: ['calendar'] },

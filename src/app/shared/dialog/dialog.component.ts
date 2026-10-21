@@ -1,4 +1,5 @@
 import { afterNextRender, Component, ElementRef, input, OnDestroy, output, viewChild } from '@angular/core';
+import { tableActionTrigger } from '../table-actions/table-action-trigger';
 
 let nextDialogId = 0;
 
@@ -15,9 +16,13 @@ export class DialogComponent implements OnDestroy {
   readonly returnFocusTo = input<HTMLElement | null>(null);
   readonly dismiss = output<void>();
   private readonly dialog = viewChild.required<ElementRef<HTMLDialogElement>>('dialog');
+  private fallbackTrigger: HTMLElement | null = null;
 
   constructor() {
-    afterNextRender(() => this.dialog().nativeElement.showModal());
+    afterNextRender(() => {
+      this.fallbackTrigger = tableActionTrigger(document.activeElement instanceof HTMLElement ? document.activeElement : null);
+      this.dialog().nativeElement.showModal();
+    });
   }
 
   protected cancel(event?: Event): void {
@@ -26,7 +31,7 @@ export class DialogComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    const trigger = this.returnFocusTo();
+    const trigger = tableActionTrigger(this.returnFocusTo() ?? this.fallbackTrigger);
     this.dialog().nativeElement.close();
     queueMicrotask(() => { if (trigger?.isConnected) trigger.focus(); });
   }

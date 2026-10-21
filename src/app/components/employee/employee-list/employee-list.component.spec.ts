@@ -144,8 +144,9 @@ describe('EmployeeListComponent', () => {
       { id: 'position-1', establishmentId: 'school-1', name: 'Enseignante', enabled: true, roleCodes: ['STAFF'] }
     ]);
     harness.detectChanges();
-    const trigger = Array.from(harness.routeNativeElement!.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Modifier')!;
-    trigger.click();
+    const trigger = harness.routeNativeElement!.querySelector<HTMLButtonElement>('app-table-actions > button')!;
+    trigger.click(); harness.detectChanges();
+    Array.from(harness.routeNativeElement!.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Modifier')!.click();
     harness.detectChanges();
     await harness.fixture.whenStable();
     const dialog = harness.routeNativeElement!.querySelector('dialog') as HTMLDialogElement;

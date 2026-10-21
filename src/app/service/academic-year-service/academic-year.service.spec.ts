@@ -35,6 +35,15 @@ describe('AcademicYearService', () => {
     schoolClass.flush({});
   });
 
+  it('renvoie les compteurs de la liste des classes sans lecture complémentaire', () => {
+    const classes = [{ id: 'class-1', establishmentId: 'school-1', academicYearId: 'year-1', code: '6A', name: 'Sixième A', enabled: true, classroomCount: 2, totalCapacity: 80, enrolledStudentCount: 30 }];
+    let received: unknown;
+    service.getClasses('school-1', 'year-1').subscribe(result => received = result);
+    const request = http.expectOne(`${base}/school-years/year-1/classes`);
+    expect(request.request.method).toBe('GET'); request.flush(classes);
+    expect(received).toEqual(classes); http.expectNone(() => true);
+  });
+
   it('crée un lot de classes sans salle et renvoie les classes créées', () => {
     const classes = [
       { code: '6A', name: 'Sixième A', series: 'Générale' },

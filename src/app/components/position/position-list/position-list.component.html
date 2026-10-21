@@ -43,11 +43,13 @@
                 }
               </td>
               <td class="whitespace-nowrap px-4 py-3 text-right sm:px-5">
-                <button *appPermission="['can_position_update', 'can_position_assign_roles']" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(position)">Modifier</button>
+<app-table-actions [label]="'Actions du poste ' + position.name">
+                <button *appPermission="['can_position_update', 'can_position_assign_roles']" type="button" (click)="startEditing(position)" appTableAction="edit">Modifier</button>
                 @if (position.enabled) {
-                  <button *appPermission="'can_position_delete'" class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d]" type="button" (click)="requestDeactivation(position)">Désactiver</button>
+                  <button *appPermission="'can_position_delete'" type="button" (click)="requestDeactivation(position)" appTableAction="power" actionDanger>Désactiver</button>
                 }
-              </td>
+              </app-table-actions>
+</td>
             </tr>
             @if (editingId() === position.id) {
               <tr><td class="p-0" colspan="4"><app-form-modal title="Modifier le poste" [busy]="isSaving()" *appPermission="['can_position_update', 'can_position_assign_roles']" (closed)="cancel()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>

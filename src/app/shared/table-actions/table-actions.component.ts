@@ -1,4 +1,5 @@
-import { Component, ElementRef, HostListener, input, signal, viewChild } from '@angular/core';
+import { Component, contentChildren, ElementRef, HostListener, input, signal, viewChild } from '@angular/core';
+import { TableActionDirective } from './table-action.directive';
 
 let nextMenuId = 0;
 
@@ -9,9 +10,10 @@ let nextMenuId = 0;
 })
 export class TableActionsComponent {
   readonly label = input('Actions');
+  protected readonly actions = contentChildren(TableActionDirective, { descendants: true });
   readonly menuId = `table-actions-${nextMenuId++}`;
   protected readonly expanded = signal(false);
-  private readonly trigger = viewChild.required<ElementRef<HTMLButtonElement>>('trigger');
+  private readonly trigger = viewChild<ElementRef<HTMLButtonElement>>('trigger');
   private readonly menu = viewChild.required<ElementRef<HTMLElement>>('menu');
 
   protected toggle(): void {
@@ -20,9 +22,11 @@ export class TableActionsComponent {
   }
 
   private open(last = false): void {
+    const trigger = this.trigger();
+    if (!trigger) return;
     const menu = this.menu().nativeElement;
     menu.showPopover();
-    const rect = this.trigger().nativeElement.getBoundingClientRect();
+    const rect = trigger.nativeElement.getBoundingClientRect();
     const gap = 8;
     const width = Math.min(256, window.innerWidth - gap * 2);
     menu.style.width = `${width}px`;
@@ -86,6 +90,6 @@ export class TableActionsComponent {
   private close(restoreFocus = false): void {
     this.menu().nativeElement.hidePopover();
     this.expanded.set(false);
-    if (restoreFocus) this.trigger().nativeElement.focus();
+    if (restoreFocus) this.trigger()?.nativeElement.focus();
   }
 }

@@ -15,7 +15,7 @@ describe('EstablishmentNavComponent', () => {
     imports: [EstablishmentNavComponent],
     providers: [provideZonelessChangeDetection(), provideRouter([{ path: '**', children: [] }]),
       { provide: LicenseAccessService, useValue: { canUse: () => false } },
-      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ hasPermission: (permission: string) => ['can_employee_read', 'can_position_read', 'can_role_read', 'can_permission_read', 'can_student_read', 'can_subject_read', 'can_school_class_read', 'can_enrollment_read', 'can_academic_period_read', 'can_tuition_read', 'can_academic_year_read'].includes(permission) }) }]
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ hasPermission: (permission: string) => ['can_employee_read', 'can_position_read', 'can_role_read', 'can_permission_read', 'can_student_read', 'can_subject_read', 'can_school_class_read', 'can_enrollment_read', 'can_timetable_read', 'can_academic_period_read', 'can_tuition_read', 'can_academic_year_read'].includes(permission) }) }]
   }));
 
   function create() {
@@ -162,9 +162,10 @@ describe('EstablishmentNavComponent', () => {
     context.selectAcademicYear(year('year-1'));
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
-    expect(labels(root).slice(-4)).toEqual(['Classes', 'Inscriptions', 'Calendrier', 'Finances']);
+    expect(labels(root).slice(-5)).toEqual(['Classes', 'Inscriptions', 'Emploi du temps', 'Calendrier', 'Finances']);
     expect((root.querySelector('#nav-academic-year') as HTMLSelectElement).value).toBe('year-1');
     expect(root.querySelector<HTMLAnchorElement>('a[href$="/school-years/year-1/classes"]')).toBeTruthy();
+    expect(root.querySelector<HTMLAnchorElement>('a[href$="/school-years/year-1/timetable"]')).toBeTruthy();
   });
 
   it('change le contexte sans naviguer depuis une page d’établissement', async () => {

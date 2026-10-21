@@ -1,3 +1,4 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
 import { DatePipe } from '@angular/common';
 import { Component, computed, input, output } from '@angular/core';
 import { LucideClock3, LucideMapPin, LucideUserRound } from '@lucide/angular';
@@ -28,7 +29,7 @@ function timeLabel(value: number): string {
 
 @Component({
   selector: 'app-timetable-board',
-  imports: [DatePipe, TableActionsComponent, LucideClock3, LucideMapPin, LucideUserRound],
+  imports: [TableActionDirective, DatePipe, TableActionsComponent, LucideClock3, LucideMapPin, LucideUserRound],
   templateUrl: './timetable-board.component.html',
   styleUrl: './timetable-board.component.css',
 })

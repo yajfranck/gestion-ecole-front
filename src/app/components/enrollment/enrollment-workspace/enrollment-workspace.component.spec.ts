@@ -181,7 +181,8 @@ describe('EnrollmentWorkspaceComponent', () => {
     expect(completed.textContent).toContain('Terminé'); expect(completed.textContent).toContain('Avance acceptée'); expect(completed.textContent).not.toContain('Reprendre');
     const current = rows.find(row => row.textContent?.includes('Maya Diallo'))!;
     expect(current.textContent).toContain('En cours'); expect(current.textContent).toContain('Identité à compléter');
-    current.querySelector<HTMLButtonElement>('button')!.click(); fixture.detectChanges(); await fixture.whenStable();
+    current.querySelector<HTMLButtonElement>('app-table-actions > button')!.click(); fixture.detectChanges();
+    current.querySelector<HTMLButtonElement>('button[appTableAction="resume"]')!.click(); fixture.detectChanges(); await fixture.whenStable();
     expect(root.querySelector<HTMLInputElement>('input[name="studentFirstName"]')!.value).toBe('Maya');
     http.expectNone(() => true); http.verify();
   });

@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { Component, computed, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -12,7 +14,7 @@ import { StudentGuardiansComponent } from '../student-guardians/student-guardian
 
 @Component({
   selector: 'app-student-list',
-  imports: [FormsModule, DialogComponent, StudentGuardiansComponent],
+  imports: [TableActionDirective, TableActionsComponent, FormsModule, DialogComponent, StudentGuardiansComponent],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.css'
 })

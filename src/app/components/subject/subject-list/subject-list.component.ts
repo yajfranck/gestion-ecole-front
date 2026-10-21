@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
@@ -11,7 +13,7 @@ import { SubjectService } from '../../../service/subject-service/subject.service
 
 @Component({
   selector: 'app-subject-list',
-  imports: [FormModalComponent, PermissionDirective, SubjectFormComponent],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, SubjectFormComponent],
   templateUrl: './subject-list.component.html',
   styleUrl: './subject-list.component.css'
 })

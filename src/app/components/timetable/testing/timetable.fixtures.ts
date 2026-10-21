@@ -20,6 +20,7 @@ export const timetableScope: TimetableScope = {
   classroomId: 'room',
 };
 export const timetableClass: SchoolClass = {
+  classroomCount: 1, totalCapacity: 40, enrolledStudentCount: 0,
   id: 'class',
   establishmentId: 'school',
   academicYearId: 'year',

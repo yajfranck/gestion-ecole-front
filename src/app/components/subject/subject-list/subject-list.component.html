@@ -27,9 +27,11 @@
               <td class="px-5 py-3 font-medium text-[#35473b] sm:px-6">{{ subject.name }}</td>
               <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ subject.code || 'Non renseigné' }}</td>
               <td class="whitespace-nowrap px-5 py-3 text-right sm:px-6">
-                <button *appPermission="'can_subject_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(subject)">Modifier</button>
-                <button *appPermission="'can_subject_delete'" class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!archivingId()" (click)="archive(subject)">{{ archivingId() === subject.id ? 'Archivage…' : 'Archiver' }}</button>
-              </td>
+<app-table-actions [label]="'Actions de la matière ' + subject.name">
+                <button *appPermission="'can_subject_update'" type="button" (click)="startEditing(subject)" appTableAction="edit">Modifier</button>
+                <button *appPermission="'can_subject_delete'" type="button" [disabled]="!!archivingId()" (click)="archive(subject)" appTableAction="archive" actionDanger>{{ archivingId() === subject.id ? 'Archivage…' : 'Archiver' }}</button>
+              </app-table-actions>
+</td>
             </tr>
           }
         </tbody>

@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
@@ -31,7 +33,7 @@ type FinanceView = 'payments' | 'fees' | 'history' | 'settings';
 @Component({
   selector: 'app-tuition-workspace',
   standalone: true,
-  imports: [FormModalComponent, PermissionDirective, FormsModule, DatePipe, LucidePlus],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, FormsModule, DatePipe, LucidePlus],
   templateUrl: './tuition-workspace.component.html',
   styleUrl: './tuition-workspace.component.css'
 })

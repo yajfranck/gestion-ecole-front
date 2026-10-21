@@ -2,18 +2,20 @@ import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, RouterLink } from '@angular/router';
 import { TableActionsComponent } from './table-actions.component';
+import { TableActionDirective } from './table-action.directive';
 
 @Component({
-  imports: [TableActionsComponent, RouterLink],
+  imports: [TableActionsComponent, TableActionDirective, RouterLink],
   template: `
     <div style="height: 40px; overflow: auto">
       <app-table-actions label="Actions pour Alice">
-        <button class="table-action" (click)="edited = true">Modifier</button>
-        <button class="table-action" disabled>Désactiver</button>
-        <a class="table-action" routerLink="/details">Consulter</a>
+        <button appTableAction="edit" (click)="edited = true">Modifier</button>
+        <button appTableAction="power" actionDanger disabled>Désactiver</button>
+        <a appTableAction="view" routerLink="/details">Consulter</a>
       </app-table-actions>
     </div>
-    <app-table-actions label="Actions pour Bob"><button>Archiver</button></app-table-actions>
+    <app-table-actions label="Actions pour Bob"><button appTableAction="archive" actionDanger>Archiver</button></app-table-actions>
+    <app-table-actions label="Aucune action"></app-table-actions>
     <button id="outside">Autre commande</button>
   `
 })
@@ -82,6 +84,20 @@ describe('TableActionsComponent', () => {
     link.addEventListener('click', (event) => event.preventDefault(), { once: true });
     link.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true }));
     expect(menu.matches(':popover-open')).toBeFalse();
+  });
+
+  it('n’affiche pas de déclencheur pour une ligne sans commande autorisée', () => {
+    const { root } = create();
+    const empty = root.querySelector('app-table-actions[label="Aucune action"]')!;
+    expect(empty.querySelector('button')).toBeNull();
+  });
+
+  it('partage les icônes SVG, les styles et les liens sans transformer les commandes en soumission', () => {
+    const { menu } = create(); const edit = menu.querySelector('button')!;
+    expect(edit.classList.contains('table-action')).toBeTrue(); expect(edit.type).toBe('button');
+    const icon = edit.querySelector('svg')!; expect(icon.namespaceURI).toBe('http://www.w3.org/2000/svg'); expect(icon.getAttribute('aria-hidden')).toBe('true');
+    expect(menu.querySelector('button[disabled]')!.classList.contains('table-action-danger')).toBeTrue();
+    expect(menu.querySelector('a')!.getAttribute('href')).toBe('/details');
   });
 
   it('referme le menu lors d’un redimensionnement', () => {

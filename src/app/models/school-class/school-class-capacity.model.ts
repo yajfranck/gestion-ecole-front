@@ -3,7 +3,4 @@ export interface SchoolClassCapacity {
   activeRooms: number | null;
   capacity: number | null;
   remaining: number | null;
-  loading: boolean;
-  error: boolean;
-  restricted: boolean;
 }

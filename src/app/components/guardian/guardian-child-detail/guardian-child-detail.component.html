@@ -37,14 +37,18 @@
     @if (detailError()) { <p class="state-error mt-4" role="alert">{{ detailError() }}</p> }
     @if (detailLoading()) { <p class="state-loading" role="status">Chargement…</p> }
     @if (tab() === 'summary' && summary(); as school) {
-      <div class="table-wrap mt-4"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Devise</th><th>Total facturé</th><th>Payé</th><th>Restant</th><th></th></tr></thead><tbody>
-        @for (balance of school.balances; track balance.currency) { <tr><td>{{ balance.currency }}</td><td>{{ balance.amountBilled | currency:balance.currency:'code' }}</td><td>{{ balance.amountPaid | currency:balance.currency:'code' }}</td><td>{{ balance.balance | currency:balance.currency:'code' }}</td><td><button class="btn btn-secondary" (click)="open('fees')">Voir les frais</button></td></tr> }
+      <div class="table-wrap mt-4"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Devise</th><th>Total facturé</th><th>Payé</th><th>Restant</th><th>Actions</th></tr></thead><tbody>
+        @for (balance of school.balances; track balance.currency) { <tr><td>{{ balance.currency }}</td><td>{{ balance.amountBilled | currency:balance.currency:'code' }}</td><td>{{ balance.amountPaid | currency:balance.currency:'code' }}</td><td>{{ balance.balance | currency:balance.currency:'code' }}</td><td class="text-right">
+<app-table-actions [label]="'Actions des frais en ' + balance.currency"><button (click)="open('fees')" appTableAction="receipt">Voir les frais</button></app-table-actions>
+</td></tr> }
         @empty { <tr><td colspan="5">Aucun montant facturé pour cette année.</td></tr> }
       </tbody></table></div>
     }
     @if (tab() === 'fees') {
-      <div class="table-wrap mt-4"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Frais</th><th>Échéance</th><th>Facturé</th><th>Payé</th><th>Restant</th><th></th></tr></thead><tbody>
-        @for (fee of fees() || []; track fee.chargeId) { <tr><td>{{ fee.name }} @if (fee.overdue) { <span class="badge">En retard</span> }</td><td>{{ fee.dueDate | date:'dd/MM/yyyy' }}</td><td>{{ fee.amount | currency:fee.currency:'code' }}</td><td>{{ fee.totalPaid | currency:fee.currency:'code' }}</td><td>{{ fee.balance | currency:fee.currency:'code' }}</td><td><button class="btn btn-secondary" (click)="loadPayments(fee)" [disabled]="detailLoading()">Paiements</button></td></tr> }
+      <div class="table-wrap mt-4"><table class="w-full min-w-xl text-left text-sm"><thead><tr><th>Frais</th><th>Échéance</th><th>Facturé</th><th>Payé</th><th>Restant</th><th>Actions</th></tr></thead><tbody>
+        @for (fee of fees() || []; track fee.chargeId) { <tr><td>{{ fee.name }} @if (fee.overdue) { <span class="badge">En retard</span> }</td><td>{{ fee.dueDate | date:'dd/MM/yyyy' }}</td><td>{{ fee.amount | currency:fee.currency:'code' }}</td><td>{{ fee.totalPaid | currency:fee.currency:'code' }}</td><td>{{ fee.balance | currency:fee.currency:'code' }}</td><td class="text-right">
+<app-table-actions [label]="'Actions du frais ' + fee.name"><button (click)="loadPayments(fee)" [disabled]="detailLoading()" appTableAction="pay">Paiements</button></app-table-actions>
+</td></tr> }
         @empty { @if (!detailLoading()) { <tr><td colspan="6">Aucun frais disponible.</td></tr> } }
       </tbody></table></div>
     }

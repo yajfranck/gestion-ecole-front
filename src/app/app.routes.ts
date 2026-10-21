@@ -23,15 +23,13 @@ import { StudentListComponent } from './components/student/student-list/student-
 import { EnrollmentWorkspaceComponent } from './components/enrollment/enrollment-workspace/enrollment-workspace.component';
 import { AcademicYearClassesComponent } from './components/academic-year/academic-year-classes/academic-year-classes.component';
 import { AcademicYearCalendarComponent } from './components/academic-year/academic-year-calendar/academic-year-calendar.component';
-import { AcademicYearFinanceComponent } from './components/academic-year/academic-year-finance/academic-year-finance.component';
 import { EmployeeDetailComponent } from './components/employee/employee-detail/employee-detail.component';
 import { GuardianChildrenComponent } from './components/guardian/guardian-children/guardian-children.component';
 import { AttendanceSheetComponent } from './components/attendance/attendance-sheet/attendance-sheet.component';
 import { AttendanceHistoryComponent } from './components/attendance/attendance-history/attendance-history.component';
 import { pendingChangesGuard } from './shared/pending-changes.service';
 import { GuardianChildDetailComponent } from './components/guardian/guardian-child-detail/guardian-child-detail.component';
-import { LicenseWorkspaceComponent } from './components/license/license-workspace/license-workspace.component';
-import { LearningWorkspaceComponent } from './components/learning/learning-workspace/learning-workspace.component';
+import { TimetableWorkspaceComponent } from './components/timetable/timetable-workspace/timetable-workspace.component';
 
 export const routes: Routes = [
 	{ path: 'login', component: LoginComponent },
@@ -52,10 +50,10 @@ export const routes: Routes = [
 			{ path: 'account/profile', component: EmployeeDetailComponent, data: { self: true, permissions: ['can_employee_read_self'] } },
 			{ path: 'parent/children', component: GuardianChildrenComponent, data: { permissions: ['can_guardian_read_children'] } },
 			{ path: 'parent/children/:studentId', component: GuardianChildDetailComponent, data: { permissions: ['can_guardian_read_children'] } },
-			{ path: 'parent/children/:studentId/school-years/:academicYearId/learning', component: LearningWorkspaceComponent, data: { permissions: ['can_guardian_read_children'] }, canDeactivate: [pendingChangesGuard] },
+			{ path: 'parent/children/:studentId/school-years/:academicYearId/learning', loadComponent: () => import('./components/learning/learning-workspace/learning-workspace.component').then(module => module.LearningWorkspaceComponent), data: { permissions: ['can_guardian_read_children'] }, canDeactivate: [pendingChangesGuard] },
 			{ path: 'establishments', component: EstablishmentsComponent, data: { permissionRule: features.establishments } },
 			{ path: 'establishments/:establishmentId/license-registration', component: EstablishmentsComponent, data: { licenseRegistration: true, globalPermissions: true, permissionRule: { any: ['can_establishment_onboard', { all: ['can_license_assign', 'can_license_offer_read'] }] } } },
-			{ path: 'establishments/:establishmentId/license', component: LicenseWorkspaceComponent, data: { permissionRule: features.license, globalPermissions: true } },
+			{ path: 'establishments/:establishmentId/license', loadComponent: () => import('./components/license/license-workspace/license-workspace.component').then(module => module.LicenseWorkspaceComponent), data: { permissionRule: features.license, globalPermissions: true } },
 			{
 				path: 'establishments/:establishmentId/employees',
 				redirectTo: 'establishments/:establishmentId/team/employees',
@@ -86,13 +84,14 @@ export const routes: Routes = [
 						component: AcademicYearWorkspaceComponent,
                 data: { permissions: ['can_academic_year_read'] },
 						children: [
-							{ path: 'learning', component: LearningWorkspaceComponent, data: { permissionRule: features.learning }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+							{ path: 'learning', loadComponent: () => import('./components/learning/learning-workspace/learning-workspace.component').then(module => module.LearningWorkspaceComponent), data: { permissionRule: features.learning }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+							{ path: 'timetable', component: TimetableWorkspaceComponent, data: { permissionRule: features.timetable }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 														{ path: 'classes', component: AcademicYearClassesComponent, data: { permissionRule: features.classes } },
 														{ path: 'attendance', component: AttendanceSheetComponent, data: { permissionRule: features.attendance }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 														{ path: 'attendance/history/:studentId', component: AttendanceHistoryComponent, data: { permissions: ['can_attendance_read'] } },
 							{ path: 'enrollments', component: EnrollmentWorkspaceComponent, data: { permissionRule: features.enrollments }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
 							{ path: 'calendar', component: AcademicYearCalendarComponent, data: { permissionRule: features.calendar } },
-							{ path: 'finance', component: AcademicYearFinanceComponent, data: { permissionRule: features.finance } },
+							{ path: 'finance', loadComponent: () => import('./components/academic-year/academic-year-finance/academic-year-finance.component').then(module => module.AcademicYearFinanceComponent), data: { permissionRule: features.finance } },
 							{ path: '', redirectTo: 'classes', pathMatch: 'full' }
 						]
 					}

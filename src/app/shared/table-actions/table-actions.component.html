@@ -1,9 +1,11 @@
+@if (actions().length) {
 <button #trigger class="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg border border-[#dfe5de] bg-white px-3 text-xs font-semibold text-[#35473b] transition hover:bg-[#f5f8f4] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d]"
   type="button" aria-haspopup="menu" [attr.aria-label]="label()" [attr.aria-expanded]="expanded()" [attr.aria-controls]="menuId"
   (click)="toggle()" (keydown)="triggerKeydown($event)">
   Actions
   <svg class="transition-transform" [class.rotate-180]="expanded()" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
 </button>
+}
 <div #menu [id]="menuId" popover="auto" role="menu" [attr.aria-label]="label()"
   class="table-actions-menu fixed inset-auto m-0 overflow-y-auto rounded-xl border border-[#dfe5de] bg-white p-1.5 text-left shadow-lg"
   (beforetoggle)="onToggle($event)" (click)="select($event)" (keydown)="menuKeydown($event)">

@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { DatePipe } from '@angular/common';
 import { EnrollmentDraft } from '../../../models/enrollment/enrollment-draft.model';
 import { EnrollmentTableRow } from '../../../models/enrollment/enrollment-table-row.model';
@@ -26,7 +28,7 @@ import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-enrollment-workspace',
-  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink, EnrollmentJourneyComponent, DialogComponent, DatePipe],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, FormsModule, RouterLink, EnrollmentJourneyComponent, DialogComponent, DatePipe],
   templateUrl: './enrollment-workspace.component.html',
   styleUrl: './enrollment-workspace.component.css'
 })

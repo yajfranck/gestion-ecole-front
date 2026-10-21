@@ -20,7 +20,7 @@
     <div class="table-wrap rounded-xl border border-[#e1e7e0] bg-white">
       <table class="min-w-[42rem] w-full text-left text-sm">
         <caption class="sr-only">Rôles et permissions associées</caption>
-        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-4 py-3 font-semibold sm:px-5">Rôle</th><th class="px-4 py-3 font-semibold sm:px-5">Permissions</th><th class="px-4 py-3 font-semibold sm:px-5">État</th><th class="px-4 py-3 text-right font-semibold sm:px-5">Action</th></tr></thead>
+        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-4 py-3 font-semibold sm:px-5">Rôle</th><th class="px-4 py-3 font-semibold sm:px-5">Permissions</th><th class="px-4 py-3 font-semibold sm:px-5">État</th><th class="px-4 py-3 text-right font-semibold sm:px-5">Actions</th></tr></thead>
         <tbody class="divide-y divide-[#edf0ec]">
           @for (role of roles(); track role.code) {
             <tr class="align-top">
@@ -52,7 +52,7 @@
               </td>
               <td class="px-4 py-3 text-right sm:px-5">
                 @if (role.editable) {
-                  <button *appPermission="{all: [global ? 'can_platform_role_update' : 'can_role_update', 'can_permission_read']}; global: global; platform: global" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] hover:bg-[#f7f9f6]" type="button" (click)="startEditing(role)">Modifier</button>
+                  <app-table-actions [label]="'Actions du rôle ' + role.name"><button *appPermission="{all: [global ? 'can_platform_role_update' : 'can_role_update', 'can_permission_read']}; global: global; platform: global" type="button" (click)="startEditing(role)" appTableAction="edit">Modifier</button></app-table-actions>
                 } @else {
                   <span class="text-xs text-[#78837b]">Rôle système</span>
                 }

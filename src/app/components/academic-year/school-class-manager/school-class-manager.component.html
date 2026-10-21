@@ -50,11 +50,10 @@
           @if (searchTerm() || selectedSeries()) { <button class="min-h-11 px-2 text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="clearFilters()">Effacer les filtres</button> }
         </div>
         <div class="flex shrink-0 items-center gap-3">
-          <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="refreshCapacity()" [disabled]="capacity.loading()">{{ capacity.loading() ? 'Chargement des indicateurs…' : 'Actualiser les indicateurs' }}</button>
+          <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="refreshCapacity()" [disabled]="isLoading()">{{ isLoading() ? 'Chargement des indicateurs…' : 'Actualiser les indicateurs' }}</button>
           <p class="text-sm text-[#69756d]" aria-live="polite">{{ filteredClasses().length }} classe{{ filteredClasses().length > 1 ? 's' : '' }}</p>
         </div>
       </div>
-      @if (capacity.error()) { <p class="border-b border-[#e9ede8] bg-[#fff4ef] px-5 py-3 text-sm text-[#8a3e2d]" role="alert">Certains indicateurs sont indisponibles. Actualisez les indicateurs pour réessayer.</p> }
       @if (filteredClasses().length === 0) {
         <div class="px-5 py-10 text-center sm:px-6">
           <p class="text-sm font-medium text-[#35473b]">Aucun résultat pour ces critères.</p>
@@ -70,11 +69,11 @@
               <th scope="row" class="px-5 py-4 font-semibold text-[#26372d]">{{ schoolClass.name }}</th>
               <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ schoolClass.code }}</td>
               <td class="px-5 py-3 text-[#69756d]">{{ schoolClass.series || 'Non définie' }}</td>
-              @if (capacity.indicators()[schoolClass.id]; as stats) {
-                <td data-label="Élèves inscrits" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]" [title]="stats.restricted ? 'La consultation des inscriptions n’est pas autorisée pour votre compte.' : 'Inscriptions de l’année, y compris les dossiers archivés qui restent comptabilisés dans la capacité.'">{{ stats.enrolled ?? (stats.loading ? '…' : '—') }}</td>
-                <td data-label="Salles actives" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]">{{ stats.activeRooms ?? (stats.loading ? '…' : '—') }}</td>
-                <td data-label="Places restantes" class="px-4 py-3 text-center" [title]="stats.restricted ? 'La consultation des inscriptions est nécessaire pour calculer les places restantes.' : 'Capacité disponible des salles actives après déduction des inscriptions enregistrées.'">
-                  <span class="font-semibold tabular-nums" [class]="stats.remaining === 0 ? 'text-[#8a3e2d]' : stats.remaining !== null && stats.capacity && stats.remaining <= stats.capacity * 0.1 ? 'text-[#8a672f]' : 'text-[#47745d]'">{{ stats.remaining ?? (stats.loading ? '…' : '—') }}</span>
+              @if (classIndicators()[schoolClass.id]; as stats) {
+                <td data-label="Élèves inscrits" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]" title="Inscriptions de l’année, y compris les dossiers archivés qui restent comptabilisés dans la capacité.">{{ stats.enrolled ?? '—' }}</td>
+                <td data-label="Salles actives" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]">{{ stats.activeRooms ?? '—' }}</td>
+                <td data-label="Places restantes" class="px-4 py-3 text-center" title="Capacité disponible des salles actives après déduction des inscriptions enregistrées.">
+                  <span class="font-semibold tabular-nums" [class]="stats.remaining === 0 ? 'text-[#8a3e2d]' : stats.remaining !== null && stats.capacity && stats.remaining <= stats.capacity * 0.1 ? 'text-[#8a672f]' : 'text-[#47745d]'">{{ stats.remaining ?? '—' }}</span>
                   @if (stats.capacity !== null) { <span class="mt-0.5 block whitespace-nowrap text-xs text-[#78837b]">sur {{ stats.capacity }} places</span> }
                   @if (stats.activeRooms === 0) { <span class="mt-1 inline-block whitespace-nowrap rounded-full bg-[#f7f1e6] px-2 py-0.5 text-xs font-medium text-[#8a672f]">Aucune salle</span> }
                   @else if (stats.remaining === 0 && stats.capacity) { <span class="mt-1 inline-block rounded-full bg-[#fff4ef] px-2 py-0.5 text-xs font-medium text-[#8a3e2d]">Complète</span> }
@@ -82,12 +81,15 @@
                 </td>
               }
               <td class="px-5 py-3 text-right">
-                <div class="flex flex-wrap justify-end gap-2">
-                  @if (access.hasPermission('can_class_subject_read', establishmentId())) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" [attr.aria-label]="'Matières de ' + schoolClass.name" (click)="openManagement(schoolClass, 'subjects', $event)">Matières</button> }
-                  <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" [attr.aria-label]="'Salles de ' + schoolClass.name" (click)="openManagement(schoolClass, 'rooms', $event)">Salles</button>
-                  <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" [attr.aria-expanded]="expandedId() === schoolClass.id" (click)="toggleDetail(schoolClass)">{{ expandedId() === schoolClass.id ? 'Masquer les détails' : 'Détails' }}</button>
-                  @if (can('update')) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="startEditing(schoolClass)">Modifier</button> }
-                  @if (can('delete')) { <button class="btn btn-danger min-h-9! px-3! text-xs!" type="button" [disabled]="!!archivingId()" (click)="archive(schoolClass)">{{ archivingId() === schoolClass.id ? 'Archivage…' : 'Archiver' }}</button> }
+                <div class="flex items-center justify-end gap-2 whitespace-nowrap">
+                  <app-table-actions [label]="'Actions de ' + schoolClass.name">
+                    @if (access.hasPermission('can_class_subject_read', establishmentId())) { <button type="button" aria-haspopup="dialog" [attr.aria-label]="'Matières de ' + schoolClass.name" (click)="openManagement(schoolClass, 'subjects', $event)" appTableAction="book">Matières</button> }
+                    <button type="button" aria-haspopup="dialog" [attr.aria-label]="'Salles de ' + schoolClass.name" (click)="openManagement(schoolClass, 'rooms', $event)" appTableAction="door">Salles</button>
+                    @if (access.hasPermission('can_enrollment_read', establishmentId())) { <button type="button" [attr.aria-expanded]="expandedId() === schoolClass.id" [attr.aria-controls]="expandedId() === schoolClass.id ? 'class-management-' + schoolClass.id : null" (click)="toggleDetail(schoolClass)" appTableAction="view">{{ expandedId() === schoolClass.id ? 'Fermer la gestion' : 'Voir les élèves' }}</button> }
+                    @if (can('update') || can('delete')) { <div class="my-1 h-px bg-[#e9ede8]" role="separator"></div> }
+                    @if (can('update')) { <button type="button" (click)="startEditing(schoolClass)" appTableAction="edit">Modifier</button> }
+                    @if (can('delete')) { <button type="button" [disabled]="!!archivingId()" (click)="archive(schoolClass)" appTableAction="archive" actionDanger>{{ archivingId() === schoolClass.id ? 'Archivage…' : 'Archiver' }}</button> }
+                  </app-table-actions>
                 </div>
               </td>
             </tr>
@@ -135,7 +137,17 @@
             @if (expandedId() === schoolClass.id) {
               <tr>
                 <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="7">
-                  <app-school-class-detail [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="schoolClass.id" />
+                  <section [id]="'class-management-' + schoolClass.id" [attr.aria-label]="'Gestion de ' + schoolClass.name" class="space-y-4">
+                    <header class="flex flex-wrap items-center justify-between gap-3 border-b border-[#e1e7e0] pb-4">
+                      <h3 class="text-sm font-semibold text-[#26372d]">{{ schoolClass.name }}</h3>
+                      <div class="flex flex-wrap gap-2">
+                        @if (access.hasPermission('can_class_subject_read', establishmentId())) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" (click)="openManagement(schoolClass, 'subjects', $event)"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v15m0-15C9 3 5 3 2 4v15c3-1 7-1 10 1 3-2 7-2 10-1V4c-3-1-7-1-10 1Z"/></svg>Matières</button> }
+                        <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" (click)="openManagement(schoolClass, 'rooms', $event)"><svg class="size-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18M6 21V3h12v18M6 3l8 3v15M10 12h.01"/></svg>Salles</button>
+                        <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="toggleDetail(schoolClass)">Fermer</button>
+                      </div>
+                    </header>
+                    <app-school-class-detail [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="schoolClass.id" />
+                  </section>
                 </td>
               </tr>
             }

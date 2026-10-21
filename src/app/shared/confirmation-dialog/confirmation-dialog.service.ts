@@ -3,6 +3,7 @@ import { ApplicationRef, createComponent, EnvironmentInjector, inject, Injectabl
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationStart, Router } from '@angular/router';
 import { ConfirmationDialogComponent } from './confirmation-dialog.component';
+import { tableActionTrigger } from '../table-actions/table-action-trigger';
 
 @Injectable({ providedIn: 'root' })
 export class ConfirmationDialogService {
@@ -33,7 +34,7 @@ export class ConfirmationDialogService {
     const component = createComponent(ConfirmationDialogComponent, { environmentInjector: this.injector, hostElement: host });
     component.setInput('message', message);
     component.setInput('title', title);
-    component.setInput('trigger', this.document.activeElement instanceof HTMLElement ? this.document.activeElement : null);
+    component.setInput('trigger', tableActionTrigger(this.document.activeElement instanceof HTMLElement ? this.document.activeElement : null));
     this.document.body.append(host);
     this.app.attachView(component.hostView);
     let settled = false;

@@ -148,21 +148,21 @@
                       >
                         @if (canEdit()) {
                           <button
-                            class="table-action"
+
                             type="button"
                             (click)="edit.emit(entry)"
                             [disabled]="disabled()"
-                          >
+                           appTableAction="edit">
                             Modifier le créneau
                           </button>
                         }
                         @if (canArchive()) {
                           <button
-                            class="table-action table-action-danger"
+
                             type="button"
                             (click)="archive.emit(entry)"
                             [disabled]="disabled()"
-                          >
+                           appTableAction="archive" actionDanger>
                             Archiver le créneau récurrent
                           </button>
                         }

@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
@@ -16,7 +18,7 @@ import { PositionFormComponent } from '../position-form/position-form.component'
 
 @Component({
   selector: 'app-positions',
-  imports: [FormModalComponent, PermissionDirective, FormsModule, PositionFormComponent],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, PermissionDirective, FormsModule, PositionFormComponent],
   templateUrl: './position-list.component.html',
   styleUrl: './position-list.component.css'
 })

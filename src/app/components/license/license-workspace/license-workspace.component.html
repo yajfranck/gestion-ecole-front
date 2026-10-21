@@ -13,12 +13,14 @@
             @for (offer of offers; track offer.id) { @if (offer.id === item.offerId) { {{ offer.features.join(', ') }} } }
           } @else { Non communiquées par le service }
         </td>
-        @if (canManage()) { <td><div class="flex flex-wrap gap-2">
-          @if (item.state === 'ACTIVE' || item.state === 'UPCOMING') { <button *appPermission="'can_license_suspend'; global: true" class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'suspend')">Suspendre</button> }
-          @if (item.state === 'SUSPENDED') { <button *appPermission="'can_license_reactivate'; global: true" class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'reactivate')">Réactiver</button> }
-          @if (item.state === 'ACTIVE') { <button *appPermission="'can_license_end'; global: true" class="btn btn-secondary" [disabled]="busy()" (click)="transition(item, 'end')">Terminer</button> }
-          <button *appPermission="'can_license_event_read'; global: true" class="btn btn-secondary" [disabled]="busy()" (click)="history(item)">Historique</button>
-        </div></td> }
+        @if (canManage()) { <td class="text-right">
+<app-table-actions [label]="'Actions de la licence ' + item.offerName">
+          @if (item.state === 'ACTIVE' || item.state === 'UPCOMING') { <button *appPermission="'can_license_suspend'; global: true" [disabled]="busy()" (click)="transition(item, 'suspend')" appTableAction="pause" actionDanger>Suspendre</button> }
+          @if (item.state === 'SUSPENDED') { <button *appPermission="'can_license_reactivate'; global: true" [disabled]="busy()" (click)="transition(item, 'reactivate')" appTableAction="resume">Réactiver</button> }
+          @if (item.state === 'ACTIVE') { <button *appPermission="'can_license_end'; global: true" [disabled]="busy()" (click)="transition(item, 'end')" appTableAction="stop" actionDanger>Terminer</button> }
+          <button *appPermission="'can_license_event_read'; global: true" [disabled]="busy()" (click)="history(item)" appTableAction="history">Historique</button>
+        </app-table-actions>
+</td> }
         </tr>
       }
     </tbody></table></div>

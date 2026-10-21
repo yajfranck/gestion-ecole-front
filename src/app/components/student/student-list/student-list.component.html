@@ -18,9 +18,11 @@
     @else {
       <div class="table-wrap"><table class="w-full min-w-[36rem] text-left text-sm">
         <caption class="sr-only">Dossiers élèves de l’établissement</caption>
-        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold sm:px-6">Numéro d’élève</th><th scope="col" class="px-5 py-3 font-semibold">Identité</th><th scope="col" class="px-5 py-3 text-right font-semibold sm:px-6">Dossier</th></tr></thead>
+        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold sm:px-6">Numéro d’élève</th><th scope="col" class="px-5 py-3 font-semibold">Identité</th><th scope="col" class="px-5 py-3 text-right font-semibold sm:px-6">Actions</th></tr></thead>
         <tbody class="divide-y divide-[#edf0ec]">@for (student of filteredStudents(); track student.id) {
-          <tr class="hover:bg-[#fbfcfa]"><td class="px-5 py-4 font-mono text-xs text-[#47745d] sm:px-6">{{ student.studentNumber }}</td><th scope="row" class="px-5 py-4 font-semibold text-[#26372d]">{{ student.firstName }} {{ student.lastName }}</th><td class="px-5 py-3 text-right sm:px-6"><button class="btn btn-secondary" type="button" aria-haspopup="dialog" [attr.aria-label]="'Voir le dossier de ' + student.firstName + ' ' + student.lastName" (click)="openProfile(student, $event)">Voir le dossier</button></td></tr>
+          <tr class="hover:bg-[#fbfcfa]"><td class="px-5 py-4 font-mono text-xs text-[#47745d] sm:px-6">{{ student.studentNumber }}</td><th scope="row" class="px-5 py-4 font-semibold text-[#26372d]">{{ student.firstName }} {{ student.lastName }}</th><td class="px-5 py-3 text-right sm:px-6">
+<app-table-actions [label]="'Actions de ' + student.firstName + ' ' + student.lastName"><button type="button" aria-haspopup="dialog" [attr.aria-label]="'Voir le dossier de ' + student.firstName + ' ' + student.lastName" (click)="openProfile(student, $event)" appTableAction="view">Voir le dossier</button></app-table-actions>
+</td></tr>
         }</tbody>
       </table></div>
     }

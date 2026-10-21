@@ -54,7 +54,8 @@ describe('PositionsComponent', () => {
 
     expect(fixture.nativeElement.querySelector('table')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Bibliothécaire personnalisé');
-    (fixture.nativeElement.querySelector('button') as HTMLButtonElement).click();
+    (fixture.nativeElement.querySelector('app-table-actions > button') as HTMLButtonElement).click(); fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[appTableAction="edit"]') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('input[type="checkbox"]')).toBeTruthy();
     expect(fixture.nativeElement.textContent).toContain('Bibliothécaire personnalisé');

@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
@@ -20,7 +22,7 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
 
 @Component({
   selector: 'app-attendance-sheet',
-  imports: [NgTemplateOutlet, FormModalComponent, PermissionDirective, FormsModule, RouterLink],
+  imports: [TableActionDirective, TableActionsComponent, NgTemplateOutlet, FormModalComponent, PermissionDirective, FormsModule, RouterLink],
   templateUrl: './attendance-sheet.component.html',
   styleUrl: './attendance-sheet.component.css'
 })

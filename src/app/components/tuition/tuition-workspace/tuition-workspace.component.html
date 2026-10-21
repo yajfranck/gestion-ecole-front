@@ -73,9 +73,11 @@
                     <td class="px-3 py-3 font-mono text-xs text-[#47745d]">{{ feeType.code }}</td>
                     <td class="px-3 py-3 font-medium text-[#35473b]">{{ feeType.name }}</td>
                     <td class="whitespace-nowrap px-3 py-3 text-right">
-                      <button *appPermission="'can_tuition_fee_type_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startRenamingFeeType(feeType)">Renommer</button>
-                      <button *appPermission="'can_tuition_fee_type_delete'" class="ml-1 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" (click)="deactivateFeeType(feeType)" [disabled]="!!deactivatingFeeTypeId()">{{ deactivatingFeeTypeId() === feeType.id ? 'Désactivation…' : 'Désactiver' }}</button>
-                    </td>
+<app-table-actions [label]="'Actions du type ' + feeType.name">
+                      <button *appPermission="'can_tuition_fee_type_update'" type="button" (click)="startRenamingFeeType(feeType)" appTableAction="edit">Renommer</button>
+                      <button *appPermission="'can_tuition_fee_type_delete'" type="button" (click)="deactivateFeeType(feeType)" [disabled]="!!deactivatingFeeTypeId()" appTableAction="power" actionDanger>{{ deactivatingFeeTypeId() === feeType.id ? 'Désactivation…' : 'Désactiver' }}</button>
+                    </app-table-actions>
+</td>
                   </tr>
                 }
               }
@@ -131,9 +133,11 @@
                   <td class="px-3 py-2 font-mono text-xs text-[#47745d]">{{ method.code }}</td>
                   <td class="px-3 py-2 text-[#536258]">{{ method.name }}</td>
                   <td class="whitespace-nowrap px-3 py-2 text-right">
-                    <button *appPermission="'can_payment_method_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startRenamingPaymentMethod(method)">Renommer</button>
-                    <button *appPermission="'can_payment_method_delete'" class="ml-1 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" (click)="deactivatePaymentMethod(method)" [disabled]="!!deactivatingPaymentMethodCode()">{{ deactivatingPaymentMethodCode() === method.code ? 'Désactivation…' : 'Désactiver' }}</button>
-                  </td>
+<app-table-actions [label]="'Actions du moyen ' + method.name">
+                    <button *appPermission="'can_payment_method_update'" type="button" (click)="startRenamingPaymentMethod(method)" appTableAction="edit">Renommer</button>
+                    <button *appPermission="'can_payment_method_delete'" type="button" (click)="deactivatePaymentMethod(method)" [disabled]="!!deactivatingPaymentMethodCode()" appTableAction="power" actionDanger>{{ deactivatingPaymentMethodCode() === method.code ? 'Désactivation…' : 'Désactiver' }}</button>
+                  </app-table-actions>
+</td>
                 </tr>
               }
             }
@@ -265,7 +269,7 @@
     } @else if (fees().length) {
       <div class="mt-3 overflow-x-auto">
         <table class="min-w-2xl w-full text-left text-sm">
-          <thead class="bg-[#f8faf7] text-xs uppercase text-[#78847b]"><tr><th class="px-3 py-2 font-semibold">Frais</th><th class="px-3 py-2 font-semibold">Type</th><th class="px-3 py-2 font-semibold">Portée</th><th class="px-3 py-2 font-semibold">Montant</th><th class="px-3 py-2 font-semibold">Échéance</th><th class="px-3 py-2 text-right font-semibold">Action</th></tr></thead>
+          <thead class="bg-[#f8faf7] text-xs uppercase text-[#78847b]"><tr><th class="px-3 py-2 font-semibold">Frais</th><th class="px-3 py-2 font-semibold">Type</th><th class="px-3 py-2 font-semibold">Portée</th><th class="px-3 py-2 font-semibold">Montant</th><th class="px-3 py-2 font-semibold">Échéance</th><th class="px-3 py-2 text-right font-semibold">Actions</th></tr></thead>
           <tbody class="divide-y divide-[#edf0ec]">
             @for (fee of fees(); track fee.id) {
               <tr>
@@ -274,7 +278,9 @@
                 <td class="px-3 py-3 text-[#69756d]">{{ scopeLabel(fee) }}</td>
                 <td class="whitespace-nowrap px-3 py-3 text-[#35473b]">{{ formatAmount(fee.amount, fee.currency) }}</td>
                 <td class="whitespace-nowrap px-3 py-3 text-[#69756d]">{{ fee.dueDate }}</td>
-                <td class="px-3 py-3 text-right"><button *appPermission="'can_tuition_apply'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] disabled:opacity-60" type="button" (click)="applyFee(fee)" [disabled]="!!applyingFeeId()">{{ applyingFeeId() === fee.id ? 'Application…' : 'Appliquer aux inscriptions' }}</button></td>
+                <td class="px-3 py-3 text-right">
+<app-table-actions [label]="'Actions du frais ' + fee.name"><button *appPermission="'can_tuition_apply'" type="button" (click)="applyFee(fee)" [disabled]="!!applyingFeeId()" appTableAction="check">{{ applyingFeeId() === fee.id ? 'Application…' : 'Appliquer aux inscriptions' }}</button></app-table-actions>
+</td>
               </tr>
             }
           </tbody>
@@ -301,7 +307,7 @@
         <div class="overflow-x-auto">
           <table class="min-w-max w-full text-left text-sm">
             <caption class="sr-only">Créances impayées de l’année</caption>
-            <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-3 py-2 font-semibold">Élève</th><th class="px-3 py-2 font-semibold">Frais</th><th class="px-3 py-2 font-semibold">Payé</th><th class="px-3 py-2 font-semibold">Solde</th><th class="px-3 py-2 font-semibold">Échéance</th><th class="px-3 py-2 text-right font-semibold">Action</th></tr></thead>
+            <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-3 py-2 font-semibold">Élève</th><th class="px-3 py-2 font-semibold">Frais</th><th class="px-3 py-2 font-semibold">Payé</th><th class="px-3 py-2 font-semibold">Solde</th><th class="px-3 py-2 font-semibold">Échéance</th><th class="px-3 py-2 text-right font-semibold">Actions</th></tr></thead>
             <tbody class="divide-y divide-[#edf0ec]">
               @for (charge of outstandingCharges(); track charge.id) {
                 <tr>
@@ -310,7 +316,9 @@
                   <td class="whitespace-nowrap px-3 py-3 text-[#69756d]">{{ formatAmount(charge.totalPaid, charge.currency) }} / {{ formatAmount(charge.amount, charge.currency) }}</td>
                   <td class="whitespace-nowrap px-3 py-3 font-semibold text-[#8a4f2b]">{{ formatAmount(charge.balance, charge.currency) }}</td>
                   <td class="whitespace-nowrap px-3 py-3"><span class="text-[#69756d]">{{ charge.dueDate }}</span>@if (charge.overdue) { <span class="ml-2 rounded-full bg-[#fff1eb] px-2 py-1 text-[11px] font-semibold text-[#9b4d31]">En retard</span> }</td>
-                  <td class="px-3 py-3 text-right"><button *appPermission="{all: ['can_payment_record', 'can_tuition_read']}" class="min-h-9 rounded-lg bg-[#244a37] px-3 text-xs font-semibold text-white" type="button" (click)="startPayment(charge)">{{ paymentChargeId() === charge.id ? 'Annuler' : 'Encaisser' }}</button></td>
+                  <td class="px-3 py-3 text-right">
+<app-table-actions [label]="'Actions du solde de ' + studentName(charge)"><button *appPermission="{all: ['can_payment_record', 'can_tuition_read']}" type="button" (click)="startPayment(charge)" appTableAction="pay">{{ paymentChargeId() === charge.id ? 'Annuler' : 'Encaisser' }}</button></app-table-actions>
+</td>
                 </tr>
                 @if (paymentChargeId() === charge.id) {
                   <tr><td class="p-0" colspan="6"><app-form-modal title="Enregistrer un paiement" [busy]="isSavingPaymentFor() === charge.id" (closed)="cancelPayment()" [showTrigger]="false" [open]="true"><ng-template>
@@ -390,7 +398,7 @@
                         @for (payment of charge.payments; track payment.id) {
                           <div class="flex flex-wrap items-center justify-between gap-2 py-2 text-xs">
                             <span class="text-[#35473b]">{{ formatAmount(payment.amount, payment.currency) }} · {{ payment.receivedAt | date:'short' }} · {{ paymentMethodName(payment.paymentMethodCode) }}</span>
-                            <button *appPermission="'can_payment_receipt_read'" class="font-semibold text-[#47745d] underline" type="button" (click)="loadReceipt(payment)" [disabled]="loadingReceiptId() === payment.id">{{ loadingReceiptId() === payment.id ? 'Chargement…' : 'Reçu ' + payment.receiptNumber }}</button>
+                            <app-table-actions [label]="'Actions du reçu ' + payment.receiptNumber"><button *appPermission="'can_payment_receipt_read'" type="button" (click)="loadReceipt(payment)" [disabled]="loadingReceiptId() === payment.id" appTableAction="receipt">{{ loadingReceiptId() === payment.id ? 'Chargement…' : 'Reçu ' + payment.receiptNumber }}</button></app-table-actions>
                           </div>
                         }
                       </div>

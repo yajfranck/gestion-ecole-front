@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
@@ -24,7 +26,7 @@ import { apiError } from '../../../shared/api-error';
 
 @Component({
   selector: 'app-learning-workspace',
-  imports: [FormModalComponent, FormsModule, DatePipe, RouterLink, LucideDownload],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, FormsModule, DatePipe, RouterLink, LucideDownload],
   templateUrl: './learning-workspace.component.html',
   styleUrl: './learning-workspace.component.css'
 })

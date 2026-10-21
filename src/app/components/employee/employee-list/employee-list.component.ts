@@ -1,3 +1,5 @@
+import { TableActionDirective } from '../../../shared/table-actions/table-action.directive';
+import { TableActionsComponent } from '../../../shared/table-actions/table-actions.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
@@ -19,7 +21,7 @@ import { EmployeeFormComponent } from '../employee-form/employee-form.component'
 
 @Component({
   selector: 'app-employee-list',
-  imports: [FormModalComponent, DialogComponent, PermissionDirective, FormsModule, EmployeeFormComponent, RouterLink],
+  imports: [TableActionDirective, TableActionsComponent, FormModalComponent, DialogComponent, PermissionDirective, FormsModule, EmployeeFormComponent, RouterLink],
   templateUrl: './employee-list.component.html',
   styleUrl: './employee-list.component.css'
 })

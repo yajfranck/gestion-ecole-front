@@ -42,12 +42,14 @@
                   </div>
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-right sm:px-5">
+<app-table-actions [label]="'Actions de ' + employee.firstName + ' ' + employee.lastName">
                   @if (employee.enabled) {
-                    <button *appPermission="'can_employee_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" aria-haspopup="dialog" (click)="startEditing(employee, $event)">Modifier</button>
-                    <button *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" class="ml-1 min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditingRoles(employee)">Rôles</button>
-                    <button *appPermission="'can_employee_delete'" class="ml-1 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d]" type="button" (click)="confirmDeactivation(employee)">Désactiver</button>
+                    <button *appPermission="'can_employee_update'" type="button" aria-haspopup="dialog" (click)="startEditing(employee, $event)" appTableAction="edit">Modifier</button>
+                    <button *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" type="button" (click)="startEditingRoles(employee)" appTableAction="roles">Rôles</button>
+                    <button *appPermission="'can_employee_delete'" type="button" (click)="confirmDeactivation(employee)" appTableAction="power" actionDanger>Désactiver</button>
                   }
-                </td>
+                </app-table-actions>
+</td>
               </tr>
               @if (editingRolesId() === employee.id) {
                 <tr><td class="p-0" colspan="5"><app-form-modal title="Modifier les rôles du personnel" [busy]="isSaving()" *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" (closed)="cancel()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>

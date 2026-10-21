@@ -29,9 +29,11 @@
               <td class="px-4 py-3 text-[#53625a]">{{ period.startsOn }}</td>
               <td class="px-4 py-3 text-[#53625a]">{{ period.endsOn }}</td>
               <td class="whitespace-nowrap px-5 py-3 text-right sm:px-6">
-                <button *appPermission="'can_academic_period_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(period)">Modifier</button>
-                <button *appPermission="'can_academic_period_delete'" class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="archivingId() === period.id" (click)="archive(period)">{{ archivingId() === period.id ? 'Archivage…' : 'Archiver' }}</button>
-              </td>
+<app-table-actions [label]="'Actions de la période ' + period.name">
+                <button *appPermission="'can_academic_period_update'" type="button" (click)="startEditing(period)" appTableAction="edit">Modifier</button>
+                <button *appPermission="'can_academic_period_delete'" type="button" [disabled]="archivingId() === period.id" (click)="archive(period)" appTableAction="archive" actionDanger>{{ archivingId() === period.id ? 'Archivage…' : 'Archiver' }}</button>
+              </app-table-actions>
+</td>
             </tr>
           }
         </tbody>
