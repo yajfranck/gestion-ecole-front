@@ -1,3 +1,4 @@
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -7,7 +8,7 @@ import { AuthService } from '../../../core/auth.service';
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormModalComponent, FormsModule, RouterLink],
   templateUrl: './change-password.component.html',
   styleUrl: './change-password.component.css'
 })

@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -12,7 +13,7 @@ describe('AcademicYearCalendarComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [AcademicYearCalendarComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+    providers: [providePermissionFixture(['can_academic_period_read', 'can_academic_period_create', 'can_academic_year_update', 'can_academic_year_delete'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   }));
 
   it('affiche les paramètres et les périodes de l’année sélectionnée', () => {

@@ -1,3 +1,9 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { FINANCE_VIEW_PERMISSIONS } from '../../../core/feature-permissions';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
@@ -25,11 +31,20 @@ type FinanceView = 'payments' | 'fees' | 'history' | 'settings';
 @Component({
   selector: 'app-tuition-workspace',
   standalone: true,
-  imports: [FormsModule, DatePipe, LucidePlus],
+  imports: [FormModalComponent, PermissionDirective, FormsModule, DatePipe, LucidePlus],
   templateUrl: './tuition-workspace.component.html',
   styleUrl: './tuition-workspace.component.css'
 })
 export class TuitionWorkspaceComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.paymentError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly tuitionService = inject(TuitionService);
 
   readonly establishmentId = input.required<string>();
@@ -103,9 +118,15 @@ export class TuitionWorkspaceComponent implements OnInit {
   protected paymentMethodCode = '';
   protected paymentReference = '';
 
+  protected canView(view: FinanceView): boolean {
+    return this.access.allows(FINANCE_VIEW_PERMISSIONS[view], this.establishmentId());
+  }
+
   ngOnInit(): void {
+    const views: FinanceView[] = ['payments', 'fees', 'history', 'settings'];
+    this.activeView.set(views.find((view) => this.canView(view)) ?? 'settings');
     const studentId = this.initialStudentId();
-    if (studentId && this.students().some((student) => student.id === studentId)) {
+    if (studentId && this.canView('history') && this.students().some((student) => student.id === studentId)) {
       this.activeView.set('history');
       this.loadStudentCharges(studentId);
     }
@@ -116,10 +137,12 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected selectView(view: FinanceView): void {
+    if (!this.canView(view)) return;
     this.activeView.set(view);
   }
 
   protected loadPaymentMethods(): void {
+    if (!this.access.hasPermission('can_tuition_read', this.establishmentId())) { this.isLoadingMethods.set(false); return; }
     this.isLoadingMethods.set(true);
     this.methodsError.set(null);
     this.tuitionService.getPaymentMethods(this.establishmentId()).subscribe({
@@ -135,6 +158,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected beginAddingPaymentMethod(): void {
+    if (!this.access.hasPermission('can_payment_method_update', this.establishmentId())) return;
     this.isAddingPaymentMethod.set(true);
     this.newPaymentMethodCode = '';
     this.newPaymentMethodName = '';
@@ -147,6 +171,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected saveNewPaymentMethod(): void {
+    if (!this.access.hasPermission('can_payment_method_update', this.establishmentId())) return;
     const code = this.newPaymentMethodCode.trim().toUpperCase();
     const name = this.newPaymentMethodName.trim();
     if (!/^[A-Z][A-Z0-9_]{0,39}$/.test(code) || !name || name.length > 100 || this.isSavingPaymentMethod()) {
@@ -176,6 +201,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected startRenamingPaymentMethod(method: TuitionPaymentMethod): void {
+    if (!this.access.hasPermission('can_payment_method_update', this.establishmentId())) return;
     this.editingPaymentMethodCode.set(method.code);
     this.paymentMethodEditName = method.name;
     this.methodsError.set(null);
@@ -187,6 +213,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected renamePaymentMethod(method: TuitionPaymentMethod): void {
+    if (!this.access.hasPermission('can_payment_method_update', this.establishmentId())) return;
     const name = this.paymentMethodEditName.trim();
     if (!name || name.length > 100 || this.isRenamingPaymentMethod()) {
       this.methodsError.set('Le libellé doit contenir de 1 à 100 caractères.');
@@ -215,7 +242,10 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected deactivatePaymentMethod(method: TuitionPaymentMethod): void {
-    if (this.deactivatingPaymentMethodCode() || !window.confirm(`Désactiver « ${method.name} » ? Les reçus existants seront conservés.`)) return;
+    if (!this.access.hasPermission('can_payment_method_delete', this.establishmentId())) return;
+
+    if (this.deactivatingPaymentMethodCode()) return;
+    this.confirmation.confirm(`Désactiver « ${method.name} » ? Les reçus existants seront conservés.`, () => {
 
     this.methodsError.set(null);
     this.deactivatingPaymentMethodCode.set(method.code);
@@ -232,9 +262,12 @@ export class TuitionWorkspaceComponent implements OnInit {
         this.deactivatingPaymentMethodCode.set(null);
       }
     });
+
+    });
   }
 
   protected loadFees(): void {
+    if (!this.access.hasPermission('can_tuition_read', this.establishmentId())) { this.isLoadingFees.set(false); return; }
     this.isLoadingFees.set(true);
     this.feesError.set(null);
     this.tuitionService.getTuitionFees(this.establishmentId(), this.academicYearId()).subscribe({
@@ -250,6 +283,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected loadFeeTypes(): void {
+    if (!this.access.hasPermission('can_tuition_fee_type_read', this.establishmentId())) { this.isLoadingFeeTypes.set(false); return; }
     this.isLoadingFeeTypes.set(true);
     this.feeTypesError.set(null);
     this.tuitionService.getTuitionFeeTypes(this.establishmentId()).subscribe({
@@ -268,6 +302,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected createFeeType(): void {
+    if (!this.access.hasPermission('can_tuition_fee_type_create', this.establishmentId())) return;
     const code = this.feeTypeCode.trim().toUpperCase();
     const name = this.feeTypeName.trim();
     if (!/^[A-Z][A-Z0-9_]{0,39}$/.test(code) || !name || name.length > 100 || this.isSavingFeeType()) {
@@ -299,12 +334,14 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected startRenamingFeeType(feeType: TuitionFeeType): void {
+    if (!this.access.hasPermission('can_tuition_fee_type_update', this.establishmentId())) return;
     this.editingFeeTypeId.set(feeType.id);
     this.feeTypeEditName = feeType.name;
     this.feeTypesError.set(null);
   }
 
   protected renameFeeType(feeType: TuitionFeeType): void {
+    if (!this.access.hasPermission('can_tuition_fee_type_update', this.establishmentId())) return;
     const name = this.feeTypeEditName.trim();
     if (!name || name.length > 100 || this.isRenamingFeeType()) {
       this.feeTypesError.set('Le libellé doit contenir de 1 à 100 caractères.');
@@ -333,7 +370,10 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected deactivateFeeType(feeType: TuitionFeeType): void {
-    if (this.deactivatingFeeTypeId() || !window.confirm(`Désactiver le type « ${feeType.name} » ? Les frais et créances historiques seront conservés.`)) return;
+    if (!this.access.hasPermission('can_tuition_fee_type_delete', this.establishmentId())) return;
+
+    if (this.deactivatingFeeTypeId()) return;
+    this.confirmation.confirm(`Désactiver le type « ${feeType.name} » ? Les frais et créances historiques seront conservés.`, () => {
 
     this.feeTypesError.set(null);
     this.deactivatingFeeTypeId.set(feeType.id);
@@ -349,9 +389,12 @@ export class TuitionWorkspaceComponent implements OnInit {
         this.deactivatingFeeTypeId.set(null);
       }
     });
+
+    });
   }
 
   protected createFee(): void {
+    if (!this.access.hasAllPermissions(['can_tuition_create', 'can_tuition_fee_type_read'], this.establishmentId())) return;
     const name = this.feeName.trim();
     const currency = this.feeCurrency;
     const amount = Number(this.feeAmount);
@@ -408,6 +451,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected applyFee(fee: TuitionFee): void {
+    if (!this.access.hasPermission('can_tuition_apply', this.establishmentId())) return;
     if (this.applyingFeeId()) return;
     this.applyingFeeId.set(fee.id);
     this.feesError.set(null);
@@ -433,6 +477,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected loadOutstandingCharges(): void {
+    if (!this.access.hasPermission('can_tuition_outstanding_read', this.establishmentId())) { this.isLoadingCharges.set(false); return; }
     this.isLoadingCharges.set(true);
     this.chargesError.set(null);
     this.tuitionService.getOutstandingCharges(this.establishmentId(), this.academicYearId()).subscribe({
@@ -448,6 +493,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected startPayment(charge: StudentFeeCharge): void {
+    if (!this.access.hasAllPermissions(['can_payment_record', 'can_tuition_read'], this.establishmentId())) return;
     this.paymentChargeId.set(charge.id);
     this.paymentAmount = charge.balance;
     this.paymentMethodCode = this.paymentMethods()[0]?.code ?? '';
@@ -461,6 +507,7 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected recordPayment(charge: StudentFeeCharge): void {
+    if (!this.access.hasAllPermissions(['can_payment_record', 'can_tuition_read'], this.establishmentId())) return;
     const amount = Number(this.paymentAmount);
     if (!Number.isFinite(amount) || amount <= 0 || amount > charge.balance || !this.paymentMethodCode) {
       this.paymentError.set('Le montant doit être positif, ne pas dépasser le solde et utiliser un moyen configuré.');
@@ -475,7 +522,7 @@ export class TuitionWorkspaceComponent implements OnInit {
     this.paymentError.set(null);
     this.isSavingPaymentFor.set(charge.id);
     this.successMessage.set(null);
-    this.tuitionService.recordPayment(this.establishmentId(), charge.studentId, charge.id, {
+    this.tuitionService.recordPayment(this.establishmentId(), this.academicYearId(), charge.studentId, charge.id, {
       amount,
       paymentMethodCode: this.paymentMethodCode,
       ...(reference ? { reference } : {})
@@ -496,10 +543,11 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected loadStudentCharges(studentId: string): void {
+    if (!this.access.hasPermission('can_tuition_read', this.establishmentId())) return;
     this.historyStudentId.set(studentId);
     this.isLoadingStudentCharges.set(true);
     this.studentChargesError.set(null);
-    this.tuitionService.getStudentCharges(this.establishmentId(), studentId).subscribe({
+    this.tuitionService.getStudentCharges(this.establishmentId(), this.academicYearId(), studentId).subscribe({
       next: (charges) => {
         this.studentCharges.set(charges);
         this.isLoadingStudentCharges.set(false);
@@ -520,10 +568,11 @@ export class TuitionWorkspaceComponent implements OnInit {
   }
 
   protected loadReceipt(payment: TuitionPayment | string): void {
+    if (!this.access.hasPermission('can_payment_receipt_read', this.establishmentId())) return;
     const paymentId = typeof payment === 'string' ? payment : payment.id;
     this.loadingReceiptId.set(paymentId);
     this.receiptError.set(null);
-    this.tuitionService.getReceipt(this.establishmentId(), paymentId).subscribe({
+    this.tuitionService.getReceipt(this.establishmentId(), this.academicYearId(), paymentId).subscribe({
       next: (receipt) => {
         this.receipt.set(receipt);
         this.loadingReceiptId.set(null);

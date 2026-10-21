@@ -1,0 +1,57 @@
+<form *appPermission="subject() ? 'can_subject_update' : 'can_subject_create'" class="min-w-0" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+  <div class="border-b border-[#e9ede8] px-5 py-5 sm:px-6">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <p class="text-sm font-semibold text-[#26372d]">{{ subject() ? 'Informations de la matière' : 'Informations des matières' }}</p>
+      @if (subject()) {
+        <span class="form-mode">Modification</span>
+      } @else {
+        <span class="rounded-full bg-[#edf4ee] px-3 py-1 text-xs font-semibold text-[#47745d]" aria-live="polite">{{ rows.length }} matière{{ rows.length > 1 ? 's' : '' }} à créer</span>
+      }
+    </div>
+    <p class="mt-1.5 text-sm leading-6 text-[#69756d]">{{ subject() ? 'Modifiez le nom et le code de la matière.' : 'Ajoutez de 1 à 100 matières. Le nom est obligatoire, le code est facultatif.' }}</p>
+  </div>
+
+  <div class="space-y-4 bg-[#f8faf7] px-5 py-5 sm:px-6">
+    <fieldset class="m-0 min-w-0 space-y-4 border-0 p-0" [disabled]="saving()">
+      <legend class="sr-only">Informations des matières</legend>
+      <div class="max-h-[26rem] overflow-y-auto overscroll-contain rounded-xl border border-[#e1e7e0] bg-white">
+        <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-end gap-x-3 gap-y-4 p-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)_2.75rem] sm:p-5">
+          <span class="form-label is-required hidden sm:block" aria-hidden="true">Nom</span>
+          <span class="form-label hidden sm:block" [class.is-required]="!!subject()" aria-hidden="true">Code @if (!subject()) { <span class="font-normal text-[#78837b]">(facultatif)</span> }</span>
+          <span class="hidden sm:block" aria-hidden="true"></span>
+          @for (row of rows; track row.id; let index = $index) {
+            @if (index > 0) { <div class="col-span-full h-px bg-[#edf0ec]" aria-hidden="true"></div> }
+            <div class="contents" role="group" [attr.aria-label]="'Matière ' + (index + 1)">
+              <label class="form-field col-span-2 sm:col-span-1">
+                <span class="form-label is-required sm:sr-only">Nom</span>
+                <input class="form-control" [id]="index === 0 ? 'subject-name' : 'subject-name-' + row.id" [name]="'subjectName-' + row.id" [(ngModel)]="row.name" maxlength="100" placeholder="Ex. Mathématiques" required [attr.autofocus]="index === 0 ? '' : null">
+              </label>
+              <label class="form-field">
+                <span class="form-label sm:sr-only" [class.is-required]="!!subject()">Code @if (!subject()) { <span class="font-normal text-[#78837b]">(facultatif)</span> }</span>
+                <input class="form-control font-mono uppercase" [id]="index === 0 ? 'subject-code' : 'subject-code-' + row.id" [name]="'subjectCode-' + row.id" [(ngModel)]="row.code" maxlength="40" placeholder="Ex. MATH" autocomplete="off" [required]="!!subject()">
+              </label>
+              <div>
+                @if (!subject() && rows.length > 1) {
+                  <button class="btn btn-secondary size-11! p-0!" type="button" (click)="remove(row.id)" [attr.aria-label]="'Retirer la matière ' + (index + 1)" [title]="'Retirer la matière ' + (index + 1)"><svg lucideTrash2 class="size-4" aria-hidden="true"></svg></button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+      @if (!subject()) {
+        <button class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#b9cdbd] bg-white px-4 py-3 text-sm font-semibold text-[#47745d] transition hover:border-[#47745d] hover:bg-[#edf4ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d] disabled:cursor-not-allowed disabled:opacity-60" type="button" (click)="add()" [disabled]="rows.length >= 100"><svg lucidePlus class="size-4 shrink-0" aria-hidden="true"></svg>Ajouter une autre matière</button>
+        <p class="text-xs leading-5 text-[#69756d]">Les codes renseignés doivent être uniques. Plusieurs matières peuvent rester sans code.</p>
+      }
+    </fieldset>
+    @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+  </div>
+
+  <footer class="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-[#e1e7e0] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <p class="text-xs text-[#78837b]">* Champ{{ subject() ? 's' : '' }} obligatoire{{ subject() ? 's' : '' }}</p>
+    <div class="form-actions m-0! flex flex-col-reverse gap-2 border-0! p-0! sm:flex-row">
+      <button class="btn btn-secondary" type="button" (click)="cancelled.emit()" [disabled]="saving()">Annuler</button>
+      <button class="btn btn-primary" type="submit" [disabled]="saving()"><svg lucideCheck class="size-4 shrink-0" aria-hidden="true"></svg>{{ saving() ? 'Enregistrement…' : subject() ? 'Enregistrer' : rows.length === 1 ? 'Créer la matière' : 'Créer les ' + rows.length + ' matières' }}</button>
+    </div>
+  </footer>
+</form>

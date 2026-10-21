@@ -10,7 +10,7 @@ export class EmployeeRoleService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  updateEmployeeRoles(employeeId: string, roleCodes: EmployeeRole[]): Observable<Employee> {
-    return this.http.put<Employee>(`${this.apiUrl}/employees/${employeeId}/roles`, { roleCodes });
+  updateEmployeeRoles(establishmentId: string, employeeId: string, roleCodes: EmployeeRole[]): Observable<Employee> {
+    return this.http.put<Employee>(`${this.apiUrl}/establishments/${establishmentId}/employees/${employeeId}/roles`, { roleCodes });
   }
 }

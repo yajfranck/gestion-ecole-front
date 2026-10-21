@@ -1,3 +1,5 @@
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, input, OnInit, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -7,8 +9,10 @@ import { ClassroomService } from '../../../service/classroom-service/classroom.s
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { apiError } from '../../../shared/api-error';
 
-@Component({ selector: 'app-classroom-manager', imports: [FormsModule], templateUrl: './classroom-manager.component.html', styleUrl: './classroom-manager.component.css' })
+@Component({ selector: 'app-classroom-manager', imports: [FormModalComponent, FormsModule], templateUrl: './classroom-manager.component.html', styleUrl: './classroom-manager.component.css' })
 export class ClassroomManagerComponent implements OnInit {
+  protected readonly formCompleted = signal(0);
+  private readonly confirmation = inject(ConfirmationDialogService);
   private readonly api = inject(ClassroomService);
   private readonly destroyRef = inject(DestroyRef);
   protected readonly access = inject(WorkspaceAccessService);
@@ -27,8 +31,9 @@ export class ClassroomManagerComponent implements OnInit {
   private mutation: 'create' | 'update' | 'archive' = 'create';
 
   ngOnInit(): void { this.load(); }
-  protected can(action: string): boolean { return this.access.authorities().includes(`can_school_class_${action}`); }
+  protected can(action: string): boolean { return this.access.hasPermission(`can_school_class_${action}`, this.establishmentId()); }
   protected load(): void {
+    if (!this.access.hasPermission('can_school_class_read', this.establishmentId())) { this.loading.set(false); return; }
     this.loading.set(true);
     this.error.set(null);
     this.api.list(this.establishmentId(), this.academicYearId(), this.schoolClassId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -54,14 +59,18 @@ export class ClassroomManagerComponent implements OnInit {
     const request = this.editingId
       ? this.api.update(this.establishmentId(), this.academicYearId(), this.schoolClassId(), this.editingId, { code, name, maxStudents })
       : this.api.create(this.establishmentId(), this.academicYearId(), this.schoolClassId(), { code, name, maxStudents });
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.saving.set(false); this.cancel(); this.load(); }, error: (error) => this.fail(error) });
+    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ next: () => { this.saving.set(false); this.formCompleted.update(value => value + 1); this.cancel(); this.load(); }, error: (error) => this.fail(error) });
   }
   protected archive(room: Classroom): void {
-    if (this.saving() || !this.can('delete') || !window.confirm(`Archiver la salle « ${room.name} » ?`)) return;
+
+    if (this.saving() || !this.can('delete')) return;
+    this.confirmation.confirm(`Archiver la salle « ${room.name} » ?`, () => {
     this.mutation = 'archive';
     this.saving.set(true); this.error.set(null);
     this.api.archive(this.establishmentId(), this.academicYearId(), this.schoolClassId(), room.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.saving.set(false); if (this.editingId === room.id) this.cancel(); this.load(); }, error: (error) => this.fail(error)
+    });
+
     });
   }
   private fail(error: unknown): void {

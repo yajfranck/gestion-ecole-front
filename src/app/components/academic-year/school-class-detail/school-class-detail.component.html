@@ -12,12 +12,14 @@
           @for (item of assignedSubjects(); track item.assignment.id) {
             <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
               <span class="text-[#35473b]">{{ item.subject?.name ?? 'Matière indisponible' }}<span class="ml-2 font-mono text-xs text-[#47745d]">{{ item.subject?.code }}</span></span>
-              <button class="min-h-8 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="isMutating()" (click)="unassign(item.assignment.subjectId)">Retirer</button>
+              @if (access.hasPermission('can_class_subject_unassign', establishmentId())) { <button class="min-h-8 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="isMutating()" (click)="unassign(item.assignment.subjectId)">Retirer</button> }
             </li>
           }
         </ul>
       }
-      <form class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end" (ngSubmit)="assign()">
+      @if (access.hasPermission('can_class_subject_assign', establishmentId())) {
+      <app-form-modal title="Affecter une matière à la classe" [completed]="formCompleted()" [busy]="isMutating()" [error]="subjectError()"><ng-template>
+<form class="form-grid" (ngSubmit)="assign()">
         <label class="form-field sm:w-64" [for]="'assign-subject-' + schoolClassId()">
           <span class="form-label">Affecter une matière</span>
           <select class="form-control" [id]="'assign-subject-' + schoolClassId()" [name]="'assignSubject' + schoolClassId()" [(ngModel)]="selectedSubjectId">
@@ -29,6 +31,8 @@
         </label>
         <button class="btn btn-primary" type="submit" [disabled]="!selectedSubjectId || isMutating()">{{ isMutating() ? 'Affectation…' : 'Affecter' }}</button>
       </form>
+</ng-template></app-form-modal>
+      }
     }
     @if (subjects().length === 0 && !isLoadingSubjects()) {
       <p class="mt-3 text-sm text-[#69756d]">Aucune matière n’existe encore : créez-les dans <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'referentials']">Matières</a>.</p>

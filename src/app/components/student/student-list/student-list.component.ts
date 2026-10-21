@@ -1,3 +1,8 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -9,11 +14,20 @@ import { StudentGuardiansComponent } from '../student-guardians/student-guardian
 
 @Component({
   selector: 'app-student-list',
-  imports: [FormsModule, RouterLink, StudentGuardiansComponent],
+  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink, StudentGuardiansComponent],
   templateUrl: './student-list.component.html',
   styleUrl: './student-list.component.css'
 })
 export class StudentListComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.actionError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly route = inject(ActivatedRoute);
   private readonly studentService = inject(StudentService);
   private readonly workspaceContext = inject(WorkspaceContextService);
@@ -40,14 +54,48 @@ export class StudentListComponent implements OnInit {
   protected lastName = '';
   protected editFirstName = '';
   protected editLastName = '';
+  protected referenceId = '';
+
+  protected updateReference(): void {
+    if (!this.access.hasPermission('can_student_update', this.establishmentId()) || this.isUpdating()) return;
+    const firstName = this.editFirstName.trim();
+    const lastName = this.editLastName.trim();
+    if (!this.referenceId.trim() || (!firstName && !lastName)) return;
+    this.isUpdating.set(true);
+    this.actionError.set(null);
+    this.studentService.updateStudent(this.establishmentId(), this.referenceId.trim(), {
+      ...(firstName ? { firstName } : {}), ...(lastName ? { lastName } : {})
+    }).subscribe({
+      next: () => { this.isUpdating.set(false); this.successMessage.set('L’élève a été modifié.'); },
+      error: (error: unknown) => { this.isUpdating.set(false); this.actionError.set(this.errorMessage(error)); }
+    });
+  }
+
+  protected archiveReference(): void {
+    if (!this.access.hasPermission('can_student_delete', this.establishmentId()) || this.archivingId() || !this.referenceId.trim()) return;
+
+
+    this.confirmation.confirm('Archiver l’élève identifié ? Son historique scolaire sera conservé.', () => {
+    const id = this.referenceId.trim();
+    this.archivingId.set(id);
+    this.actionError.set(null);
+    this.studentService.archiveStudent(this.establishmentId(), id).subscribe({
+      next: () => { this.archivingId.set(null); this.successMessage.set('L’élève a été archivé.'); },
+      error: (error: unknown) => { this.archivingId.set(null); this.actionError.set(this.errorMessage(error)); }
+    });
+
+    });
+  }
 
   ngOnInit(): void {
     this.establishmentId.set(this.route.snapshot.paramMap.get('establishmentId') ?? '');
+    this.referenceId = this.route.snapshot.paramMap.get('studentId') ?? '';
     this.expandedId.set(this.route.snapshot.queryParamMap.get('studentId'));
     this.load();
   }
 
   protected load(): void {
+    if (!this.access.hasPermission('can_student_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.loadError.set(null);
     this.studentService.getStudents(this.establishmentId()).subscribe({
@@ -63,6 +111,7 @@ export class StudentListComponent implements OnInit {
   }
 
   protected create(): void {
+    if (!this.access.hasPermission('can_student_create', this.establishmentId())) return;
     const firstName = this.firstName.trim();
     const lastName = this.lastName.trim();
     if (!firstName || !lastName || this.isCreating()) return;
@@ -88,10 +137,12 @@ export class StudentListComponent implements OnInit {
   }
 
   protected toggleDetail(student: Student): void {
+    if (!this.access.hasPermission('can_guardian_read', this.establishmentId())) return;
     this.expandedId.set(this.expandedId() === student.id ? null : student.id);
   }
 
   protected startEditing(student: Student): void {
+    if (!this.access.hasPermission('can_student_update', this.establishmentId())) return;
     this.editingId.set(student.id);
     this.editFirstName = student.firstName;
     this.editLastName = student.lastName;
@@ -104,6 +155,7 @@ export class StudentListComponent implements OnInit {
   }
 
   protected update(student: Student): void {
+    if (!this.access.hasPermission('can_student_update', this.establishmentId())) return;
     const firstName = this.editFirstName.trim();
     const lastName = this.editLastName.trim();
     if (!firstName || !lastName || this.isUpdating()) {
@@ -137,9 +189,10 @@ export class StudentListComponent implements OnInit {
   }
 
   protected archive(student: Student): void {
-    if (this.archivingId() || !window.confirm(`Archiver l’élève ${student.firstName} ${student.lastName} ? Son historique scolaire sera conservé.`)) {
-      return;
-    }
+    if (!this.access.hasPermission('can_student_delete', this.establishmentId())) return;
+
+    if (this.archivingId()) return;
+    this.confirmation.confirm(`Archiver l’élève ${student.firstName} ${student.lastName} ? Son historique scolaire sera conservé.`, () => {
 
     this.actionError.set(null);
     this.successMessage.set(null);
@@ -156,6 +209,8 @@ export class StudentListComponent implements OnInit {
         this.actionError.set(this.errorMessage(error));
         this.archivingId.set(null);
       }
+    });
+
     });
   }
 

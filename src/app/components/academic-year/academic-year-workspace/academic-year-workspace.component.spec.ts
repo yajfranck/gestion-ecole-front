@@ -44,7 +44,7 @@ describe('AcademicYearWorkspaceComponent', () => {
     http.verify();
   });
 
-  it('retire le contenu et le contexte de l’année précédente lors d’un changement d’année', () => {
+  it('retire le contenu pendant le chargement et conserve l’année sélectionnée dans la sidebar', () => {
     const http = TestBed.inject(HttpTestingController);
     const context = TestBed.inject(WorkspaceContextService);
     const fixture = TestBed.createComponent(AcademicYearWorkspaceComponent);
@@ -55,7 +55,7 @@ describe('AcademicYearWorkspaceComponent', () => {
     params.next(convertToParamMap({ establishmentId: 'school-1', academicYearId: 'year-2' }));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('router-outlet')).toBeNull();
-    expect(context.current()?.academicYearId).toBeNull();
+    expect(context.current()?.academicYearId).toBe('year-1');
 
     http.expectOne(url('year-2')).flush(year('year-2'));
     fixture.detectChanges();

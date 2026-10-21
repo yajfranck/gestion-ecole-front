@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -13,7 +14,7 @@ describe('AcademicYearFinanceComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [AcademicYearFinanceComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+    providers: [providePermissionFixture(['can_school_class_read', 'can_student_read', 'can_tuition_read', 'can_tuition_fee_type_read', 'can_tuition_outstanding_read'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   }));
 
   it('charge classes de l’année et élèves de l’établissement pour l’année sélectionnée', () => {
@@ -40,6 +41,7 @@ describe('AcademicYearFinanceComponent', () => {
 
     const fixture = TestBed.createComponent(AcademicYearFinanceComponent);
     fixture.detectChanges();
+    http.expectOne(`${base}/students`).flush([]);
     http.expectOne(`${base}/school-years/year-1/classes`).flush(null, { status: 500, statusText: 'Server Error' });
     fixture.detectChanges();
 

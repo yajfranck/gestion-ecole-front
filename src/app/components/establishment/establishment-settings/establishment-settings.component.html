@@ -10,10 +10,11 @@
         <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">État</dt><dd class="mt-1 text-[#35473b]">{{ current.enabled ? 'Actif' : 'Désactivé' }}</dd></div>
       </dl>
       @if (access.canUpdateEstablishment(current.id) && !editing()) {
-        <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="edit()">Modifier</button></div>
+        <div class="form-actions"><button *appPermission="'can_establishment_update'" class="btn btn-secondary" type="button" (click)="edit()">Modifier</button></div>
       }
       @if (editing()) {
-        <form class="form-grid" (ngSubmit)="saveEstablishment()" [attr.aria-busy]="isSaving()">
+        <app-form-modal title="Modifier l’établissement" [busy]="isSaving()" *appPermission="'can_establishment_update'" (closed)="editing.set(false)" [showTrigger]="false" [open]="true"><ng-template>
+<form *appPermission="'can_establishment_update'" class="form-grid" (ngSubmit)="saveEstablishment()" [attr.aria-busy]="isSaving()">
           <label class="form-field"><span class="form-label is-required">Code</span><input class="form-control" name="establishmentCode" [(ngModel)]="editCode" maxlength="40" required [disabled]="isSaving()"></label>
           <label class="form-field"><span class="form-label is-required">Nom</span><input class="form-control" name="establishmentName" [(ngModel)]="editName" maxlength="200" required [disabled]="isSaving()"></label>
           @if (updateError()) { <p class="form-error" role="alert">{{ updateError() }}</p> }
@@ -22,14 +23,15 @@
             <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="editing.set(false)">Annuler</button>
           </div>
         </form>
+</ng-template></app-form-modal>
       }
-      @if (updateSuccess()) { <p class="px-5 py-3 text-sm text-[#28563b]" role="status">{{ updateSuccess() }}</p> }
+
     } @else {
-      <p class="state-loading" aria-live="polite">Chargement des informations…</p>
+      <p class="state-empty">Les informations de l’établissement ne sont pas disponibles pour votre compte.</p>
     }
   </section>
 
-  <section class="section" aria-labelledby="school-years-title">
+  <section *appPermission="['can_academic_year_read', 'can_academic_year_create']" class="section" aria-labelledby="school-years-title">
     <div class="section-header">
       <div>
         <h2 id="school-years-title" class="section-title">Années scolaires</h2>
@@ -37,9 +39,7 @@
       </div>
     </div>
 
-    @if (createSuccess()) {
-      <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ createSuccess() }}</output>
-    }
+
 
     @if (isLoading()) {
       <p class="state-loading" aria-live="polite">Chargement des années scolaires…</p>
@@ -67,10 +67,10 @@
                 <td class="px-4 py-3 text-[#53625a]">{{ year.endsOn }}</td>
                 <td class="whitespace-nowrap px-5 py-3 text-right sm:px-6">
                   @if (workspace()?.academicYearId !== year.id) {
-                    <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="select(year)">Sélectionner</button>
+                    <button *appPermission="'can_academic_year_read'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="select(year)">Sélectionner</button>
                   }
-                  <a class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'classes']" [attr.aria-label]="'Ouvrir les classes de ' + year.name">Classes</a>
-                  <a class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'enrollments']" [attr.aria-label]="'Ouvrir les inscriptions de ' + year.name">Inscriptions</a>
+                  <a *appPermission="'can_school_class_read'" class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'classes']" [attr.aria-label]="'Ouvrir les classes de ' + year.name">Classes</a>
+                  <a *appPermission="'can_enrollment_read'" class="ml-2 inline-flex min-h-9 items-center rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] no-underline" [routerLink]="['/establishments', establishmentId(), 'school-years', year.id, 'enrollments']" [attr.aria-label]="'Ouvrir les inscriptions de ' + year.name">Inscriptions</a>
                 </td>
               </tr>
             }
@@ -79,9 +79,9 @@
       </div>
     }
 
-    <details class="border-t border-[#edf0ec]" [open]="!isLoading() && years().length === 0">
-      <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">Ajouter une année scolaire</summary>
-      <form class="form-grid pt-1" (ngSubmit)="createAcademicYear()" [attr.aria-busy]="isCreating()">
+
+      <app-form-modal title="Créer une année scolaire" [busy]="isCreating()" *appPermission="'can_academic_year_create'" [completed]="createSuccess()" [error]="createError()" (opened)="createSuccess.set(null); createError.set(null)"><ng-template>
+<form *appPermission="'can_academic_year_create'" class="form-grid" (ngSubmit)="createAcademicYear()" [attr.aria-busy]="isCreating()">
         <label class="form-field form-field-wide">
           <span class="form-label is-required">Nom de l’année</span>
           <input class="form-control md:max-w-md" id="year-name" name="yearName" [(ngModel)]="name" maxlength="100" required>
@@ -106,6 +106,7 @@
           <button class="btn btn-primary" type="submit" [disabled]="isCreating()">{{ isCreating() ? 'Création…' : 'Créer l’année' }}</button>
         </div>
       </form>
-    </details>
+</ng-template></app-form-modal>
+
   </section>
 </div>

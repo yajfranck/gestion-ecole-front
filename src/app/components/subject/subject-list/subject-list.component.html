@@ -6,11 +6,12 @@
     </div>
   </div>
 
-  @if (successMessage()) {
-    <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}</output>
-  }
 
-  @if (isLoading()) {
+  @if (formError()) { <p class="form-error mx-5 my-3 sm:mx-6" role="alert">{{ formError() }}</p> }
+
+  @if (!access.hasPermission('can_subject_read', establishmentId())) {
+    <p class="state-empty">La consultation de cette liste n’est pas autorisée pour votre compte.</p>
+  } @else if (isLoading()) {
     <p class="state-loading" aria-live="polite">Chargement des matières…</p>
   } @else if (loadError()) {
     <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
@@ -24,10 +25,10 @@
           @for (subject of subjects(); track subject.id) {
             <tr>
               <td class="px-5 py-3 font-medium text-[#35473b] sm:px-6">{{ subject.name }}</td>
-              <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ subject.code }}</td>
+              <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ subject.code || 'Non renseigné' }}</td>
               <td class="whitespace-nowrap px-5 py-3 text-right sm:px-6">
-                <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(subject)">Modifier</button>
-                <button class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!archivingId()" (click)="archive(subject)">{{ archivingId() === subject.id ? 'Archivage…' : 'Archiver' }}</button>
+                <button *appPermission="'can_subject_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(subject)">Modifier</button>
+                <button *appPermission="'can_subject_delete'" class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!archivingId()" (click)="archive(subject)">{{ archivingId() === subject.id ? 'Archivage…' : 'Archiver' }}</button>
               </td>
             </tr>
           }
@@ -36,32 +37,11 @@
     </div>
   }
 
-  <details class="border-t border-[#edf0ec]" [open]="!!editingId() || (!isLoading() && subjects().length === 0)">
-    <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">{{ editingId() ? 'Modifier la matière' : 'Ajouter une matière' }}</summary>
-    <form class="form-grid pt-1" (ngSubmit)="save()" [attr.aria-busy]="isSaving()">
-      @if (editingId()) {
-        <p class="form-title"><span>Modification de la matière</span><span class="form-mode">Modification</span></p>
-      }
-      <label class="form-field form-field-wide">
-        <span class="form-label is-required">Nom</span>
-        <input class="form-control md:max-w-md" id="subject-name" name="subjectName" [(ngModel)]="name" maxlength="100" required>
-        <span class="form-hint">Exemple : Mathématiques.</span>
-      </label>
-      <label class="form-field form-field-compact">
-        <span class="form-label is-required">Code</span>
-        <input class="form-control font-mono" id="subject-code" name="subjectCode" [(ngModel)]="code" maxlength="40" required>
-        <span class="form-hint">Unique dans l’établissement, par exemple MATH.</span>
-      </label>
-      @if (formError()) {
-        <p class="form-error" role="alert">{{ formError() }}</p>
-      }
-      <p class="form-legend">* Champ obligatoire</p>
-      <div class="form-actions">
-        @if (editingId()) {
-          <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="cancelEditing()">Annuler</button>
-        }
-        <button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : (editingId() ? 'Enregistrer' : 'Créer la matière') }}</button>
-      </div>
-    </form>
-  </details>
+
+  <app-form-modal #subjectModal title="Ajouter ou modifier la matière" [busy]="isSaving()" *appPermission="editingId() ? 'can_subject_update' : 'can_subject_create'" [completed]="successMessage()" [open]="!!editingId()" (closed)="cancelEditing()" (opened)="successMessage.set(null); formError.set(null)">
+    <ng-template>
+      <app-subject-form [establishmentId]="establishmentId()" [subject]="editingSubject()" (busyChange)="isSaving.set($event)" (saved)="onSaved($event)" (cancelled)="subjectModal.close()" />
+    </ng-template>
+  </app-form-modal>
+
 </section>

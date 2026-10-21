@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -7,7 +8,7 @@ import { RoleFormComponent } from './role-form.component';
 describe('RoleFormComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
     imports: [RoleFormComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [providePermissionFixture(['can_role_create', 'can_role_update', 'can_permission_read'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   it('creates a role form', () => {

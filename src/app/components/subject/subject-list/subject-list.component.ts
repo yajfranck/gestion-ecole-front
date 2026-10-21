@@ -1,16 +1,30 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, input, OnInit, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
+import { SubjectFormComponent } from '../subject-form/subject-form.component';
 import { Subject } from '../../../models/subject/subject.model';
 import { SubjectService } from '../../../service/subject-service/subject.service';
 
 @Component({
   selector: 'app-subject-list',
-  imports: [FormsModule],
+  imports: [FormModalComponent, PermissionDirective, SubjectFormComponent],
   templateUrl: './subject-list.component.html',
   styleUrl: './subject-list.component.css'
 })
 export class SubjectListComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.formError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly subjectService = inject(SubjectService);
 
   readonly establishmentId = input.required<string>();
@@ -24,14 +38,14 @@ export class SubjectListComponent implements OnInit {
   protected readonly formError = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
 
-  protected code = '';
-  protected name = '';
+  protected readonly editingSubject = computed(() => this.subjects().find(subject => subject.id === this.editingId()) ?? null);
 
   ngOnInit(): void {
     this.load();
   }
 
   protected load(): void {
+    if (!this.access.hasPermission('can_subject_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.loadError.set(null);
     this.subjectService.getSubjects(this.establishmentId()).subscribe({
@@ -47,52 +61,32 @@ export class SubjectListComponent implements OnInit {
   }
 
   protected startEditing(subject: Subject): void {
+    if (!this.access.hasPermission('can_subject_update', this.establishmentId())) return;
     this.editingId.set(subject.id);
-    this.code = subject.code;
-    this.name = subject.name;
     this.formError.set(null);
     this.successMessage.set(null);
   }
 
   protected cancelEditing(): void {
     this.editingId.set(null);
-    this.code = '';
-    this.name = '';
     this.formError.set(null);
   }
 
-  protected save(): void {
-    const code = this.code.trim();
-    const name = this.name.trim();
-    if (!code || !name || this.isSaving()) return;
-
-    const editingId = this.editingId();
-    const request = { code, name };
-    const call = editingId
-      ? this.subjectService.updateSubject(this.establishmentId(), editingId, request)
-      : this.subjectService.createSubject(this.establishmentId(), request);
-
-    this.isSaving.set(true);
-    this.formError.set(null);
-    this.successMessage.set(null);
-    call.subscribe({
-      next: () => {
-        this.successMessage.set(editingId ? `La matière « ${name} » a été modifiée.` : `La matière « ${name} » a été créée.`);
-        this.editingId.set(null);
-        this.code = '';
-        this.name = '';
-        this.isSaving.set(false);
-        this.load();
-      },
-      error: (error: unknown) => {
-        this.formError.set(this.errorMessage(error));
-        this.isSaving.set(false);
-      }
-    });
+  protected onSaved(subjects: Subject[]): void {
+    const editing = !!this.editingId();
+    this.successMessage.set(editing
+      ? `La matière « ${subjects[0].name} » a été modifiée.`
+      : subjects.length === 1 ? `La matière « ${subjects[0].name} » a été créée.`
+      : `${subjects.length} matières ont été créées.`);
+    this.editingId.set(null);
+    this.load();
   }
 
   protected archive(subject: Subject): void {
-    if (this.archivingId() || !window.confirm(`Archiver la matière « ${subject.name} » ?`)) return;
+    if (!this.access.hasPermission('can_subject_delete', this.establishmentId())) return;
+
+    if (this.archivingId()) return;
+    this.confirmation.confirm(`Archiver la matière « ${subject.name} » ?`, () => {
 
     this.archivingId.set(subject.id);
     this.formError.set(null);
@@ -108,6 +102,8 @@ export class SubjectListComponent implements OnInit {
         this.formError.set(this.errorMessage(error, true));
         this.archivingId.set(null);
       }
+    });
+
     });
   }
 

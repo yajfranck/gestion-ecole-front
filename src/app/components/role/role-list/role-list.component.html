@@ -4,15 +4,15 @@
       <h2 class="section-title">Catalogue des rôles</h2>
       <p class="section-hint">Les rôles regroupent les autorisations attribuées par le serveur.</p>
     </div>
-    <button class="btn btn-primary" type="button" (click)="startCreating()"><svg lucidePlus [size]="16" aria-hidden="true"></svg>Créer un rôle</button>
+    <button *appPermission="{all: [global ? 'can_platform_role_create' : 'can_role_create', 'can_permission_read']}; global: global; platform: global" class="btn btn-primary" type="button" (click)="startCreating()"><svg lucidePlus [size]="16" aria-hidden="true"></svg>Créer un rôle</button>
   </header>
-  @if (successMessage()) {
-    <output class="block rounded-lg border border-[#bdd6c5] bg-[#eef7f0] px-4 py-3 text-sm text-[#28563b]">{{ successMessage() }}</output>
-  }
+
   @if (isCreating()) {
-    <app-role-form class="block" [establishmentId]="establishmentId()" (saved)="onRoleSaved()" (cancelled)="cancelForm()" />
+    <app-form-modal #createRoleModal title="Créer ou modifier un rôle" [showTrigger]="false" [open]="true" (closed)="cancelForm()"><ng-template><app-role-form [global]="global" class="block" [establishmentId]="establishmentId()" (saved)="onRoleSaved(); createRoleModal.complete()" (cancelled)="cancelForm()" (busyChange)="createRoleModal.working.set($event)" /></ng-template></app-form-modal>
   }
-  @if (isLoading()) {
+  @if (!access.hasPermission(global ? 'can_platform_role_read' : 'can_role_read', global ? undefined : establishmentId())) {
+    <p class="state-empty">La consultation des rôles n’est pas autorisée pour votre compte.</p>
+  } @else if (isLoading()) {
     <section class="section"><p class="state-loading" aria-live="polite">Chargement des rôles…</p></section>
   } @else if (errorMessage()) {
     <section class="section"><div class="state-error" role="alert"><p>{{ errorMessage() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div></section>
@@ -52,14 +52,14 @@
               </td>
               <td class="px-4 py-3 text-right sm:px-5">
                 @if (role.editable) {
-                  <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] hover:bg-[#f7f9f6]" type="button" (click)="startEditing(role)">Modifier</button>
+                  <button *appPermission="{all: [global ? 'can_platform_role_update' : 'can_role_update', 'can_permission_read']}; global: global; platform: global" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b] hover:bg-[#f7f9f6]" type="button" (click)="startEditing(role)">Modifier</button>
                 } @else {
                   <span class="text-xs text-[#78837b]">Rôle système</span>
                 }
               </td>
             </tr>
             @if (editingCode() === role.code) {
-              <tr><td class="bg-[#f8faf7] p-4 sm:p-5" colspan="4"><app-role-form [role]="role" [establishmentId]="establishmentId()" (saved)="onRoleSaved()" (cancelled)="cancelForm()" /></td></tr>
+              <tr><td class="bg-[#f8faf7] p-4 sm:p-5" colspan="4"><app-form-modal #editRoleModal title="Créer ou modifier un rôle" [showTrigger]="false" [open]="true" (closed)="cancelForm()"><ng-template><app-role-form [global]="global" [role]="role" [establishmentId]="establishmentId()" (saved)="onRoleSaved(); editRoleModal.complete()" (cancelled)="cancelForm()" (busyChange)="editRoleModal.working.set($event)" /></ng-template></app-form-modal></td></tr>
             }
           } @empty {
             <tr><td class="px-5 py-4 text-sm text-[#69756d]" colspan="4">Aucun rôle disponible dans le catalogue.</td></tr>

@@ -1,3 +1,4 @@
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, effect, inject, HostListener, input, OnDestroy, output, signal, untracked } from '@angular/core';
@@ -18,8 +19,10 @@ import { apiError } from '../../../shared/api-error';
 
 interface FeeLine { fee: TuitionFee; balance: number; previouslyPaid: number; amount: number | null; method: string; reference: string }
 
-@Component({ selector: 'app-enrollment-form', imports: [FormsModule, CurrencyPipe], templateUrl: './enrollment-form.component.html', styleUrl: './enrollment-form.component.css' })
+@Component({ selector: 'app-enrollment-form', imports: [PermissionDirective, FormsModule, CurrencyPipe], templateUrl: './enrollment-form.component.html', styleUrl: './enrollment-form.component.css' })
 export class EnrollmentFormComponent implements OnDestroy {
+  readonly busyChange = output<boolean>();
+  private readonly reportBusy = effect(() => this.busyChange.emit(this.saving()));
   private readonly pending = inject(PendingChangesService);
   private readonly roomsApi = inject(ClassroomService);
   private readonly tuition = inject(TuitionService);
@@ -72,7 +75,7 @@ export class EnrollmentFormComponent implements OnDestroy {
   beforeUnload(event: BeforeUnloadEvent): void { if (this.pending.dirty() || this.pending.saving()) { event.preventDefault(); event.returnValue = ''; } }
 
   protected hasEnrollment(id: string): boolean { return this.enrollments().some((item) => item.studentId === id); }
-  protected canPay(): boolean { return this.access.authorities().includes('can_payment_record'); }
+  protected canPay(): boolean { return this.access.hasPermission('can_payment_record', this.establishmentId()); }
 
   protected selectionChanged(classChanged = false): void {
     this.revision++;
@@ -108,6 +111,10 @@ export class EnrollmentFormComponent implements OnDestroy {
       this.error.set('Cette salle a atteint sa capacité maximale. Choisissez une autre salle ou augmentez sa capacité si vous y êtes autorisé.');
       return;
     }
+    if (!this.access.hasPermission('can_tuition_read', this.establishmentId())) {
+      this.lines.set([]); this.methods.set([]); this.step.set(3); this.pending.dirty.set(true);
+      return;
+    }
     const version = ++this.revision;
     const previous = new Map(preservePayments ? this.lines().map((line) => [line.fee.id, line] as const) : []);
     this.loading.set(true); this.error.set(null);
@@ -115,7 +122,7 @@ export class EnrollmentFormComponent implements OnDestroy {
       const applicable = fees.filter((fee) => fee.establishmentId === this.establishmentId() && fee.academicYearId === this.academicYearId() && (
         fee.scope === 'ACADEMIC_YEAR' || (fee.scope === 'SCHOOL_CLASS' && (fee.schoolClassIds ?? (fee.schoolClassId ? [fee.schoolClassId] : [])).includes(this.schoolClassId)) || (fee.scope === 'STUDENT' && fee.studentId === this.studentId)
       ));
-      return applicable.length ? forkJoin({ fees: of(applicable), charges: this.tuition.getStudentCharges(this.establishmentId(), this.studentId), methods: this.tuition.getPaymentMethods(this.establishmentId()) })
+      return applicable.length ? forkJoin({ fees: of(applicable), charges: this.tuition.getStudentCharges(this.establishmentId(), this.academicYearId(), this.studentId), methods: this.tuition.getPaymentMethods(this.establishmentId()) })
         : of({ fees: [], charges: [], methods: [] });
     }), takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ fees, charges, methods }) => {
@@ -164,6 +171,7 @@ export class EnrollmentFormComponent implements OnDestroy {
   }
 
   protected confirm(): void {
+    if (!this.access.hasPermission('can_enrollment_create', this.establishmentId())) return;
     if (this.step() !== 3 || this.saving() || this.loading() || !this.validPayments()) return;
     this.saving.set(true); this.pending.saving.set(true); this.error.set(null); this.unpaidFeeIds.set([]);
     this.api.createEnrollment(this.establishmentId(), this.academicYearId(), { studentId: this.studentId, schoolClassId: this.schoolClassId,

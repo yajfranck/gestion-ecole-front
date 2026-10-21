@@ -1,3 +1,5 @@
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -28,7 +30,7 @@ describe('AttendanceSheetComponent', () => {
     TestBed.configureTestingModule({ imports: [AttendanceSheetComponent], providers: [
       provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
       { provide: ActivatedRoute, useValue: { parent: { paramMap: params }, snapshot: {} } },
-      { provide: WorkspaceAccessService, useValue: { hasPermission: (permission: string) => permission === 'can_attendance_read' || writable } }
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ hasPermission: (permission: string) => permission === 'can_attendance_read' || writable }) }
     ] });
     const context = TestBed.inject(WorkspaceContextService);
     context.selectEstablishment({ id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' });
@@ -121,7 +123,7 @@ describe('AttendanceSheetComponent', () => {
   it('préserve classe et date si le changement non enregistré est annulé', () => {
     const { component, pending } = setup();
     component['markUnreported']();
-    spyOn(window, 'confirm').and.returnValue(false);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.stub();
     const select = document.createElement('select');
     select.add(new Option('Classe A', 'class-1'));
     component['changeClass']('class-2', select);
@@ -138,7 +140,7 @@ describe('AttendanceSheetComponent', () => {
   it('réinitialise les données après changement de contexte accepté', () => {
     const { component, http, pending } = setup();
     component['markUnreported']();
-    spyOn(window, 'confirm').and.returnValue(true);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.callFake((_message, accept) => accept());
     component['changeClass']('', document.createElement('select'));
     expect(component['rows']()).toEqual([]);
     expect(pending.dirty()).toBeFalse();
@@ -175,4 +177,32 @@ describe('AttendanceSheetComponent', () => {
     component.beforeUnload(event);
     expect(event.defaultPrevented).toBeTrue();
   });
+  it('modifie les présences en modale et conserve ou abandonne la saisie selon la confirmation', async () => {
+    const { fixture, component, pending } = setup();
+    await fixture.whenStable(); fixture.detectChanges();
+    const original = component['rows']()[0];
+    const pageSelect = fixture.nativeElement.querySelector('select[aria-label^="Pointage"]') as HTMLSelectElement;
+    expect(pageSelect.disabled).toBeTrue();
+    (fixture.nativeElement.querySelector('app-form-modal > div > button') as HTMLButtonElement).click();
+    fixture.detectChanges(); await fixture.whenStable();
+    const dialog = fixture.nativeElement.querySelector('dialog') as HTMLDialogElement;
+    const select = dialog.querySelector('select[aria-label^="Pointage"]') as HTMLSelectElement;
+    expect(select.disabled).toBeFalse();
+    component['status'](original.studentId, original.status === 'ABSENT' ? 'PRESENT' : 'ABSENT');
+    fixture.detectChanges();
+    expect(pending.dirty()).toBeTrue();
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true })); fixture.detectChanges(); await fixture.whenStable();
+    const firstConfirmation = document.querySelector('app-confirmation-dialog')!;
+    expect(firstConfirmation).toBeTruthy();
+    (Array.from(firstConfirmation.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Annuler')!).click();
+    fixture.detectChanges(); expect(dialog.open).toBeTrue(); expect(pending.dirty()).toBeTrue();
+    dialog.dispatchEvent(new Event('cancel', { cancelable: true })); fixture.detectChanges(); await fixture.whenStable();
+    const confirmation = document.querySelector('app-confirmation-dialog')!;
+    (Array.from(confirmation.querySelectorAll('button')).find(button => button.textContent?.trim() === 'Confirmer')!).click();
+    fixture.detectChanges(); await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('dialog')).toBeNull();
+    expect(pending.dirty()).toBeFalse();
+    expect(component['rows']()[0].status).toBe(original.status);
+  });
+
 });

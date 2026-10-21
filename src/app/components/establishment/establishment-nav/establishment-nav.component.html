@@ -1,9 +1,10 @@
+@if (establishmentGroups().length || yearItems().length) {
 <nav class="relative" aria-label="Navigation de l’établissement">
   <button class="nav-trigger compact-trigger inline-flex min-h-10 max-w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-[#35473b] hover:bg-[#eef3ed] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d]" type="button" aria-controls="context-groups" [attr.aria-expanded]="compactOpen()" (click)="compactOpen.set(!compactOpen()); openGroup.set(null)">
     <span>Navigation</span><svg class="size-4 shrink-0" lucideChevronDown aria-hidden="true"></svg>
   </button>
   <div id="context-groups" class="context-groups flex items-center gap-1" [class.is-expanded]="compactOpen()">
-    @for (group of establishmentGroups; track group.label; let index = $index) {
+    @for (group of establishmentGroups(); track group.label; let index = $index) {
       <div class="relative min-w-0" role="group" [attr.aria-label]="group.label">
         <button class="nav-trigger group-trigger inline-flex min-h-10 max-w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-[#35473b] hover:bg-[#eef3ed] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d]" type="button" [class.is-active]="groupActive(group.items)" [attr.aria-expanded]="openGroup() === group.label" [attr.aria-controls]="'context-panel-' + index" (click)="toggleGroup(group.label)" (keydown)="onTriggerKey($event, group.label, groupPanel)">
           <span>{{ group.label }}</span><svg class="size-4 shrink-0" lucideChevronDown aria-hidden="true"></svg>
@@ -15,6 +16,7 @@
         </div>
       </div>
     }
+    @if (yearItems().length) {
     <div class="relative min-w-0" role="group" aria-label="Année scolaire">
       <button class="nav-trigger group-trigger inline-flex min-h-10 max-w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-[#35473b] hover:bg-[#eef3ed] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d]" type="button" [class.is-active]="!!selectedYear() && groupActive(yearItems(), true)" [attr.aria-expanded]="openGroup() === 'Année scolaire'" aria-controls="context-year-panel" (click)="toggleGroup('Année scolaire')" (keydown)="onTriggerKey($event, 'Année scolaire', yearPanel)">
         <span>Année scolaire</span><svg class="size-4 shrink-0" lucideChevronDown aria-hidden="true"></svg>
@@ -40,5 +42,8 @@
         }
       </div>
     </div>
+    }
   </div>
 </nav>
+
+}

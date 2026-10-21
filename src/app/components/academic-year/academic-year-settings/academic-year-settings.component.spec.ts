@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -11,7 +12,7 @@ describe('AcademicYearSettingsComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [AcademicYearSettingsComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [providePermissionFixture(['can_academic_year_update', 'can_academic_year_delete'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   it('envoie uniquement les champs modifiés', async () => {

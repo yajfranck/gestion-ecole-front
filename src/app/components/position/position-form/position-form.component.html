@@ -1,4 +1,4 @@
-<form class="form-grid rounded-xl border border-[#e1e7e0] bg-white" (ngSubmit)="create()" [attr.aria-busy]="isSaving()">
+<form *appPermission="'can_position_create'" class="form-grid rounded-xl border border-[#e1e7e0] bg-white" (ngSubmit)="create()" [attr.aria-busy]="isSaving()">
   <p class="form-title">Nouveau poste</p>
   <label class="form-field form-field-wide">
     <span class="form-label is-required">Nom du poste</span>

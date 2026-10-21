@@ -1,0 +1,77 @@
+<p class="px-5 pt-5 text-sm leading-6 text-[#69756d] sm:px-6">Renseignez l’établissement et son premier administrateur. Les champs marqués d’un * sont obligatoires.</p>
+<form #createForm="ngForm" novalidate (ngSubmit)="submit(createForm)" [attr.aria-busy]="busy()">
+  <fieldset class="m-0 grid min-w-0 gap-x-5 gap-y-4 border-0 p-5 sm:p-6 md:grid-cols-2" [disabled]="busy()" aria-labelledby="create-establishment-legend">
+    <legend id="create-establishment-legend" class="sr-only">Établissement</legend>
+    <div class="md:col-span-2">
+      <h3 class="text-sm font-semibold text-[#26372d]" aria-hidden="true">Informations générales</h3>
+      <p class="section-hint mt-0.5" aria-hidden="true">Identité de l’établissement sur la plateforme.</p>
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="establishment-code">Code</label>
+      <input #codeCtrl="ngModel" class="form-control font-mono aria-invalid:border-[#c9735f]" id="establishment-code" autofocus name="code" [(ngModel)]="code" maxlength="40" required pattern=".*\S.*" autocomplete="off"
+        [attr.aria-invalid]="codeCtrl.invalid && (codeCtrl.touched || createForm.submitted)" aria-describedby="establishment-code-hint">
+      @if (codeCtrl.invalid && (codeCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez un code établissement.</span>
+      }
+      <span class="form-hint" id="establishment-code-hint">Identifiant unique, par exemple SCHOOL-001.</span>
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="establishment-name">Nom de l’établissement</label>
+      <input #nameCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" id="establishment-name" name="name" [(ngModel)]="name" maxlength="200" required pattern=".*\S.*" autocomplete="organization"
+        [attr.aria-invalid]="nameCtrl.invalid && (nameCtrl.touched || createForm.submitted)">
+      @if (nameCtrl.invalid && (nameCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le nom de l’établissement.</span>
+      }
+    </div>
+
+    <div class="mt-2 border-t border-[#edf0ec] pt-5 md:col-span-2">
+      <h3 class="text-sm font-semibold text-[#26372d]" aria-hidden="true">Premier administrateur</h3>
+      <p class="section-hint mt-0.5" aria-hidden="true">Cette personne recevra une invitation pour définir son mot de passe.</p>
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="administrator-first-name">Prénom</label>
+      <input #firstNameCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" id="administrator-first-name" name="administratorFirstName" [(ngModel)]="administratorFirstName" maxlength="100" required pattern=".*\S.*" autocomplete="given-name"
+        [attr.aria-invalid]="firstNameCtrl.invalid && (firstNameCtrl.touched || createForm.submitted)">
+      @if (firstNameCtrl.invalid && (firstNameCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le prénom.</span>
+      }
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="administrator-last-name">Nom</label>
+      <input #lastNameCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" id="administrator-last-name" name="administratorLastName" [(ngModel)]="administratorLastName" maxlength="100" required pattern=".*\S.*" autocomplete="family-name"
+        [attr.aria-invalid]="lastNameCtrl.invalid && (lastNameCtrl.touched || createForm.submitted)">
+      @if (lastNameCtrl.invalid && (lastNameCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le nom.</span>
+      }
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="administrator-employee-number">Matricule</label>
+      <input #employeeNumberCtrl="ngModel" class="form-control font-mono aria-invalid:border-[#c9735f]" id="administrator-employee-number" name="administratorEmployeeNumber" [(ngModel)]="administratorEmployeeNumber" maxlength="40" required pattern=".*\S.*" autocomplete="off"
+        [attr.aria-invalid]="employeeNumberCtrl.invalid && (employeeNumberCtrl.touched || createForm.submitted)">
+      @if (employeeNumberCtrl.invalid && (employeeNumberCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le matricule.</span>
+      }
+    </div>
+    <div class="form-field">
+      <label class="form-label is-required" for="administrator-email">Adresse e-mail</label>
+      <input #emailCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" id="administrator-email" name="administratorEmail" type="email" [(ngModel)]="administratorEmail" maxlength="254" required email autocomplete="email"
+        [attr.aria-invalid]="emailCtrl.invalid && (emailCtrl.touched || createForm.submitted)">
+      @if (emailCtrl.invalid && (emailCtrl.touched || createForm.submitted)) {
+        <span class="text-xs text-[#8a3e2d]" role="alert">{{ emailCtrl.errors?.['required'] ? 'L’adresse e-mail est obligatoire.' : 'Saisissez une adresse e-mail valide.' }}</span>
+      }
+    </div>
+
+    @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+  </fieldset>
+  <footer class="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#e9ede8] bg-[#f8faf7] px-5 py-4 sm:flex-row sm:items-center sm:justify-end sm:px-6">
+    <button class="btn btn-secondary" type="button" [disabled]="busy()" (click)="cancelled.emit()">Annuler</button>
+    <button class="btn btn-primary" type="submit" [disabled]="busy()">
+      @if (busy()) {
+        <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25" /><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+        <span>Création…</span>
+      } @else {
+        <span>Créer l’établissement</span>
+      }
+    </button>
+  </footer>
+</form>

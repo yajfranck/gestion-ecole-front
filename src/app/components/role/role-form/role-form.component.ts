@@ -1,5 +1,8 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, input, OnInit, output, signal } from '@angular/core';
+import { effect, Component, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RolePermission } from '../../../models/permission/permission.model';
 import { EstablishmentRole } from '../../../models/role/role.model';
@@ -10,15 +13,25 @@ import { describePermission } from '../../permission/permission-list/permission-
 @Component({
   selector: 'app-role-form',
   standalone: true,
-  imports: [FormsModule],
+  imports: [PermissionDirective, FormsModule],
   templateUrl: './role-form.component.html',
   styleUrl: './role-form.component.css'
 })
 export class RoleFormComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.errorMessage, 'error');
+  }
+
+  readonly busyChange = output<boolean>();
+  private readonly reportBusy = effect(() => this.busyChange.emit(this.isSaving()));
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly permissionService = inject(PermissionService);
   private readonly roleService = inject(RoleService);
 
   readonly establishmentId = input.required<string>();
+  readonly global = input(false);
   readonly role = input<EstablishmentRole | null>(null);
   readonly saved = output<void>();
   readonly cancelled = output<void>();
@@ -46,9 +59,9 @@ export class RoleFormComponent implements OnInit {
   protected loadPermissions(): void {
     this.isLoadingPermissions.set(true);
     this.permissionError.set(null);
-    this.permissionService.getAssignablePermissions(this.establishmentId()).subscribe({
+    (this.global() ? this.permissionService.getPermissions() : this.permissionService.getAssignablePermissions(this.establishmentId())).subscribe({
       next: (permissions) => {
-        this.permissions.set(permissions);
+        this.permissions.set(permissions.filter((permission) => this.global() || permission.assignable !== false));
         this.isLoadingPermissions.set(false);
       },
       error: (error: unknown) => {
@@ -75,9 +88,7 @@ export class RoleFormComponent implements OnInit {
       return;
     }
 
-    const removableCodes = new Set(displayedCodes.filter((code) =>
-      !(this.role()?.code === 'ADMIN' && code === 'ADMIN_ACCESS')
-    ));
+    const removableCodes = new Set(displayedCodes);
     this.selectedPermissionCodes.update((selected) => selected.filter((code) => !removableCodes.has(code)));
   }
 
@@ -112,12 +123,17 @@ export class RoleFormComponent implements OnInit {
   }
 
   protected save(): void {
+    const permission = this.global() ? (this.role() ? 'can_platform_role_update' : 'can_platform_role_create') : (this.role() ? 'can_role_update' : 'can_role_create');
+    const canSave = this.global()
+      ? this.access.hasPlatformPermission(permission) && this.access.hasPlatformPermission('can_permission_read')
+      : this.access.hasAllPermissions([permission, 'can_permission_read'], this.establishmentId());
+    if (!canSave) return;
     const role = this.role();
     const code = this.code.trim();
     const name = this.name.trim();
     const permissionCodes = [...this.selectedPermissionCodes()];
     if (this.isSaving() || this.isLoadingPermissions() || this.permissionError() ||
-        !name || (!role && !code) || permissionCodes.length === 0) return;
+        !name || (!role && !code)) return;
 
     this.errorMessage.set(null);
     this.isSaving.set(true);
@@ -126,9 +142,10 @@ export class RoleFormComponent implements OnInit {
       description: this.description.trim() || null,
       permissionCodes
     };
-    const operation = role
-      ? this.roleService.updateEstablishmentRole(this.establishmentId(), role.code, request)
-      : this.roleService.createEstablishmentRole(this.establishmentId(), { code, ...request });
+    const operation = this.global()
+      ? role ? this.roleService.updateRole(role.code, request) : this.roleService.createRole({ code, ...request })
+      : role ? this.roleService.updateEstablishmentRole(this.establishmentId(), role.code, request)
+        : this.roleService.createEstablishmentRole(this.establishmentId(), { code, ...request });
     operation.subscribe({
       next: () => {
         this.isSaving.set(false);

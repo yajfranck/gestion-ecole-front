@@ -1,3 +1,6 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { DatePipe } from '@angular/common';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { Component, computed, DestroyRef, effect, HostListener, inject, OnDestroy, signal, untracked } from '@angular/core';
@@ -21,11 +24,13 @@ import { apiError } from '../../../shared/api-error';
 
 @Component({
   selector: 'app-learning-workspace',
-  imports: [FormsModule, DatePipe, RouterLink, LucideDownload],
+  imports: [FormModalComponent, FormsModule, DatePipe, RouterLink, LucideDownload],
   templateUrl: './learning-workspace.component.html',
   styleUrl: './learning-workspace.component.css'
 })
 export class LearningWorkspaceComponent implements OnDestroy {
+  private readonly toast = inject(ToastService);
+  private readonly confirmation = inject(ConfirmationDialogService);
   private readonly route = inject(ActivatedRoute);
   private readonly api = inject(LearningService);
   private readonly years = inject(AcademicYearService);
@@ -64,6 +69,8 @@ export class LearningWorkspaceComponent implements OnDestroy {
   private subjectsRevision = 0;
 
   constructor() {
+    this.toast.connect(this.success, 'success');
+    this.toast.connect(this.error, 'error');
     effect((onCleanup) => {
       const params = this.params();
       const year = this.context.academicYear();
@@ -73,13 +80,14 @@ export class LearningWorkspaceComponent implements OnDestroy {
       const yearId = params.get('academicYearId');
       untracked(() => this.reset());
       if (studentId && yearId) {
-        this.context.clear();
+
         if (!authorities.includes('can_guardian_read_children')) { this.error.set('Accès parent non autorisé.'); return; }
         this.loading.set(true);
         const subscription = this.guardians.getMyChildren().subscribe({
           next: (children) => {
-            if (!children.some((child) => child.id === studentId)) { this.error.set('Cet enfant n’est pas accessible depuis votre compte.'); this.loading.set(false); return; }
-            this.scope.set({ studentId, academicYearId: yearId });
+            const child = children.find((item) => item.id === studentId);
+            if (!child) { this.error.set('Cet enfant n’est pas accessible depuis votre compte.'); this.loading.set(false); return; }
+            this.scope.set({ establishmentId: child.establishmentId, studentId, academicYearId: yearId });
             this.load();
           },
           error: (error) => { this.error.set(apiError(error)); this.loading.set(false); }
@@ -89,8 +97,7 @@ export class LearningWorkspaceComponent implements OnDestroy {
       }
       const establishmentId = params.get('establishmentId');
       if (!year || year.id !== yearId || year.establishmentId !== establishmentId) return;
-      if (!this.access.hasPermission('can_learning_content_read', establishmentId!) &&
-        !(authorities.includes('ADMIN_ACCESS') && authorities.includes('can_learning_content_read'))) {
+      if (!this.access.hasPermission('can_learning_content_read', establishmentId!)) {
         this.error.set('Consultation des cours non autorisée pour votre compte.'); return;
       }
       this.loading.set(true);
@@ -119,11 +126,11 @@ export class LearningWorkspaceComponent implements OnDestroy {
 
   protected allowed(action: 'create' | 'update' | 'publish' | 'archive'): boolean {
     const scope = this.scope();
-    return !!scope && !('studentId' in scope) && this.license.canUse(`can_learning_content_${action}`, 'LEARNING_CONTENT', scope.establishmentId);
+    return !!scope && !('studentId' in scope) && (!['create', 'update'].includes(action) || this.access.hasAllPermissions(['can_subject_read', 'can_class_subject_read'], scope.establishmentId)) && this.license.canUse(`can_learning_content_${action}`, 'LEARNING_CONTENT', scope.establishmentId);
   }
 
   protected selectClass(id: string, select?: HTMLSelectElement): void {
-    if (!this.pending.confirmLeave()) { if (select) select.value = this.classId(); return; }
+    if (!this.pending.confirmLeave(() => this.selectClass(id, select))) { if (select) select.value = this.classId(); return; }
     const year = this.context.academicYear();
     if (!year || !this.classes().some((item) => item.id === id)) return;
     this.clearDetails();
@@ -135,7 +142,7 @@ export class LearningWorkspaceComponent implements OnDestroy {
 
   protected load(page = 0): void {
     const scope = this.scope();
-    if (!scope || !this.pending.confirmLeave()) return;
+    if (!scope || !this.pending.confirmLeave(() => this.load(page))) return;
     const revision = ++this.revision;
     this.page.set(null);
     this.loading.set(true);
@@ -148,7 +155,7 @@ export class LearningWorkspaceComponent implements OnDestroy {
 
   protected open(item: LearningContent): void {
     const scope = this.scope();
-    if (!scope || !this.pending.confirmLeave()) return;
+    if (!scope || !this.pending.confirmLeave(() => this.open(item))) return;
     this.clearDetails();
     this.detailsLoading.set(true);
     const revision = ++this.detailsRevision;
@@ -163,7 +170,7 @@ export class LearningWorkspaceComponent implements OnDestroy {
   }
 
   protected edit(item?: LearningContent): void {
-    if (!this.allowed(item ? 'update' : 'create') || !this.pending.confirmLeave()) return;
+    if (!this.allowed(item ? 'update' : 'create') || !this.pending.confirmLeave(() => this.edit(item))) return;
     if (!item) this.clearDetails();
     this.draft = item ? { type: item.type, title: item.title, description: item.description, body: item.body, subjectId: item.subjectId, dueDate: item.dueDate } : this.emptyDraft();
     this.editing.set(true);
@@ -208,7 +215,7 @@ export class LearningWorkspaceComponent implements OnDestroy {
   protected change(): void { this.pending.dirty.set(true); }
 
   protected cancel(): void {
-    if (!this.pending.confirmLeave()) return;
+    if (!this.pending.confirmLeave(() => this.cancel())) return;
     this.editing.set(false);
     this.files.set([]);
   }
@@ -253,11 +260,15 @@ export class LearningWorkspaceComponent implements OnDestroy {
 
   protected transition(item: LearningContent, action: 'publish' | 'archive'): void {
     const scope = this.scope();
-    if (!scope || !this.allowed(action) || !this.pending.confirmLeave() || !window.confirm('Confirmer cette modification du contenu ?')) return;
+
+    if (!scope || !this.allowed(action) || !this.pending.confirmLeave(() => this.transition(item, action))) return;
+    this.confirmation.confirm('Confirmer cette modification du contenu ?', () => {
     this.pending.saving.set(true);
     this.api.transition(scope, item.id, action).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: () => { this.pending.saving.set(false); this.clearDetails(); this.success.set('Contenu mis à jour.'); this.load(); },
       error: (error) => { this.fail(error, true); this.pending.saving.set(false); }
+    });
+
     });
   }
 

@@ -1,7 +1,11 @@
+import { FEATURE_PERMISSIONS as features } from './core/feature-permissions';
 import { Routes } from '@angular/router';
+import { schoolYearOnboardingGuard } from './core/school-year-onboarding.guard';
+import { SchoolYearOnboardingComponent } from './components/academic-year/school-year-onboarding/school-year-onboarding.component';
+import { permissionGuard } from './core/permission.guard';
+import { AccessDeniedComponent } from './components/auth/access-denied/access-denied.component';
 import { authGuard } from './core/auth.guard';
 import { AuthenticatedLayoutComponent } from './shared/layout/authenticated-layout.component';
-import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { EstablishmentsComponent } from './components/establishment/establishment-list/establishment-list.component';
 import { EstablishmentWorkspaceComponent } from './components/establishment/establishment-workspace/establishment-workspace.component';
 import { AcademicYearWorkspaceComponent } from './components/academic-year/academic-year-workspace/academic-year-workspace.component';
@@ -37,16 +41,21 @@ export const routes: Routes = [
 		path: '',
 		component: AuthenticatedLayoutComponent,
 		canActivate: [authGuard],
-		canActivateChild: [authGuard],
+		canActivateChild: [authGuard, permissionGuard, schoolYearOnboardingGuard],
 		children: [
-			{ path: 'dashboard', component: DashboardComponent },
-			{ path: 'account/password', component: ChangePasswordComponent },
-			{ path: 'account/profile', component: EmployeeDetailComponent, data: { self: true } },
-			{ path: 'parent/children', component: GuardianChildrenComponent },
-			{ path: 'parent/children/:studentId', component: GuardianChildDetailComponent },
-			{ path: 'parent/children/:studentId/school-years/:academicYearId/learning', component: LearningWorkspaceComponent, canDeactivate: [pendingChangesGuard] },
-			{ path: 'establishments', component: EstablishmentsComponent },
-			{ path: 'establishments/:establishmentId/license', component: LicenseWorkspaceComponent },
+            { path: 'setup/school-year', component: SchoolYearOnboardingComponent, data: { permissions: ['can_academic_year_create'], globalPermissions: true } },
+			{ path: 'platform/permissions', component: PermissionsComponent, data: { global: true, globalPermissions: true, permissions: ['can_permission_read'] } },
+			{ path: 'platform/roles', component: RolesComponent, data: { global: true, globalPermissions: true, platformPermissions: true, permissionRule: features.platformRoles } },
+            { path: 'access-denied', component: AccessDeniedComponent },
+			{ path: 'dashboard', redirectTo: 'establishments', pathMatch: 'full' },
+			{ path: 'account/password', component: ChangePasswordComponent, data: { permissionRule: features.password } },
+			{ path: 'account/profile', component: EmployeeDetailComponent, data: { self: true, permissions: ['can_employee_read_self'] } },
+			{ path: 'parent/children', component: GuardianChildrenComponent, data: { permissions: ['can_guardian_read_children'] } },
+			{ path: 'parent/children/:studentId', component: GuardianChildDetailComponent, data: { permissions: ['can_guardian_read_children'] } },
+			{ path: 'parent/children/:studentId/school-years/:academicYearId/learning', component: LearningWorkspaceComponent, data: { permissions: ['can_guardian_read_children'] }, canDeactivate: [pendingChangesGuard] },
+			{ path: 'establishments', component: EstablishmentsComponent, data: { permissionRule: features.establishments } },
+			{ path: 'establishments/:establishmentId/license-registration', component: EstablishmentsComponent, data: { licenseRegistration: true, globalPermissions: true, permissionRule: { any: ['can_establishment_onboard', { all: ['can_license_assign', 'can_license_offer_read'] }] } } },
+			{ path: 'establishments/:establishmentId/license', component: LicenseWorkspaceComponent, data: { permissionRule: features.license, globalPermissions: true } },
 			{
 				path: 'establishments/:establishmentId/employees',
 				redirectTo: 'establishments/:establishmentId/team/employees',
@@ -56,39 +65,41 @@ export const routes: Routes = [
 				path: 'establishments/:establishmentId',
 				component: EstablishmentWorkspaceComponent,
 				children: [
-					{ path: '', component: EstablishmentSettingsComponent, pathMatch: 'full' },
+					{ path: '', component: EstablishmentSettingsComponent, pathMatch: 'full', data: { permissionRule: features.settings } },
 					{
 						path: 'team',
 						component: EmployeeWorkspaceComponent,
 						children: [
-							{ path: 'employees', component: EmployeeListComponent },
-							{ path: 'employees/:employeeId', component: EmployeeDetailComponent },
-							{ path: 'positions', component: PositionsComponent },
-							{ path: 'roles', component: RolesComponent },
-							{ path: 'permissions', component: PermissionsComponent },
+							{ path: 'employees', component: EmployeeListComponent, data: { permissionRule: features.employees } },
+							{ path: 'employees/:employeeId', component: EmployeeDetailComponent, data: { permissions: ['can_employee_read'] } },
+							{ path: 'positions', component: PositionsComponent, data: { permissionRule: features.positions } },
+							{ path: 'roles', component: RolesComponent, data: { permissionRule: features.roles } },
+							{ path: 'permissions', component: PermissionsComponent, data: { permissions: ['can_permission_read'] } },
 							{ path: '', redirectTo: 'employees', pathMatch: 'full' }
 						]
 					},
-					{ path: 'students', component: StudentListComponent },
-					{ path: 'referentials', component: EstablishmentReferentialsComponent },
+					{ path: 'students/:studentId/edit', component: StudentListComponent, data: { permissions: ['can_student_update'] } },
+                    { path: 'students', component: StudentListComponent, data: { permissionRule: features.students } },
+					{ path: 'referentials', component: EstablishmentReferentialsComponent, data: { permissionRule: features.subjects } },
 					{
 						path: 'school-years/:academicYearId',
 						component: AcademicYearWorkspaceComponent,
+                data: { permissions: ['can_academic_year_read'] },
 						children: [
-							{ path: 'learning', component: LearningWorkspaceComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
-														{ path: 'classes', component: AcademicYearClassesComponent },
-														{ path: 'attendance', component: AttendanceSheetComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
-														{ path: 'attendance/history/:studentId', component: AttendanceHistoryComponent },
-							{ path: 'enrollments', component: EnrollmentWorkspaceComponent, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
-							{ path: 'calendar', component: AcademicYearCalendarComponent },
-							{ path: 'finance', component: AcademicYearFinanceComponent },
+							{ path: 'learning', component: LearningWorkspaceComponent, data: { permissionRule: features.learning }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+														{ path: 'classes', component: AcademicYearClassesComponent, data: { permissionRule: features.classes } },
+														{ path: 'attendance', component: AttendanceSheetComponent, data: { permissionRule: features.attendance }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+														{ path: 'attendance/history/:studentId', component: AttendanceHistoryComponent, data: { permissions: ['can_attendance_read'] } },
+							{ path: 'enrollments', component: EnrollmentWorkspaceComponent, data: { permissionRule: features.enrollments }, canDeactivate: [pendingChangesGuard], runGuardsAndResolvers: 'always' },
+							{ path: 'calendar', component: AcademicYearCalendarComponent, data: { permissionRule: features.calendar } },
+							{ path: 'finance', component: AcademicYearFinanceComponent, data: { permissionRule: features.finance } },
 							{ path: '', redirectTo: 'classes', pathMatch: 'full' }
 						]
 					}
 				]
 			},
-			{ path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+			{ path: '', redirectTo: 'establishments', pathMatch: 'full' }
 		]
 	},
-	{ path: '**', redirectTo: 'dashboard' }
+	{ path: '**', redirectTo: 'establishments' }
 ];

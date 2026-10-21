@@ -46,8 +46,10 @@
                 <td class="px-5 py-3"><a class="text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: enrollment.schoolClassId }" [attr.aria-label]="'Voir la classe ' + classNameFor(enrollment.schoolClassId)">{{ classNameFor(enrollment.schoolClassId) }}</a></td>
                 <td class="px-5 py-3"><span>{{ roomNameFor(enrollment) }}</span>
                   @if (access.authorities().includes('can_enrollment_update')) {
-                    @if (changingId() === enrollment.id) { <form class="mt-2 flex flex-wrap gap-2" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form> }
-                    @else { <button type="button" class="ml-2 text-[#47745d] underline" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
+                    @if (changingId() === enrollment.id) { <app-form-modal title="Changer de salle" [busy]="moving()" (closed)="changingId.set(null)" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+<form class="form-grid" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form>
+</ng-template></app-form-modal> }
+                    @else { <button *appPermission="'can_enrollment_update'" type="button" class="ml-2 text-[#47745d] underline" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
                   }
                 </td><td class="px-5 py-3 text-xs">{{ enrollment.paymentDecisionBy ? (enrollment.advanceAccepted ? 'Avance acceptée' : 'Règlement intégral ou sans frais') : 'Inscription antérieure · décision non renseignée' }}@if (enrollment.paymentDecisionBy) { <span class="block">Par {{ enrollment.paymentDecisionBy }}</span> }</td>
               </tr>
@@ -57,9 +59,8 @@
       </div>
     }
 
-    <details class="border-t border-[#edf0ec]" [open]="enrollments().length === 0">
-      <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">Nouvelle inscription</summary>
-      <app-enrollment-form [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="students()" [classes]="classes()" [enrollments]="enrollments()" [initialStudentId]="studentId" [initialClassId]="schoolClassId" [initialClassroomId]="requestedClassroomId" (created)="onCreated($event)" />
-    </details>
+
+      <app-form-modal #enrollmentModal title="Nouvelle inscription" (opened)="successMessage.set(null); actionError.set(null)" *appPermission="'can_enrollment_create'" [open]="!!studentId || !!schoolClassId" [protectChanges]="true"><ng-template><app-enrollment-form [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="students()" [classes]="classes()" [enrollments]="enrollments()" [initialStudentId]="studentId" [initialClassId]="schoolClassId" [initialClassroomId]="requestedClassroomId" (created)="onCreated($event); enrollmentModal.complete()" (busyChange)="enrollmentModal.working.set($event)" /></ng-template></app-form-modal>
+
   }
 </section>

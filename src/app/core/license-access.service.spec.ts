@@ -1,3 +1,4 @@
+import { withPermissionChecks } from '../testing/permission-fixture';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { of, Subject } from 'rxjs';
@@ -8,16 +9,16 @@ import { LicenseService } from '../service/license-service/license.service';
 import { PlatformLicense } from '../models/license/license.model';
 
 describe('LicenseAccessService', () => {
-  const authorities = signal(['ROLE_ADMIN', 'can_learning_content_read']);
+  const authorities = signal(['can_license_read', 'can_license_offer_read', 'can_learning_content_read']);
   const licenses = [{ id: 1, establishmentId: 'school', offerId: 'offer', state: 'ACTIVE' }] as PlatformLicense[];
   const api = { list: jasmine.createSpy('list'), offers: jasmine.createSpy('offers') };
   beforeEach(() => {
-    authorities.set(['ROLE_ADMIN', 'can_learning_content_read']);
+    authorities.set(['can_license_read', 'can_license_offer_read', 'can_learning_content_read']);
     api.list.and.returnValue(of(licenses));
     api.offers.and.returnValue(of([{ id: 'offer', features: ['LEARNING_CONTENT'] }]));
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(),
       { provide: LicenseService, useValue: api },
-      { provide: WorkspaceAccessService, useValue: { authorities, hasPermission: () => true } }] });
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ authorities, has: (permission: string) => authorities().includes(permission), hasPermission: () => true, hasPlatformPermission: () => false }) }] });
   });
 
   function start() {
@@ -34,6 +35,7 @@ describe('LicenseAccessService', () => {
     expect(service.decision('TUITION', 'school')).toBe('blocked');
     expect(service.decision('LEARNING_CONTENT', 'other')).toBe('unknown');
     expect(service.canUse('can_learning_content_read', 'LEARNING_CONTENT', 'school')).toBeTrue();
+    expect(api.offers).toHaveBeenCalled();
   });
 
   it('ne conserve pas la licence de l’établissement précédent', () => {

@@ -6,11 +6,7 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { LicenseAccessService } from '../../../core/license-access.service';
 
-interface NavItem {
-  label: string;
-  path: string[];
-  exact?: boolean;
-}
+import { ESTABLISHMENT_NAVIGATION, YEAR_NAVIGATION, PermissionNavItem as NavItem } from '../../../core/feature-permissions';
 
 interface NavGroup {
   label: string;
@@ -26,7 +22,7 @@ interface NavGroup {
 export class EstablishmentNavComponent {
   private readonly router = inject(Router);
   private readonly workspaceContext = inject(WorkspaceContextService);
-  private readonly access = inject(WorkspaceAccessService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly license = inject(LicenseAccessService);
   private readonly element = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
@@ -42,35 +38,14 @@ export class EstablishmentNavComponent {
     return year?.establishmentId === this.establishmentId() ? year : null;
   });
 
-  protected readonly establishmentGroups: NavGroup[] = [
-    {
-      label: 'Administration',
-      items: [
-        { label: 'Personnel', path: ['team', 'employees'] },
-        { label: 'Postes', path: ['team', 'positions'] },
-        { label: 'Rôles', path: ['team', 'roles'] },
-        { label: 'Permissions', path: ['team', 'permissions'] }
-      ]
-    },
-    {
-      label: 'Référentiels et dossiers',
-      items: [
-        { label: 'Élèves', path: ['students'] },
-        { label: 'Matières', path: ['referentials'] }
-      ]
-    }
-  ];
+  protected readonly establishmentGroups = computed<NavGroup[]>(() => ESTABLISHMENT_NAVIGATION
+    .map((group) => ({ ...group, items: group.items.filter((item) => this.access.allows(item.permission, this.establishmentId())) }))
+    .filter((group) => group.items.length > 0));
 
-  protected readonly yearItems = computed<NavItem[]>(() => [
-    { label: 'Classes', path: ['classes'] },
-    { label: 'Inscriptions', path: ['enrollments'] },
-    ...(this.access.hasPermission('can_attendance_read', this.establishmentId())
-      ? [{ label: 'Présences et absences', path: ['attendance'] }] : []),
-    ...(this.license.canUse('can_learning_content_read', 'LEARNING_CONTENT', this.establishmentId())
-      ? [{ label: 'Cours et devoirs', path: ['learning'] }] : []),
-    { label: 'Calendrier', path: ['calendar'] },
-    { label: 'Finances', path: ['finance'] }
-  ]);
+  protected readonly yearItems = computed<NavItem[]>(() => YEAR_NAVIGATION.filter((item) =>
+    this.access.hasPermission('can_academic_year_read', this.establishmentId())
+    && this.access.allows(item.permission, this.establishmentId())
+    && (item.path[0] !== 'learning' || this.license.canUse('can_learning_content_read', 'LEARNING_CONTENT', this.establishmentId()))));
 
   constructor() {
     effect(() => {

@@ -1,57 +1,71 @@
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
 import { AuthService, AuthTokens } from './auth.service';
 import { WorkspaceAccessService } from './workspace-access.service';
-import { EmployeeService } from '../service/employee-service/employee.service';
-import { Employee } from '../models/employee/employee.model';
 
 describe('WorkspaceAccessService', () => {
   const session = signal<AuthTokens | null>(null);
-  const employee = { enabled: true, loginEnabled: true, establishmentId: 'school-1', roles: ['ESTABLISHMENT_ADMIN'], directRoleCodes: [] } as unknown as Employee;
-  let getMe: jasmine.Spy;
-
+  const restoring = signal(false);
   beforeEach(() => {
-    session.set(null);
-    getMe = jasmine.createSpy('getMe').and.returnValue(of(employee));
-    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(),
-      { provide: AuthService, useValue: { session } },
-      { provide: EmployeeService, useValue: { getMe } }]
-    });
+    session.set(null); restoring.set(false);
+    TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), { provide: AuthService, useValue: { session, restoring } }] });
   });
-
-  function access(authorities: string[]) {
+  function authorize(authorities: string[]) {
     session.set({ accessToken: `header.${btoa(JSON.stringify({ authorities }))}.signature` } as AuthTokens);
-    const service = TestBed.inject(WorkspaceAccessService);
-    TestBed.flushEffects();
-    return service;
+    return TestBed.inject(WorkspaceAccessService);
   }
-
-  it('autorise ADMIN à modifier sans lui ouvrir les présences', () => {
-    const service = access(['ROLE_ADMIN', 'can_establishment_read']);
-    expect(service.canUpdateEstablishment('school-1')).toBeTrue();
-    expect(service.hasPermission('can_attendance_read', 'school-1')).toBeFalse();
-    expect(getMe).not.toHaveBeenCalled();
+  it('refuse ADMIN et SUPER_ADMIN sans permission, y compris hasPermission', () => {
+    const service = authorize(['ROLE_ADMIN', 'ROLE_SUPER_ADMIN']);
+    expect(service.canUpdateEstablishment('school')).toBeFalse();
+    expect(service.has('can_dashboard_read')).toBeFalse();
+    expect(service.hasPermission('ROLE_ADMIN')).toBeFalse();
   });
-
-  it('utilise le rôle effectif hérité et le périmètre employé', () => {
-    const service = access(['ROLE_ESTABLISHMENT_ADMIN', 'can_establishment_update', 'can_attendance_read']);
-    expect(service.canUpdateEstablishment('school-1')).toBeTrue();
-    expect(service.canUpdateEstablishment('school-2')).toBeFalse();
-    expect(service.hasPermission('can_attendance_read', 'school-1')).toBeTrue();
-    expect(service.hasPermission('can_attendance_write', 'school-1')).toBeFalse();
+  it('lit les autorités émises réellement par le backend, sans claim fictif', () => {
+    const service = authorize(['can_student_read']);
+    expect(service.hasPermission('can_student_read', 'school')).toBeTrue();
+    expect(service.hasPermission('can_student_create', 'school')).toBeFalse();
+    expect(service.hasPermission('can_student_read', '')).toBeFalse();
   });
-
-  it('refuse la modification si le rôle local effectif est absent', () => {
-    getMe.and.returnValue(of({ ...employee, roles: ['STAFF'] }));
-    expect(access(['can_establishment_update']).canUpdateEstablishment('school-1')).toBeFalse();
+  it('combine explicitement OR et AND sans donner de droit de lecture par création', () => {
+    const service = authorize(['can_student_create', 'can_student_update']);
+    expect(service.hasAnyPermission(['can_student_read', 'can_student_create'])).toBeTrue();
+    expect(service.hasAllPermissions(['can_student_read', 'can_student_create'])).toBeFalse();
+    expect(service.allows({ all: ['can_student_create', { any: ['can_student_read', 'can_student_update'] }] })).toBeTrue();
+    expect(service.hasAnyPermission([])).toBeFalse();
+    expect(service.hasAllPermissions([])).toBeFalse();
+    expect(service.allows({})).toBeFalse();
   });
+  it('exige le scope explicite pour utiliser une permission plateforme', () => {
+    const service = authorize(['can_dashboard_read']);
+    expect(service.hasPlatformPermission('can_dashboard_read')).toBeFalse();
 
-  it('refuse un employé désactivé et ne déduit rien du rôle seul', () => {
-    getMe.and.returnValue(of({ ...employee, enabled: false }));
-    expect(access(['can_attendance_read']).hasPermission('can_attendance_read', 'school-1')).toBeFalse();
-    session.set({ accessToken: `header.${btoa(JSON.stringify({ authorities: ['ROLE_ESTABLISHMENT_ADMIN'] }))}.signature` } as AuthTokens);
-    TestBed.flushEffects();
-    expect(TestBed.inject(WorkspaceAccessService).canUpdateEstablishment('school-1')).toBeFalse();
+    session.set({ accessToken: `h.${btoa(JSON.stringify({ authorities: ['can_dashboard_read'], platformScope: true, platformPermissions: ['can_dashboard_read'] }))}.s` } as AuthTokens);
+    expect(service.hasPlatformPermission('can_dashboard_read')).toBeTrue();
+
+    session.set({ accessToken: `h.${btoa(JSON.stringify({ authorities: ['can_dashboard_read'], platformScope: false, platformPermissions: ['can_dashboard_read'] }))}.s` } as AuthTokens);
+    expect(service.hasPlatformPermission('can_dashboard_read')).toBeFalse();
+  });
+  it('retire immédiatement les droits lors d’un renouvellement, changement de compte ou logout', () => {
+    const service = authorize(['can_student_read']);
+    expect(service.has('can_student_read')).toBeTrue();
+    authorize(['can_position_read']);
+    expect(service.has('can_student_read')).toBeFalse();
+    expect(service.has('can_position_read')).toBeTrue();
+    session.set(null);
+    expect(service.authorities()).toEqual([]);
+  });
+  it('ne donne aucun droit pendant la restauration de session', () => {
+    const service = authorize(['can_student_read']);
+    restoring.set(true);
+    expect(service.has('can_student_read')).toBeFalse();
+    restoring.set(false);
+    expect(service.has('can_student_read')).toBeTrue();
+  });
+  it('refuse les jetons absents, incomplets ou invalides', () => {
+    const service = TestBed.inject(WorkspaceAccessService);
+    for (const accessToken of ['', 'invalid', `x.${btoa('{"authorities":[null,42,"ROLE_ADMIN"]}')}.s`]) {
+      session.set({ accessToken } as AuthTokens);
+      expect(service.hasPermission('can_student_read', 'school')).toBeFalse();
+    }
   });
 });

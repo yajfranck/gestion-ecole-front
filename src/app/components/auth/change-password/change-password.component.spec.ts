@@ -1,3 +1,4 @@
+import { openFormModal } from '../../../testing/modal-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -25,6 +26,7 @@ describe('ChangePasswordComponent', () => {
     const http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
 
+    openFormModal(fixture, 'Modifier le mot de passe');
     const component = fixture.componentInstance as unknown as {
       currentPassword: string;
       newPassword: string;

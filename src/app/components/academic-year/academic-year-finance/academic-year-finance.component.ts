@@ -1,3 +1,5 @@
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { forkJoin, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -15,6 +17,7 @@ import { TuitionWorkspaceComponent } from '../../tuition/tuition-workspace/tuiti
   styleUrl: './academic-year-finance.component.css'
 })
 export class AcademicYearFinanceComponent implements OnInit {
+  private readonly access = inject(WorkspaceAccessService);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly studentService = inject(StudentService);
   private readonly workspaceContext = inject(WorkspaceContextService);
@@ -37,17 +40,13 @@ export class AcademicYearFinanceComponent implements OnInit {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.academicYearService.getClasses(year.establishmentId, year.id).subscribe({
-      next: (classes) => {
-        this.classes.set(classes);
-        this.studentService.getStudents(year.establishmentId).subscribe({
-          next: (students) => {
-            this.students.set(students);
-            this.isLoading.set(false);
-          },
-          error: (error: unknown) => this.fail(error)
-        });
-      },
+    forkJoin({
+      classes: this.access.hasPermission('can_school_class_read', year.establishmentId)
+        ? this.academicYearService.getClasses(year.establishmentId, year.id) : of([]),
+      students: this.access.hasPermission('can_student_read', year.establishmentId)
+        ? this.studentService.getStudents(year.establishmentId) : of([])
+    }).subscribe({
+      next: ({ classes, students }) => { this.classes.set(classes); this.students.set(students); this.isLoading.set(false); },
       error: (error: unknown) => this.fail(error)
     });
   }

@@ -1,4 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { Location } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink, RouterOutlet } from '@angular/router';
 import { AcademicYear } from '../../../models/academic-year/academic-year.model';
@@ -6,6 +7,7 @@ import { Establishment } from '../../../models/establishment/establishment.model
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { EstablishmentService } from '../../../service/establishment-service/establishment.service';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-establishment-workspace',
@@ -18,6 +20,8 @@ export class EstablishmentWorkspaceComponent implements OnInit {
   private readonly establishmentService = inject(EstablishmentService);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly workspaceContext = inject(WorkspaceContextService);
+  private readonly access = inject(WorkspaceAccessService);
+  private readonly location = inject(Location);
 
   protected readonly establishmentId = signal('');
   protected readonly establishment = signal<Establishment | null>(null);
@@ -27,6 +31,7 @@ export class EstablishmentWorkspaceComponent implements OnInit {
   });
   protected readonly isLoading = signal(true);
   protected readonly errorMessage = signal<string | null>(null);
+  protected readonly licenseRegistered = signal(false);
 
   ngOnInit(): void {
     this.route.paramMap.subscribe((params) => {
@@ -42,6 +47,7 @@ export class EstablishmentWorkspaceComponent implements OnInit {
       }
 
       this.establishmentId.set(id);
+      this.licenseRegistered.set((this.location.getState() as { licenseRegistered?: string } | null)?.licenseRegistered === id);
       this.load();
     });
   }
@@ -50,6 +56,12 @@ export class EstablishmentWorkspaceComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.establishment.set(null);
+    if (!this.access.has('can_establishment_read')) {
+      const id = this.establishmentId();
+      if (this.workspaceContext.current()?.establishmentId !== id) this.workspaceContext.selectEstablishment({ id, name: 'Établissement' });
+      this.isLoading.set(false);
+      return;
+    }
     this.establishmentService.getAccessible().subscribe({
       next: (establishments) => {
         const establishment = establishments.find((item) => item.id === this.establishmentId());
@@ -61,6 +73,10 @@ export class EstablishmentWorkspaceComponent implements OnInit {
 
         this.establishment.set(establishment);
         this.workspaceContext.selectEstablishment(establishment);
+        if (!this.access.hasPermission('can_academic_year_read', establishment.id)) {
+          this.isLoading.set(false);
+          return;
+        }
         this.academicYearService.getAcademicYears(establishment.id).subscribe({
           next: (years) => {
             this.restoreYearContext(years);
@@ -80,11 +96,15 @@ export class EstablishmentWorkspaceComponent implements OnInit {
   }
 
   private restoreYearContext(years: AcademicYear[]): void {
-    const previousYearId = this.workspaceContext.current()?.academicYearId;
+    const requestedYearId = this.route.snapshot?.firstChild?.paramMap.get('academicYearId');
+    const previousYearId = requestedYearId ?? this.workspaceContext.current()?.academicYearId;
     const previousYear = years.find((year) => year.id === previousYearId && year.enabled);
     if (previousYear) {
       this.workspaceContext.setAcademicYears(years);
       this.workspaceContext.selectAcademicYear(previousYear);
+    } else if (requestedYearId) {
+      this.workspaceContext.setAcademicYears(years);
+      this.workspaceContext.clearAcademicYear();
     } else {
       this.workspaceContext.selectCurrentAcademicYear(years);
     }

@@ -32,7 +32,7 @@ describe('EmployeeDetailComponent', () => {
 
   it('charge la fiche d’un membre du personnel', () => {
     const { fixture, http } = setup({ params: { establishmentId: 'school-1', employeeId: 'emp-1' } });
-    http.expectOne(`${environment.apiUrl}/employees/emp-1`).flush(employee);
+    http.expectOne(`${environment.apiUrl}/establishments/school-1/employees/emp-1`).flush(employee);
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Alex Exemple');
@@ -40,8 +40,8 @@ describe('EmployeeDetailComponent', () => {
   });
 
   it('charge la fiche du compte connecté', () => {
-    const { fixture, http } = setup({ data: { self: true } });
-    http.expectOne(`${environment.apiUrl}/employees/me`).flush(employee);
+    const { fixture, http } = setup({ data: { self: true }, params: { establishmentId: 'school-1' } });
+    http.expectOne(`${environment.apiUrl}/establishments/school-1/employees/me`).flush(employee);
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Mon profil');

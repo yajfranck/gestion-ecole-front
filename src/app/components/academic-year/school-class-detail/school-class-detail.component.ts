@@ -1,3 +1,6 @@
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { of } from 'rxjs';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -11,11 +14,13 @@ import { ClassroomManagerComponent } from '../../classroom/classroom-manager/cla
 
 @Component({
   selector: 'app-school-class-detail',
-  imports: [FormsModule, RouterLink, ClassroomManagerComponent],
+  imports: [FormModalComponent, FormsModule, RouterLink, ClassroomManagerComponent],
   templateUrl: './school-class-detail.component.html',
   styleUrl: './school-class-detail.component.css'
 })
 export class SchoolClassDetailComponent implements OnInit {
+  protected readonly formCompleted = signal(0);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly subjectService = inject(SubjectService);
   private readonly enrollmentService = inject(EnrollmentService);
 
@@ -62,9 +67,10 @@ export class SchoolClassDetailComponent implements OnInit {
   }
 
   protected loadSubjects(): void {
+    if (!this.access.hasPermission('can_class_subject_read', this.establishmentId())) { this.isLoadingSubjects.set(false); return; }
     this.isLoadingSubjects.set(true);
     this.subjectError.set(null);
-    this.subjectService.getSubjects(this.establishmentId()).subscribe({
+    (this.access.hasPermission('can_subject_read', this.establishmentId()) ? this.subjectService.getSubjects(this.establishmentId()) : of([])).subscribe({
       next: (subjects) => {
         this.subjects.set(subjects);
         this.subjectService.getClassSubjects(this.establishmentId(), this.academicYearId(), this.schoolClassId()).subscribe({
@@ -80,6 +86,7 @@ export class SchoolClassDetailComponent implements OnInit {
   }
 
   protected loadStudents(): void {
+    if (!this.access.hasPermission('can_enrollment_read', this.establishmentId())) { this.isLoadingStudents.set(false); return; }
     const revision = ++this.studentsRevision;
     this.isLoadingStudents.set(true);
     this.studentError.set(null);
@@ -98,12 +105,14 @@ export class SchoolClassDetailComponent implements OnInit {
   }
 
   protected assign(): void {
+    if (!this.access.hasPermission('can_class_subject_assign', this.establishmentId())) return;
     if (!this.selectedSubjectId || this.isMutating()) return;
 
     this.isMutating.set(true);
     this.subjectError.set(null);
     this.subjectService.assignSubject(this.establishmentId(), this.academicYearId(), this.schoolClassId(), this.selectedSubjectId).subscribe({
       next: () => {
+        this.formCompleted.update(value => value + 1);
         this.selectedSubjectId = '';
         this.isMutating.set(false);
         this.loadSubjects();
@@ -116,6 +125,7 @@ export class SchoolClassDetailComponent implements OnInit {
   }
 
   protected unassign(subjectId: string): void {
+    if (!this.access.hasPermission('can_class_subject_unassign', this.establishmentId())) return;
     if (this.isMutating()) return;
 
     this.isMutating.set(true);

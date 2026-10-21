@@ -59,7 +59,7 @@ export class LearningService {
   private base(scope: LearningScope): string {
     const root = environment.apiUrl;
     return 'studentId' in scope
-      ? `${root}/guardians/me/children/${scope.studentId}/school-years/${scope.academicYearId}/learning-content`
+      ? `${root}/establishments/${scope.establishmentId}/guardians/me/children/${scope.studentId}/school-years/${scope.academicYearId}/learning-content`
       : `${root}/establishments/${scope.establishmentId}/school-years/${scope.academicYearId}/classes/${scope.schoolClassId}/learning-content`;
   }
 }

@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -12,7 +13,7 @@ describe('SchoolClassDetailComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [SchoolClassDetailComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
+    providers: [providePermissionFixture(['can_class_subject_read', 'can_subject_read', 'can_enrollment_read', 'can_class_subject_assign', 'can_class_subject_unassign', 'can_school_class_read'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])]
   }));
 
   it('affiche les matières affectées et les élèves inscrits', () => {

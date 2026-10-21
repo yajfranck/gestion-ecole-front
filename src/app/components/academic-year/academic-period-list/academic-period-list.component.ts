@@ -1,3 +1,8 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -6,11 +11,20 @@ import { AcademicPeriodService } from '../../../service/academic-period-service/
 
 @Component({
   selector: 'app-academic-period-list',
-  imports: [FormsModule],
+  imports: [FormModalComponent, PermissionDirective, FormsModule],
   templateUrl: './academic-period-list.component.html',
   styleUrl: './academic-period-list.component.css'
 })
 export class AcademicPeriodListComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.formError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly periodService = inject(AcademicPeriodService);
 
   readonly establishmentId = input.required<string>();
@@ -36,6 +50,7 @@ export class AcademicPeriodListComponent implements OnInit {
   }
 
   protected load(): void {
+    if (!this.access.hasPermission('can_academic_period_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.loadError.set(null);
     this.periodService.getPeriods(this.establishmentId(), this.academicYearId()).subscribe({
@@ -51,6 +66,7 @@ export class AcademicPeriodListComponent implements OnInit {
   }
 
   protected startEditing(period: AcademicPeriod): void {
+    if (!this.access.hasPermission('can_academic_period_update', this.establishmentId())) return;
     this.editingId.set(period.id);
     this.name = period.name;
     this.startsOn = period.startsOn;
@@ -66,6 +82,7 @@ export class AcademicPeriodListComponent implements OnInit {
   }
 
   protected save(): void {
+    if (!this.access.hasPermission(this.editingId() ? 'can_academic_period_update' : 'can_academic_period_create', this.establishmentId())) return;
     const name = this.name.trim();
     if (!name || !this.startsOn || !this.endsOn || this.isSaving()) return;
 
@@ -99,7 +116,10 @@ export class AcademicPeriodListComponent implements OnInit {
   }
 
   protected archive(period: AcademicPeriod): void {
-    if (this.archivingId() || !window.confirm(`Archiver la période « ${period.name} » ? L’historique sera conservé.`)) return;
+    if (!this.access.hasPermission('can_academic_period_delete', this.establishmentId())) return;
+
+    if (this.archivingId()) return;
+    this.confirmation.confirm(`Archiver la période « ${period.name} » ? L’historique sera conservé.`, () => {
 
     this.archivingId.set(period.id);
     this.formError.set(null);
@@ -115,6 +135,8 @@ export class AcademicPeriodListComponent implements OnInit {
         this.formError.set(this.errorMessage(error));
         this.archivingId.set(null);
       }
+    });
+
     });
   }
 

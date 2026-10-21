@@ -1,0 +1,60 @@
+<section class="w-full min-w-0" aria-labelledby="license-step-title">
+  <header class="border-b border-[#e1e7e0] bg-[#f8faf7] px-4 py-5 sm:px-6">
+    <p class="text-xs font-semibold uppercase tracking-wide text-[#69756d]">Établissement concerné</p>
+    <h3 id="license-step-title" class="mt-2 break-words text-lg font-semibold text-[#26372d] outline-none">{{ establishment().name }}</h3>
+    <p class="mt-1 break-all font-mono text-sm text-[#69756d]">{{ establishment().code }}</p>
+  </header>
+
+  @if (!canAssign()) {
+    <p class="state-empty" role="status">Votre compte ne permet pas d’enregistrer une licence. Demandez à un administrateur autorisé de le faire pour « {{ establishment().name }} ».</p>
+  } @else if (isLoadingOffers()) {
+    <p class="state-loading" role="status">Chargement des offres disponibles…</p>
+  } @else if (offersError()) {
+    <div class="state-error" role="alert">
+      <p>{{ offersError() }}</p>
+      <button class="state-retry" type="button" (click)="loadOffers()">Réessayer</button>
+    </div>
+  } @else if (offers(); as available) {
+    @if (available.length === 0) {
+      <p class="state-empty">Aucune offre de licence n’est disponible pour le moment. Contactez l’administrateur de la plateforme.</p>
+    } @else {
+      <form #licenseForm="ngForm" class="grid min-w-0 gap-x-5 gap-y-5 pt-5 md:grid-cols-2" novalidate (ngSubmit)="licenseForm.valid && register()" [attr.aria-busy]="isSaving()">
+        <fieldset class="m-0 grid min-w-0 gap-x-5 gap-y-5 border-0 px-5 pb-0 sm:px-6 md:col-span-2 md:grid-cols-2" [disabled]="isSaving()">
+          <div class="form-field md:col-span-2">
+            <label class="form-label is-required" for="license-offer">Offre</label>
+            <select #offerCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" id="license-offer" autofocus name="licenseOffer" [(ngModel)]="offerId" required
+              [attr.aria-invalid]="offerCtrl.invalid && (offerCtrl.touched || licenseForm.submitted)">
+              <option value="">Choisir une offre</option>
+              @for (offer of available; track offer.id) { <option [value]="offer.id">{{ offer.name }}</option> }
+            </select>
+            @if (offerCtrl.invalid && (offerCtrl.touched || licenseForm.submitted)) {
+              <span class="text-xs text-[#8a3e2d]" role="alert">Choisissez une offre.</span>
+            }
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="license-from">Début de validité</label>
+            <input class="form-control" id="license-from" type="datetime-local" name="licenseValidFrom" [(ngModel)]="validFrom" aria-describedby="license-from-hint">
+            <span class="form-hint" id="license-from-hint">Facultatif : l’attribution est immédiate si vide.</span>
+          </div>
+          <div class="form-field">
+            <label class="form-label" for="license-until">Fin de validité</label>
+            <input class="form-control" id="license-until" type="datetime-local" name="licenseValidUntil" [(ngModel)]="validUntil" aria-describedby="license-until-hint">
+            <span class="form-hint" id="license-until-hint">Facultatif : sans échéance si vide.</span>
+          </div>
+        </fieldset>
+        @if (error()) { <p class="form-error mx-5 sm:mx-6 md:col-span-2" role="alert">{{ error() }}</p> }
+        <div class="sticky bottom-0 flex min-w-0 flex-col-reverse gap-2 border-t border-[#e9ede8] bg-[#f8faf7] px-5 py-4 sm:flex-row sm:justify-end sm:px-6 md:col-span-2">
+          <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="cancelled.emit()">Annuler</button>
+          <button class="btn btn-primary max-w-full whitespace-normal" type="submit" [disabled]="licenseForm.invalid || isSaving() || !validEstablishment()">
+            @if (isSaving()) {
+              <svg class="size-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity="0.25" /><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+              <span>Enregistrement…</span>
+            } @else {
+              <span>{{ allowReplacement() ? 'Attribuer l’offre' : 'Enregistrer la licence' }}</span>
+            }
+          </button>
+        </div>
+      </form>
+    }
+  }
+</section>

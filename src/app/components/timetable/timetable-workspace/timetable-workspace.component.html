@@ -1,0 +1,457 @@
+<section class="page">
+  <header class="page-header">
+    <div class="flex min-w-0 items-start gap-3 sm:gap-4">
+      <span
+        class="hidden size-12 shrink-0 items-center justify-center rounded-xl border border-[#d5e4d8] bg-[#e9f1e9] text-[#47745d] sm:flex"
+      >
+        <svg lucideCalendarDays class="size-6" aria-hidden="true"></svg>
+      </span>
+      <div class="min-w-0">
+        <h1 class="page-heading">Emplois du temps</h1>
+        <p class="page-subtitle mt-1">
+          Retrouvez les cours et les disponibilités de chaque classe et salle.
+        </p>
+      </div>
+    </div>
+    @if (canRead() && can('update')) {
+      <button
+        #daysButton
+        class="btn btn-secondary"
+        type="button"
+        (click)="openEditor('days', daysButton)"
+        [disabled]="pending.saving()"
+      >
+        Jours non ouvrés
+      </button>
+    }
+  </header>
+  @if (!canRead()) {
+    <p class="state-error" role="alert">
+      La consultation des emplois du temps nécessite un compte du personnel autorisé dans cet
+      établissement et une licence adaptée.
+    </p>
+  } @else if (year(); as currentYear) {
+    @if (success()) {
+      <output class="form-success block"
+        >{{ success() }}
+        @if (copiedTarget()) {
+          <button
+            class="ml-2 font-semibold underline"
+            type="button"
+            (click)="showCopied()"
+            [disabled]="pending.saving()"
+          >
+            Voir le planning copié
+          </button>
+        }
+      </output>
+    }
+    @if (actionError()) {
+      <p class="form-error" role="alert">{{ actionError() }}</p>
+    }
+    @if (loadingClasses()) {
+      <p class="state-loading" role="status">Chargement des classes…</p>
+    } @else if (classesError()) {
+      <div class="state-error" role="alert">
+        <p>{{ classesError() }}</p>
+        <button class="state-retry" type="button" (click)="loadClasses()">Réessayer</button>
+      </div>
+    } @else if (!classes().length) {
+      <p class="state-empty">
+        Aucune classe active pour cette année.
+        <a
+          class="font-semibold text-[#47745d]"
+          [routerLink]="[
+            '/establishments',
+            establishmentId(),
+            'school-years',
+            academicYearId(),
+            'classes',
+          ]"
+          >Créer une classe</a
+        >
+      </p>
+    } @else {
+      <section class="section section-body" aria-label="Sélection du planning">
+        <div
+          class="mb-5 flex flex-wrap items-start justify-between gap-2 border-b border-[#e6ece7] pb-4"
+        >
+          <div>
+            <h2 class="text-sm font-semibold text-[#273d30]">Choisir un planning</h2>
+            <p class="mt-1 text-xs leading-5 text-[#78837b]">
+              Sélectionnez la classe et son groupe pour consulter les cours.
+            </p>
+          </div>
+          <span
+            class="rounded-full border border-[#dce5de] bg-[#f8faf8] px-3 py-1 text-xs font-medium text-[#47745d]"
+            >{{ currentYear.name }}</span
+          >
+        </div>
+        <div class="grid items-start gap-4 md:grid-cols-2">
+          <label class="form-field"
+            ><span class="form-label">Classe</span
+            ><select
+              #classSelect
+              class="form-control"
+              [value]="classId()"
+              (change)="changeClass(classSelect.value, classSelect)"
+              [disabled]="pending.saving()"
+            >
+              @for (item of classes(); track item.id) {
+                <option [value]="item.id">
+                  {{ item.name }}{{ item.series ? ' · ' + item.series : '' }}
+                </option>
+              }
+            </select></label
+          >
+          <label class="form-field"
+            ><span class="form-label">Salle / groupe</span
+            ><select
+              #roomSelect
+              class="form-control"
+              [value]="classroomId()"
+              (change)="changeRoom(roomSelect.value, roomSelect)"
+              [disabled]="loadingRooms() || pending.saving() || !rooms().length"
+            >
+              <option value="" disabled>Choisir une salle</option>
+              @for (room of rooms(); track room.id) {
+                <option [value]="room.id">{{ room.name }} · {{ room.code }}</option>
+              }
+            </select></label
+          >
+        </div>
+        @if (loadingRooms()) {
+          <p class="form-hint mt-3" role="status">Chargement des salles…</p>
+        }
+        @if (roomsError()) {
+          <div class="state-error" role="alert">
+            <p>{{ roomsError() }}</p>
+            <button
+              class="state-retry"
+              type="button"
+              (click)="retryRooms()"
+              [disabled]="pending.saving()"
+            >
+              Réessayer
+            </button>
+          </div>
+        }
+        @if (!loadingRooms() && !roomsError() && !rooms().length) {
+          <p class="form-hint mt-3">
+            Aucune salle active.
+            <a
+              class="font-semibold text-[#47745d]"
+              [routerLink]="[
+                '/establishments',
+                establishmentId(),
+                'school-years',
+                academicYearId(),
+                'classes',
+              ]"
+              [queryParams]="{ classId: classId() }"
+              >Gérer les salles de la classe</a
+            >
+          </p>
+        }
+      </section>
+      @if (scope(); as selectedScope) {
+        <section class="section" aria-labelledby="timetable-planning-title">
+          <header class="section-header gap-y-3">
+            <div>
+              <h2 id="timetable-planning-title" class="section-title">Planning de la salle</h2>
+              <p class="section-hint">
+                Les actions portent sur le créneau récurrent et toute sa période de validité.
+              </p>
+            </div>
+            <div class="flex w-full flex-wrap gap-2 sm:w-auto">
+              @if (can('copy')) {
+                <button
+                  #copyButton
+                  class="btn btn-secondary"
+                  type="button"
+                  (click)="openEditor('copy', copyButton)"
+                  [disabled]="pending.saving() || loadingPlanning() || !entries().length"
+                >
+                  Copier vers une salle
+                </button>
+              }
+              @if (can('create')) {
+                <button
+                  #createButton
+                  class="btn btn-primary"
+                  type="button"
+                  (click)="openEditor('entry', createButton)"
+                  [disabled]="pending.saving() || loadingReferences() || !!referencesError()"
+                >
+                  Créer un créneau
+                </button>
+              }
+            </div>
+          </header>
+          <div class="section-body space-y-4">
+            <div
+              class="space-y-4 rounded-xl border border-[#dce5de] bg-[#f8faf8] p-3 sm:p-4"
+              aria-label="Navigation du planning"
+            >
+              <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div class="flex min-w-0 items-start gap-3">
+                  <span
+                    class="hidden size-10 shrink-0 items-center justify-center rounded-lg border border-[#d5e4d8] bg-white text-[#47745d] sm:flex"
+                  >
+                    <svg lucideCalendarDays class="size-5" aria-hidden="true"></svg>
+                  </span>
+                  <div class="min-w-0">
+                    <h3
+                      class="text-lg font-semibold leading-7 tracking-tight text-[#273d30] sm:text-xl"
+                      aria-live="polite"
+                      aria-atomic="true"
+                    >
+                      {{ view() === 'model' ? 'Modèle hebdomadaire' : periodLabel() }}
+                    </h3>
+                    <p class="mt-0.5 text-xs leading-5 text-[#78837b]">
+                      {{ currentYear.name }} ·
+                      {{
+                        view() === 'week'
+                          ? 'Du lundi au dimanche'
+                          : view() === 'day'
+                            ? 'Vue de la journée'
+                            : 'Créneaux récurrents'
+                      }}
+                    </p>
+                  </div>
+                </div>
+                <nav
+                  class="flex flex-wrap gap-1 rounded-lg border border-[#dce5de] bg-white p-1"
+                  aria-label="Vues de l’emploi du temps"
+                >
+                  <button
+                    class="btn flex-1 px-3 text-xs sm:flex-none sm:text-sm"
+                    [class.btn-primary]="view() === 'week'"
+                    [class.btn-secondary]="view() !== 'week'"
+                    type="button"
+                    [attr.aria-pressed]="view() === 'week'"
+                    (click)="setView('week')"
+                    [disabled]="pending.saving()"
+                  >
+                    Semaine
+                  </button>
+                  <button
+                    class="btn flex-1 px-3 text-xs sm:flex-none sm:text-sm"
+                    [class.btn-primary]="view() === 'day'"
+                    [class.btn-secondary]="view() !== 'day'"
+                    type="button"
+                    [attr.aria-pressed]="view() === 'day'"
+                    (click)="setView('day')"
+                    [disabled]="pending.saving()"
+                  >
+                    Journée
+                  </button>
+                  <button
+                    class="btn w-full px-3 text-xs sm:w-auto sm:text-sm"
+                    [class.btn-primary]="view() === 'model'"
+                    [class.btn-secondary]="view() !== 'model'"
+                    type="button"
+                    [attr.aria-pressed]="view() === 'model'"
+                    (click)="setView('model')"
+                    [disabled]="pending.saving()"
+                  >
+                    Modèle hebdomadaire
+                  </button>
+                </nav>
+              </div>
+              <div
+                class="flex flex-col gap-3 border-t border-[#e3eae4] pt-4 sm:flex-row sm:flex-wrap sm:items-end"
+              >
+                @if (view() !== 'model') {
+                  <div class="flex items-center gap-2">
+                    <div class="flex gap-1" role="group" aria-label="Changer de période">
+                      <button
+                        class="btn btn-secondary size-10 shrink-0 p-0"
+                        type="button"
+                        [attr.aria-label]="
+                          view() === 'week' ? 'Semaine précédente' : 'Jour précédent'
+                        "
+                        [title]="view() === 'week' ? 'Semaine précédente' : 'Jour précédent'"
+                        (click)="shiftDate(-1)"
+                        [disabled]="pending.saving() || !canGoPrevious()"
+                      >
+                        <svg lucideChevronLeft class="size-4" aria-hidden="true"></svg>
+                      </button>
+                      <button
+                        class="btn btn-secondary size-10 shrink-0 p-0"
+                        type="button"
+                        [attr.aria-label]="view() === 'week' ? 'Semaine suivante' : 'Jour suivant'"
+                        [title]="view() === 'week' ? 'Semaine suivante' : 'Jour suivant'"
+                        (click)="shiftDate(1)"
+                        [disabled]="pending.saving() || !canGoNext()"
+                      >
+                        <svg lucideChevronRight class="size-4" aria-hidden="true"></svg>
+                      </button>
+                    </div>
+                    <button
+                      class="btn btn-secondary"
+                      type="button"
+                      (click)="goToday()"
+                      [title]="
+                        todayInYear()
+                          ? 'Revenir à la date du jour'
+                          : 'Aujourd’hui est hors de l’année scolaire sélectionnée.'
+                      "
+                      [disabled]="pending.saving() || !todayInYear()"
+                    >
+                      Aujourd’hui
+                    </button>
+                  </div>
+                  <label class="form-field min-w-0 sm:w-48">
+                    <span class="form-label">{{
+                      view() === 'week' ? 'Aller à une semaine' : 'Aller à une date'
+                    }}</span>
+                    <input
+                      #planningDate
+                      class="form-control w-full min-w-0"
+                      type="date"
+                      [value]="date()"
+                      [min]="currentYear.startsOn"
+                      [max]="currentYear.endsOn"
+                      (change)="changeDate(planningDate.value, planningDate)"
+                      [disabled]="pending.saving()"
+                    />
+                  </label>
+                }
+                <button
+                  class="btn btn-secondary sm:ml-auto"
+                  type="button"
+                  (click)="loadPlanning()"
+                  [disabled]="pending.saving() || loadingPlanning()"
+                >
+                  <svg
+                    lucideRefreshCw
+                    class="size-4"
+                    [class.animate-spin]="loadingPlanning()"
+                    aria-hidden="true"
+                  ></svg>
+                  Actualiser
+                </button>
+              </div>
+            </div>
+            @if (view() === 'model') {
+              <p class="form-hint">
+                Le modèle présente tous les créneaux récurrents, y compris pendant les vacances et
+                jours non ouvrés. Les vues datées tiennent compte du calendrier.
+              </p>
+            }
+            @if (referencesError()) {
+              <div class="state-error" role="alert">
+                <p>Les matières ne peuvent pas être chargées. {{ referencesError() }}</p>
+                <button
+                  class="state-retry"
+                  type="button"
+                  (click)="loadReferences()"
+                  [disabled]="pending.saving()"
+                >
+                  Réessayer
+                </button>
+              </div>
+            }
+            @if (employeesError()) {
+              <div class="state-error" role="alert">
+                <p>Le personnel ne peut pas être chargé. {{ employeesError() }}</p>
+                <button
+                  class="state-retry"
+                  type="button"
+                  (click)="loadEmployees()"
+                  [disabled]="pending.saving()"
+                >
+                  Réessayer
+                </button>
+              </div>
+            }
+            @if (loadingPlanning()) {
+              <p class="state-loading" role="status">Chargement du planning…</p>
+            } @else if (planningError()) {
+              <div class="state-error" role="alert">
+                <p>{{ planningError() }}</p>
+                <button
+                  class="state-retry"
+                  type="button"
+                  (click)="loadPlanning()"
+                  [disabled]="pending.saving()"
+                >
+                  Réessayer
+                </button>
+              </div>
+            } @else {
+              <app-timetable-board
+                [columns]="columns()"
+                [subjects]="subjects()"
+                [employees]="employees()"
+                [showPeriod]="view() === 'model'"
+                [disabled]="pending.saving()"
+                [canEdit]="can('update') && !loadingReferences() && !referencesError()"
+                [canArchive]="can('delete')"
+                (edit)="editEntry($event)"
+                (archive)="archive($event)"
+              />
+            }
+          </div>
+        </section>
+        @if (editor() === 'entry') {
+          <app-dialog
+            [title]="selectedEntry() ? 'Modifier le créneau' : 'Créer un créneau'"
+            [busy]="pending.saving()"
+            [returnFocusTo]="trigger"
+            (dismiss)="closeEditor()"
+            ><app-timetable-entry-form
+              [scope]="selectedScope"
+              [year]="currentYear"
+              [entry]="selectedEntry()"
+              [subjects]="assignedSubjects()"
+              [employees]="employees()"
+              [canChooseTeacher]="canChooseTeacher()"
+              [allowed]="can(selectedEntry() ? 'update' : 'create')"
+              (busyChange)="pending.saving.set($event)"
+              (dirtyChange)="pending.dirty.set($event)"
+              (cancelled)="closeEditor()"
+              (saved)="saved('Le créneau a été enregistré.')"
+          /></app-dialog>
+        }
+        @if (editor() === 'copy') {
+          <app-dialog
+            title="Copier le planning"
+            [busy]="pending.saving()"
+            [returnFocusTo]="trigger"
+            (dismiss)="closeEditor()"
+            ><app-timetable-copy-form
+              [scope]="selectedScope"
+              [year]="currentYear"
+              [classes]="classes()"
+              [entries]="entries()"
+              [employees]="employees()"
+              [canChooseTeacher]="canChooseTeacher()"
+              [allowed]="can('copy')"
+              [canReplace]="can('delete')"
+              (busyChange)="pending.saving.set($event)"
+              (dirtyChange)="pending.dirty.set($event)"
+              (cancelled)="closeEditor()"
+              (saved)="copySaved($event)"
+          /></app-dialog>
+        }
+      }
+    }
+    @if (editor() === 'days') {
+      <app-dialog
+        title="Jours non ouvrés de l’année"
+        [busy]="pending.saving()"
+        [returnFocusTo]="trigger"
+        (dismiss)="closeEditor()"
+        ><app-timetable-days-form
+          [year]="currentYear"
+          [allowed]="can('update')"
+          (busyChange)="pending.saving.set($event)"
+          (dirtyChange)="pending.dirty.set($event)"
+          (cancelled)="closeEditor()"
+          (saved)="saved('Les jours non ouvrés ont été enregistrés pour toute l’année.')"
+      /></app-dialog>
+    }
+  }
+</section>

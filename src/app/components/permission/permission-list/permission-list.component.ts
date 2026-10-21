@@ -1,7 +1,8 @@
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, map, of } from 'rxjs';
 import { RolePermission } from '../../../models/permission/permission.model';
 import { EstablishmentRole } from '../../../models/role/role.model';
 import { PermissionService } from '../../../service/permission-service/permission.service';
@@ -14,9 +15,11 @@ import { describePermission } from './permission-description';
   styleUrl: './permission-list.component.css'
 })
 export class PermissionsComponent implements OnInit {
+  private readonly access = inject(WorkspaceAccessService);
   private readonly route = inject(ActivatedRoute);
   private readonly permissionService = inject(PermissionService);
   private readonly roleService = inject(RoleService);
+  protected readonly global = this.route.snapshot?.data?.['global'] === true;
   protected readonly establishmentId = signal('');
   protected readonly permissions = signal<RolePermission[]>([]);
   protected readonly roles = signal<EstablishmentRole[]>([]);
@@ -24,6 +27,7 @@ export class PermissionsComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
+    if (this.global) { this.load(); return; }
     const establishmentRoute = this.route.parent ?? this.route;
     establishmentRoute.paramMap.subscribe((params) => {
       const establishmentId = params.get('establishmentId');
@@ -41,8 +45,8 @@ export class PermissionsComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     forkJoin({
-      permissions: this.permissionService.getAssignablePermissions(this.establishmentId()),
-      roles: this.roleService.getEstablishmentRoles(this.establishmentId())
+      permissions: this.global ? this.permissionService.getPermissions() : this.permissionService.getAssignablePermissions(this.establishmentId()),
+      roles: !(this.global ? this.access.hasPlatformPermission('can_platform_role_read') : this.access.hasPermission('can_role_read', this.establishmentId())) ? of([]) : (this.global ? this.roleService.getRoles().pipe(map((roles) => roles.map((role) => ({ ...role, establishmentId: null, editable: true })))) : this.roleService.getEstablishmentRoles(this.establishmentId())).pipe(catchError(() => of([])))
     }).subscribe({
       next: ({ permissions, roles }) => {
         this.permissions.set(permissions);

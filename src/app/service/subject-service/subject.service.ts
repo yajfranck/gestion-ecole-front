@@ -2,7 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { SchoolClassSubject, Subject, SubjectRequest } from '../../models/subject/subject.model';
+import { CreateSubjectsRequest, SchoolClassSubject, Subject, UpdateSubjectRequest } from '../../models/subject/subject.model';
 
 @Injectable({ providedIn: 'root' })
 export class SubjectService {
@@ -17,11 +17,11 @@ export class SubjectService {
     return this.http.get<Subject>(`${this.subjectsUrl(establishmentId)}/${subjectId}`);
   }
 
-  createSubject(establishmentId: string, request: SubjectRequest): Observable<Subject> {
-    return this.http.post<Subject>(this.subjectsUrl(establishmentId), request);
+  createSubjects(establishmentId: string, request: CreateSubjectsRequest): Observable<Subject[]> {
+    return this.http.post<Subject[]>(this.subjectsUrl(establishmentId), request);
   }
 
-  updateSubject(establishmentId: string, subjectId: string, request: SubjectRequest): Observable<Subject> {
+  updateSubject(establishmentId: string, subjectId: string, request: UpdateSubjectRequest): Observable<Subject> {
     return this.http.patch<Subject>(`${this.subjectsUrl(establishmentId)}/${subjectId}`, request);
   }
 
@@ -37,11 +37,12 @@ export class SubjectService {
     establishmentId: string,
     academicYearId: string,
     schoolClassId: string,
-    subjectId: string
+    subjectId: string,
+    request?: { classroomTeachers: { classroomId: string; employeeId: string }[] }
   ): Observable<SchoolClassSubject> {
     return this.http.put<SchoolClassSubject>(
       `${this.classSubjectsUrl(establishmentId, academicYearId, schoolClassId)}/${subjectId}`,
-      null
+      request ?? null
     );
   }
 

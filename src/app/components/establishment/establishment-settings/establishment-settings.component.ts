@@ -1,3 +1,6 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -11,11 +14,20 @@ import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-establishment-settings',
-  imports: [FormsModule, RouterLink],
+  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink],
   templateUrl: './establishment-settings.component.html',
   styleUrl: './establishment-settings.component.css'
 })
 export class EstablishmentSettingsComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.updateSuccess, 'success');
+    this.toast.connect(this.createSuccess, 'success');
+    this.toast.connect(this.updateError, 'error');
+    this.toast.connect(this.createError, 'error');
+  }
+
   private readonly route = inject(ActivatedRoute);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly establishmentService = inject(EstablishmentService);
@@ -43,13 +55,18 @@ export class EstablishmentSettingsComponent implements OnInit {
 
   ngOnInit(): void {
     this.establishmentId.set(this.route.snapshot.paramMap.get('establishmentId') ?? '');
-    this.establishmentService.getAccessible().subscribe({
-      next: (establishments) => this.establishment.set(establishments.find((item) => item.id === this.establishmentId()) ?? null)
+    if (this.access.has('can_establishment_read')) this.establishmentService.getAccessible().subscribe({
+      next: (establishments) => {
+        this.establishment.set(establishments.find((item) => item.id === this.establishmentId()) ?? null);
+        if (this.route.snapshot.queryParamMap?.has('edit')) this.edit();
+      },
+      error: (error: unknown) => this.loadError.set(this.getErrorMessage(error))
     });
     this.load();
   }
 
   protected load(): void {
+    if (!this.access.hasPermission('can_academic_year_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.loadError.set(null);
     this.academicYearService.getAcademicYears(this.establishmentId()).subscribe({
@@ -118,6 +135,7 @@ export class EstablishmentSettingsComponent implements OnInit {
   }
 
   protected createAcademicYear(): void {
+    if (!this.access.hasPermission('can_academic_year_create', this.establishmentId())) return;
     const name = this.name.trim();
     if (!name || !this.startsOn || !this.endsOn || this.isCreating()) {
       return;

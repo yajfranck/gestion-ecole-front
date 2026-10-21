@@ -1,3 +1,4 @@
+import { ConfirmationDialogService } from '../shared/confirmation-dialog/confirmation-dialog.service';
 import { Component, provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
@@ -17,7 +18,7 @@ describe('PendingChangesService', () => {
     const harness = await RouterTestingHarness.create('/years/year-1/attendance');
     const pending = TestBed.inject(PendingChangesService);
     pending.dirty.set(true);
-    spyOn(window, 'confirm').and.returnValue(false);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'ask').and.resolveTo(false);
     await harness.navigateByUrl('/years/year-2/attendance');
     expect(TestBed.inject(Router).url).toBe('/years/year-1/attendance');
     await harness.navigateByUrl('/other');
@@ -29,7 +30,7 @@ describe('PendingChangesService', () => {
     const harness = await RouterTestingHarness.create('/years/year-1/attendance');
     const pending = TestBed.inject(PendingChangesService);
     pending.dirty.set(true);
-    spyOn(window, 'confirm').and.returnValue(true);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'ask').and.resolveTo(true);
     await harness.navigateByUrl('/other');
     expect(TestBed.inject(Router).url).toBe('/other');
     expect(pending.dirty()).toBeFalse();

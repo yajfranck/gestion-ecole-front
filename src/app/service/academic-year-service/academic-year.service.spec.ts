@@ -25,15 +25,28 @@ describe('AcademicYearService', () => {
     service.getClasses('school-1', 'year-1').subscribe();
     http.expectOne(`${base}/school-years/year-1/classes`).flush([]);
     service.createClass('school-1', 'year-1', {
-      code: 'CP-A', name: 'CP A', series: null,
-      classrooms: [{ code: 'A', name: 'CP A', maxStudents: 40 }]
+      code: 'CP-A', name: 'CP A', series: null
     }).subscribe();
     const schoolClass = http.expectOne(`${base}/school-years/year-1/classes`);
     expect(schoolClass.request.body).toEqual({
-      code: 'CP-A', name: 'CP A', series: null,
-      classrooms: [{ code: 'A', name: 'CP A', maxStudents: 40 }]
+      code: 'CP-A', name: 'CP A', series: null
     });
+    expect(schoolClass.request.method).toBe('POST');
     schoolClass.flush({});
+  });
+
+  it('crée un lot de classes sans salle et renvoie les classes créées', () => {
+    const classes = [
+      { code: '6A', name: 'Sixième A', series: 'Générale' },
+      { code: '6B', name: 'Sixième B', series: null }
+    ];
+    let received: unknown;
+    service.createClasses('school-1', 'year-1', { classes }).subscribe((result) => received = result);
+    const request = http.expectOne(`${base}/school-years/year-1/classes/bulk`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual({ classes });
+    request.flush(classes);
+    expect(received).toEqual(classes);
   });
 
   it('reads, updates and archives a school year', () => {

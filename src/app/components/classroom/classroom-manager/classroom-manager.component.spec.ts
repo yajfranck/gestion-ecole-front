@@ -1,3 +1,5 @@
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
@@ -7,10 +9,10 @@ import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { environment } from '../../../../environments/environment';
 
 describe('ClassroomManagerComponent', () => {
-  const access = { authorities: signal(['can_school_class_create', 'can_school_class_update', 'can_school_class_delete']) };
+  const access = { authorities: signal(['can_school_class_read', 'can_school_class_create', 'can_school_class_update', 'can_school_class_delete']), has: (permission: string) => access.authorities().includes(permission), hasPermission: (permission: string) => access.authorities().includes(permission) };
   const url = `${environment.apiUrl}/establishments/school/school-years/year/classes/class/classrooms`;
   const room = { id: 'room', establishmentId: 'school', academicYearId: 'year', schoolClassId: 'class', code: 'A', name: 'Sixième A', maxStudents: 40, enabled: true };
-  beforeEach(() => { access.authorities.set(['can_school_class_create', 'can_school_class_update', 'can_school_class_delete']); TestBed.configureTestingModule({ imports: [ClassroomManagerComponent], providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), { provide: WorkspaceAccessService, useValue: access }] }); });
+  beforeEach(() => { access.authorities.set(['can_school_class_read', 'can_school_class_create', 'can_school_class_update', 'can_school_class_delete']); TestBed.configureTestingModule({ imports: [ClassroomManagerComponent], providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), { provide: WorkspaceAccessService, useValue: withPermissionChecks(access) }] }); });
   afterEach(() => TestBed.inject(HttpTestingController).verify());
   function create() {
     const fixture = TestBed.createComponent(ClassroomManagerComponent);
@@ -28,12 +30,12 @@ describe('ClassroomManagerComponent', () => {
     expect(component['editingId']).toBeNull(); expect(component['rooms']()[0].name).toBe('Sixième A');
   });
   it('explique le refus d’archiver une salle référencée sans la retirer de l’écran', () => {
-    const fixture = create(); spyOn(window, 'confirm').and.returnValue(true); fixture.componentInstance['archive'](room);
+    const fixture = create(); spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.callFake((_message, accept) => accept()); fixture.componentInstance['archive'](room);
     TestBed.inject(HttpTestingController).expectOne(`${url}/room`).flush(null, { status: 409, statusText: 'Conflict' });
     expect(fixture.componentInstance['error']()).toContain('Déplacez les élèves'); expect(fixture.componentInstance['rooms']()).toEqual([room]);
   });
   it('refuse une création sans permission', () => {
-    access.authorities.set([]); const fixture = create(); fixture.componentInstance['code'] = 'B'; fixture.componentInstance['name'] = 'Salle B'; fixture.componentInstance['save']();
+    access.authorities.set(['can_school_class_read']); const fixture = create(); fixture.componentInstance['code'] = 'B'; fixture.componentInstance['name'] = 'Salle B'; fixture.componentInstance['save']();
     TestBed.inject(HttpTestingController).expectNone((request) => request.method === 'POST'); expect(fixture.nativeElement.textContent).not.toContain('Ajouter une salle');
   });
 

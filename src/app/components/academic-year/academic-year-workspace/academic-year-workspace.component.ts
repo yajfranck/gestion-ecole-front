@@ -1,5 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterOutlet } from '@angular/router';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { WorkspaceContextService } from '../../../shared/workspace-context.service';
@@ -11,6 +12,7 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
   styleUrl: './academic-year-workspace.component.css'
 })
 export class AcademicYearWorkspaceComponent implements OnInit {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
   private readonly academicYearService = inject(AcademicYearService);
   private readonly workspaceContext = inject(WorkspaceContextService);
@@ -22,7 +24,7 @@ export class AcademicYearWorkspaceComponent implements OnInit {
   protected readonly errorMessage = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
+    this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const establishmentId = params.get('establishmentId');
       const academicYearId = params.get('academicYearId');
       if (!establishmentId || !academicYearId) {
@@ -44,9 +46,18 @@ export class AcademicYearWorkspaceComponent implements OnInit {
   protected load(): void {
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    this.workspaceContext.clearAcademicYear();
-    this.academicYearService.getAcademicYear(this.establishmentId(), this.academicYearId()).subscribe({
+    const establishmentId = this.establishmentId();
+    const academicYearId = this.academicYearId();
+    if (this.workspaceContext.academicYearsLoaded() && this.workspaceContext.current()?.establishmentId === establishmentId) {
+      const year = this.workspaceContext.academicYears().find((item) => item.id === academicYearId && item.establishmentId === establishmentId && item.enabled);
+      if (year) this.workspaceContext.selectAcademicYear(year);
+      else this.errorMessage.set('Cette année scolaire est absente ou inaccessible pour votre compte.');
+      this.isLoading.set(false);
+      return;
+    }
+    this.academicYearService.getAcademicYear(establishmentId, academicYearId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (year) => {
+        if (establishmentId !== this.establishmentId() || academicYearId !== this.academicYearId()) return;
         this.workspaceContext.selectAcademicYear(year);
         this.isLoading.set(false);
       },

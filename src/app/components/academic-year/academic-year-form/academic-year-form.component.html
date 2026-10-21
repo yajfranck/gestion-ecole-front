@@ -1,0 +1,6 @@
+<form *appPermission="'can_academic_year_create'" #form="ngForm" class="form-grid" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+  <label class="form-field form-field-wide"><span class="form-label is-required">Nom de l’année</span><input class="form-control md:max-w-md" id="year-name" name="yearName" [(ngModel)]="name" maxlength="100" required [disabled]="saving()" placeholder="Par exemple 2026-2027"></label>
+  <div class="form-row"><label class="form-field"><span class="form-label is-required">Date de début</span><input class="form-control" type="date" name="yearStartsOn" [(ngModel)]="startsOn" [max]="endsOn" required [disabled]="saving()"></label><label class="form-field"><span class="form-label is-required">Date de fin</span><input class="form-control" type="date" name="yearEndsOn" [(ngModel)]="endsOn" [min]="startsOn" required [disabled]="saving()"></label></div>
+  @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+  <p class="form-legend">* Champ obligatoire</p><div class="form-actions"><button class="btn btn-primary" [disabled]="form.invalid || saving()">{{ saving() ? 'Enregistrement…' : submitLabel() }}</button></div>
+</form>

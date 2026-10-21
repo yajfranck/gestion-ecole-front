@@ -1,0 +1,86 @@
+<section class="page mx-auto max-w-3xl">
+  <header class="page-header">
+    <div>
+      <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-[#47745d]">
+        Configuration requise
+      </p>
+      <h1 class="page-heading">Configurez l’année scolaire courante</h1>
+      <p class="page-subtitle">
+        Chaque établissement administré doit avoir une année scolaire active couvrant la date
+        d’aujourd’hui. Configurez les établissements restants pour continuer.
+      </p>
+    </div>
+  </header>
+  @if (
+    !onboarding.loading() &&
+    onboarding.status() === 'required' &&
+    onboarding.managedEstablishments().length > 1
+  ) {
+    <section class="section section-body" aria-label="Progression de la configuration">
+      <p class="text-sm font-semibold text-[#35473b]" role="status">
+        {{
+          onboarding.managedEstablishments().length - onboarding.pendingEstablishments().length
+        }}
+        / {{ onboarding.managedEstablishments().length }} établissements configurés ·
+        {{ onboarding.pendingEstablishments().length }} restant(s)
+      </p>
+      <ol class="mt-3 space-y-2 text-sm text-[#69756d]">
+        @for (school of onboarding.pendingEstablishments(); track school.id; let first = $first) {
+          <li
+            [attr.aria-current]="first ? 'step' : null"
+            [class.font-semibold]="first"
+            [class.text-[#244a37]]="first"
+          >
+            {{ school.name }} · {{ first ? 'À configurer maintenant' : 'À suivre' }}
+          </li>
+        }
+      </ol>
+    </section>
+  }
+  @if (onboarding.establishment(); as establishment) {
+    <div
+      class="rounded-xl border border-[#e1e7e0] bg-[#f8faf7] px-5 py-4 sm:px-6"
+      aria-label="Établissement à configurer"
+    >
+      <p class="text-xs font-semibold uppercase tracking-wide text-[#69756d]">
+        Établissement à configurer
+      </p>
+      <p class="mt-1 text-lg font-semibold text-[#26372d]">{{ establishment.name }}</p>
+      <p class="mt-1 text-sm text-[#69756d]">
+        Code : <span class="font-mono">{{ establishment.code }}</span>
+      </p>
+    </div>
+  }
+  @if (onboarding.loading()) {
+    <p class="state-loading" role="status">Vérification des années scolaires…</p>
+  } @else if (onboarding.status() === 'required') {
+    @for (school of onboarding.pendingEstablishments(); track school.id; let first = $first) {
+      @if (first) {
+        <section class="section">
+          <div class="section-header"><h2 class="section-title">Année scolaire courante</h2></div>
+          <app-form-modal #yearModal title="Configurer l’année scolaire" [open]="true"><ng-template><app-academic-year-form
+            [establishmentId]="school.id"
+            [requireCurrentYear]="true"
+            submitLabel="Enregistrer l’année et continuer"
+            (created)="onCreated($event); yearModal.complete()"
+          (busyChange)="yearModal.working.set($event)" /></ng-template></app-form-modal>
+        </section>
+      }
+    }
+    <button class="state-retry mt-4" type="button" (click)="check(true)">
+      Vérifier à nouveau les années existantes
+    </button>
+  } @else if (onboarding.error()) {
+    <div class="state-error" role="alert">
+      <p>{{ onboarding.error() }}</p>
+      <button class="state-retry mt-3" type="button" (click)="check(true)">
+        Réessayer la vérification
+      </button>
+    </div>
+    @if (onboarding.establishmentId(); as id) {
+      <a class="btn btn-secondary mt-4" [routerLink]="['/establishments', id, 'license']"
+        >Consulter la licence de l’établissement</a
+      >
+    }
+  }
+</section>

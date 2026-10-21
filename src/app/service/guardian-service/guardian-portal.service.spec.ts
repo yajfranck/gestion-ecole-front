@@ -9,7 +9,7 @@ import { validDateRange } from '../../shared/date-range';
 describe('GuardianPortalService', () => {
   let service: GuardianPortalService;
   let http: HttpTestingController;
-  const root = `${environment.apiUrl}/guardians/me/children/child`;
+  const root = `${environment.apiUrl}/establishments/school/guardians/me/children/child`;
   beforeEach(() => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()] });
     service = TestBed.inject(GuardianPortalService);
@@ -18,17 +18,17 @@ describe('GuardianPortalService', () => {
   afterEach(() => http.verify());
 
   it('charge la synthèse avec l’année demandée', () => {
-    service.summary('child', 'year').subscribe();
-    const request = http.expectOne(`${root}/summary?academicYearId=year`);
+    service.summary('school', 'child', 'year').subscribe();
+    const request = http.expectOne(`${root}/school-years/year/summary`);
     expect(request.request.method).toBe('GET');
     request.flush({});
   });
 
   it('utilise les historiques filtrés propres au parent', () => {
-    service.payments('child', 'year', 'charge', '2026-01-01', '2026-02-01').subscribe();
+    service.payments('school', 'child', 'year', 'charge', '2026-01-01', '2026-02-01').subscribe();
     const payments = http.expectOne(`${root}/school-years/year/tuition-fees/charge/payments?from=2026-01-01&to=2026-02-01`);
     payments.flush([]);
-    service.attendance('child', 'year', '2026-01-01', '2026-02-01').subscribe();
+    service.attendance('school', 'child', 'year', '2026-01-01', '2026-02-01').subscribe();
     http.expectOne(`${root}/school-years/year/attendance?from=2026-01-01&to=2026-02-01`).flush({ records: [] });
   });
 

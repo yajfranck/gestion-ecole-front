@@ -1,0 +1,24 @@
+@reference "../../../styles.css";
+
+:host { display: contents; }
+
+.toast-region { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.toast-region::backdrop { background: transparent; pointer-events: none; }
+.toast-card { animation: toast-appear 160ms ease-out; }
+.toast-success { @apply border-[#bdd6c5]; }
+.toast-success .toast-icon { @apply bg-[#eef7f0] text-[#28563b]; }
+.toast-error { @apply border-[#e8c4b6]; }
+.toast-error .toast-icon { @apply bg-[#fff4ef] text-[#8a3e2d]; }
+.toast-info { @apply border-[#ccdce7]; }
+.toast-info .toast-icon { @apply bg-[#eef4f8] text-[#3b657e]; }
+.toast-warning { @apply border-[#e5d5b5]; }
+.toast-warning .toast-icon { @apply bg-[#f7f1e6] text-[#8a672f]; }
+
+@keyframes toast-appear {
+  from { opacity: 0; transform: translateY(-0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-card { animation: none; }
+}

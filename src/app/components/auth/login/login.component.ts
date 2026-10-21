@@ -2,6 +2,10 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { map, of, switchMap } from 'rxjs';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { tokenAuthorities } from '../../../core/auth-claims';
+import { SchoolYearOnboardingService } from '../../../core/school-year-onboarding.service';
 import { AuthService } from '../../../core/auth.service';
 
 @Component({
@@ -11,6 +15,8 @@ import { AuthService } from '../../../core/auth.service';
   styleUrl: './login.component.css'
 })
 export class LoginComponent {
+  private readonly access = inject(WorkspaceAccessService);
+  private readonly onboarding = inject(SchoolYearOnboardingService);
   private readonly authService = inject(AuthService);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -32,13 +38,23 @@ export class LoginComponent {
     this.errorMessage.set(null);
     this.isSubmitting.set(true);
 
-    this.authService.login({ login, password: this.password }).subscribe({
-      next: () => {
+    this.authService.login({ login, password: this.password }).pipe(switchMap(() => {
+      const requested = this.activatedRoute.snapshot.queryParamMap.get('returnUrl');
+      const returnUrl = requested?.startsWith('/') && !requested.startsWith('//') ? requested : null;
+      if (this.onboarding.canConfigureSchoolYear()) {
+        return this.onboarding.ensure(true).pipe(map((status) => {
+          const destination = returnUrl && !/^\/(?:dashboard(?:[?#]|$)|$)/.test(returnUrl)
+            ? returnUrl : '/establishments';
+          return status === 'ready' ? destination
+            : this.router.createUrlTree(['/setup/school-year'], { queryParams: { returnUrl: destination } });
+        }));
+      }
+      const permissions = tokenAuthorities(this.authService.session()?.accessToken);
+      const home = permissions.includes('can_guardian_read_children') && !permissions.includes('can_establishment_read') ? '/parent/children' : '/establishments';
+      return of(returnUrl && !/^\/(?:dashboard(?:[?#]|$)|$)/.test(returnUrl) ? returnUrl : home);
+    })).subscribe({
+      next: (destination) => {
         this.isSubmitting.set(false);
-        const returnUrl = this.activatedRoute.snapshot.queryParamMap.get('returnUrl');
-        const destination = returnUrl?.startsWith('/') && !returnUrl.startsWith('//')
-          ? returnUrl
-          : '/dashboard';
         void this.router.navigateByUrl(destination);
       },
       error: (error: unknown) => {

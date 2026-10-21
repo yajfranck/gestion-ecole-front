@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -9,7 +10,7 @@ import { RolesComponent } from './role-list.component';
 describe('RolesComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
     imports: [RolesComponent],
-    providers: [
+    providers: [providePermissionFixture(['can_role_read', 'can_role_create', 'can_role_update', 'can_permission_read'], ['school', 'school-1', 'other-school']),
       provideZonelessChangeDetection(),
       provideHttpClient(),
       provideHttpClientTesting(),

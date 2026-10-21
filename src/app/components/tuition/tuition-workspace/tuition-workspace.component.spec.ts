@@ -1,3 +1,5 @@
+import { openFormModal } from '../../../testing/modal-fixture';
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -8,7 +10,7 @@ import { TuitionFee } from '../../../models/tuition/tuition.model';
 describe('TuitionWorkspaceComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
     imports: [TuitionWorkspaceComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [providePermissionFixture(['can_tuition_fee_type_read', 'can_student_read', 'can_tuition_read', 'can_tuition_create', 'can_tuition_apply', 'can_tuition_outstanding_read', 'can_tuition_fee_type_create', 'can_tuition_fee_type_update', 'can_tuition_fee_type_delete', 'can_payment_method_update', 'can_payment_method_delete', 'can_payment_record', 'can_payment_receipt_read']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   it('shows one financial section at a time and switches between sections', () => {
@@ -17,6 +19,7 @@ describe('TuitionWorkspaceComponent', () => {
     fixture.componentRef.setInput('establishmentId', 'school-1');
     fixture.componentRef.setInput('academicYearId', 'year-1');
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
 
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/payment-methods')).flush([]);
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/tuition-fee-types')).flush([
@@ -25,6 +28,7 @@ describe('TuitionWorkspaceComponent', () => {
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/school-years/year-1/tuition-fees')).flush([]);
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/school-years/year-1/tuition-fees/outstanding')).flush([]);
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
 
     expect(fixture.nativeElement.textContent).toContain('Créances et soldes à régler');
     expect(fixture.nativeElement.textContent).not.toContain('Définir un frais scolaire');
@@ -32,6 +36,7 @@ describe('TuitionWorkspaceComponent', () => {
     const tabs = fixture.nativeElement.querySelectorAll('nav[aria-label="Rubriques financières"] button') as NodeListOf<HTMLButtonElement>;
     tabs[1].click();
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
     expect(fixture.nativeElement.textContent).toContain('Définir un frais scolaire');
     expect(fixture.nativeElement.textContent).not.toContain('Créances et soldes à régler');
     const feeTypeSelect = fixture.nativeElement.querySelector('select[name="feeTypeId"]') as HTMLSelectElement;
@@ -40,6 +45,7 @@ describe('TuitionWorkspaceComponent', () => {
 
     tabs[3].click();
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
     expect(fixture.nativeElement.textContent).toContain('Moyens de paiement');
     expect(fixture.nativeElement.textContent).toContain('Types de frais');
     expect(fixture.nativeElement.textContent).toContain('TUITION');
@@ -54,6 +60,7 @@ describe('TuitionWorkspaceComponent', () => {
     fixture.componentRef.setInput('academicYearId', 'year-1');
     fixture.componentRef.setInput('classes', [{ id: 'class-1', establishmentId: 'school-1', academicYearId: 'year-1', code: 'P1-A', name: 'Primary 1 A', enabled: true }]);
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/payment-methods')).flush([]);
     http.expectOne((request) => request.url.endsWith('/establishments/school-1/tuition-fee-types')).flush([
       { id: 'fee-type-1', establishmentId: 'school-1', code: 'TUITION', name: 'Frais de scolarité', enabled: true, createdAt: '', updatedAt: '' }
@@ -61,8 +68,10 @@ describe('TuitionWorkspaceComponent', () => {
     http.expectOne((request) => request.url.endsWith('/school-years/year-1/tuition-fees')).flush([]);
     http.expectOne((request) => request.url.endsWith('/tuition-fees/outstanding')).flush([]);
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
     (fixture.nativeElement.querySelectorAll('nav[aria-label="Rubriques financières"] button')[1] as HTMLButtonElement).click();
     fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
 
     const scope = fixture.nativeElement.querySelector('select[name="feeScope"]') as HTMLSelectElement;
     expect(scope.textContent).toContain('Une ou plusieurs classes');
@@ -96,6 +105,7 @@ describe('TuitionWorkspaceComponent', () => {
         { ...classes[0], id: 'other-year', academicYearId: 'other' }
       ]);
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
       http.expectOne((request) => request.url.endsWith('/payment-methods')).flush([]);
       http.expectOne((request) => request.url.endsWith('/tuition-fee-types')).flush([
         { id: 'fee-type-1', establishmentId: 'school-1', code: 'TUITION', name: 'Scolarité', enabled: true }
@@ -106,6 +116,7 @@ describe('TuitionWorkspaceComponent', () => {
       component['selectView']('fees');
       Object.assign(component, { feeName: 'Scolarité', feeAmount: 125000, feeDueDate: '2026-10-31', feeScope: 'SCHOOL_CLASS' });
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
       return { fixture, http, component };
     }
 
@@ -198,6 +209,7 @@ describe('TuitionWorkspaceComponent', () => {
       fixture.componentRef.setInput('establishmentId', 'school-1');
       fixture.componentRef.setInput('academicYearId', 'year-1');
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
       http.expectOne((request) => request.url.endsWith('/establishments/school-1/payment-methods')).flush([]);
       http.expectOne((request) => request.url.endsWith('/establishments/school-1/tuition-fee-types')).flush([
         { id: 'fee-type-1', establishmentId: 'school-1', code: 'TUITION', name: 'Frais de scolarité', enabled: true, createdAt: '', updatedAt: '' }
@@ -205,8 +217,10 @@ describe('TuitionWorkspaceComponent', () => {
       http.expectOne((request) => request.url.endsWith('/school-years/year-1/tuition-fees')).flush([]);
       http.expectOne((request) => request.url.endsWith('/tuition-fees/outstanding')).flush([]);
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
       (fixture.nativeElement.querySelectorAll('nav[aria-label="Rubriques financières"] button')[1] as HTMLButtonElement).click();
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
       const form = fixture.componentInstance as unknown as FeeForm;
       Object.assign(form, { feeName: 'Frais P1', feeAmount: 125000, feeDueDate: '2026-10-31' });
       return { fixture, http, form };
@@ -216,6 +230,7 @@ describe('TuitionWorkspaceComponent', () => {
       const { fixture, http } = openFeesTab();
       await fixture.whenStable();
       fixture.detectChanges();
+    if (fixture.nativeElement.textContent.includes('Créer des frais scolaires') && !fixture.nativeElement.querySelector('select[name="feeCurrency"]')) openFormModal(fixture, 'Créer des frais scolaires');
 
       const select = fixture.nativeElement.querySelector('select[name="feeCurrency"]') as HTMLSelectElement;
       expect(Array.from(select.options).map((option) => option.value)).toEqual(['XAF', 'XOF']);

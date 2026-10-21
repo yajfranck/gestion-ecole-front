@@ -17,8 +17,8 @@ describe('EmployeeRoleService', () => {
   afterEach(() => http.verify());
 
   it('assigns direct roles to an employee', () => {
-    service.updateEmployeeRoles('emp-1', ['STAFF']).subscribe();
-    const request = http.expectOne(`${environment.apiUrl}/employees/emp-1/roles`);
+    service.updateEmployeeRoles('school-1', 'emp-1', ['STAFF']).subscribe();
+    const request = http.expectOne(`${environment.apiUrl}/establishments/school-1/employees/emp-1/roles`);
     expect(request.request.method).toBe('PUT');
     expect(request.request.body).toEqual({ roleCodes: ['STAFF'] });
     request.flush({});

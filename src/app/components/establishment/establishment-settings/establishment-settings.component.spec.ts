@@ -1,3 +1,6 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { openFormModal } from '../../../testing/modal-fixture';
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -20,7 +23,7 @@ describe('EstablishmentSettingsComponent', () => {
       provideHttpClient(),
       provideHttpClientTesting(),
       provideRouter([]),
-      { provide: WorkspaceAccessService, useValue: { canUpdateEstablishment: () => true } },
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ canUpdateEstablishment: () => true, has: (permission: string) => ['can_establishment_read', 'can_establishment_update', 'can_academic_year_create', 'can_academic_year_read'].includes(permission), hasPermission: (permission: string) => ['can_establishment_read', 'can_establishment_update', 'can_academic_year_create', 'can_academic_year_read'].includes(permission) }) },
       { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1' }) } } }
     ]
   }));
@@ -59,7 +62,7 @@ describe('EstablishmentSettingsComponent', () => {
     fixture.detectChanges();
     expect(context.current()?.establishmentName).toBe('Nouvelle école');
     expect(context.current()?.academicYearId).toBe(year.id);
-    expect(root.textContent).toContain('Établissement modifié.');
+    expect(TestBed.inject(ToastService).notifications().map(item => item.message)).toContain('Établissement modifié.');
     http.verify();
   });
 
@@ -117,6 +120,7 @@ describe('EstablishmentSettingsComponent', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Aucune année scolaire');
+    openFormModal(fixture, 'Créer une année scolaire');
     expect((fixture.nativeElement as HTMLElement).querySelector('#year-name')).toBeTruthy();
     http.verify();
   });

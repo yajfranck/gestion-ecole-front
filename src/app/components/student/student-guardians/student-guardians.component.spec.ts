@@ -1,3 +1,6 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { openFormModal } from '../../../testing/modal-fixture';
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -15,7 +18,7 @@ describe('StudentGuardiansComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [StudentGuardiansComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [providePermissionFixture(['can_student_read', 'can_guardian_read', 'can_guardian_link', 'can_guardian_unlink']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   beforeEach(async () => {
@@ -27,6 +30,8 @@ describe('StudentGuardiansComponent', () => {
     http.expectOne(url).flush(student);
     http.expectOne(`${url}/guardians`).flush([guardian]);
     fixture.detectChanges();
+    await fixture.whenStable();
+    openFormModal(fixture, 'Lier un tuteur');
     await fixture.whenStable();
     element = fixture.nativeElement as HTMLElement;
   });
@@ -45,6 +50,7 @@ describe('StudentGuardiansComponent', () => {
   }
 
   function submit(): void {
+    if (!element.querySelector('form')) openFormModal(fixture, 'Lier un tuteur');
     element.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     fixture.detectChanges();
   }
@@ -73,7 +79,7 @@ describe('StudentGuardiansComponent', () => {
     finishLink();
     await fixture.whenStable();
 
-    expect(element.querySelector('output')!.textContent).toContain('Une invitation a été envoyée à grace@example.org');
+    expect(TestBed.inject(ToastService).notifications().map(item => item.message).join(' ')).toContain('Une invitation a été envoyée à grace@example.org');
     expect(Array.from(element.querySelectorAll('input')).every((input) => input.value === '')).toBeTrue();
     submit();
     http.expectNone((request) => request.method === 'POST');
@@ -85,7 +91,7 @@ describe('StudentGuardiansComponent', () => {
     http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'ACCESS_ALREADY_ACTIVE' }, { status: 201, statusText: 'Created' });
     finishLink();
 
-    const message = element.querySelector('output')!.textContent;
+    const message = TestBed.inject(ToastService).notifications().map(item => item.message).join(' ');
     expect(message).toContain('compte existant de grace@example.org, sans nouvelle invitation');
     expect(message).toContain('Ses rôles et son mot de passe sont conservés');
     expect(message).toContain('se reconnecter');

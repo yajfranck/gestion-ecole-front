@@ -1,3 +1,5 @@
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { HttpErrorResponse, HttpEventType } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -38,7 +40,7 @@ describe('LearningWorkspaceComponent', () => {
     api.save.and.returnValue(of(item));
     api.upload.and.returnValue(of({ type: HttpEventType.Response, body: { id: 'attachment' } }));
     api.transition.and.returnValue(of(item));
-    guardian.getMyChildren.and.returnValue(of([{ id: 'child' }]));
+    guardian.getMyChildren.and.returnValue(of([{ id: 'child', establishmentId: 'school' }]));
     subjectService.getSubjects.calls.reset();
     subjectService.getClassSubjects.calls.reset();
     subjectService.getSubjects.and.returnValue(of([subject]));
@@ -47,7 +49,7 @@ describe('LearningWorkspaceComponent', () => {
       { provide: ActivatedRoute, useValue: { paramMap: routeParams, snapshot: { queryParamMap: convertToParamMap({}) } } },
       { provide: LearningService, useValue: api }, { provide: GuardianService, useValue: guardian },
       { provide: SubjectService, useValue: subjectService },
-      { provide: WorkspaceAccessService, useValue: access }, { provide: LicenseAccessService, useValue: license },
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks(access) }, { provide: LicenseAccessService, useValue: license },
       { provide: AcademicYearService, useValue: { getClasses: () => of([{ id: 'class', establishmentId: 'school', academicYearId: 'year', enabled: true, name: '6e' }]) } }] });
     const context = TestBed.inject(WorkspaceContextService);
     context.current.set({ establishmentId: 'school', establishmentName: 'École', academicYearId: 'year', academicYearName: '2026-2027' });
@@ -114,7 +116,7 @@ describe('LearningWorkspaceComponent', () => {
     fixture.componentInstance['edit']();
     fixture.componentInstance['draft'].title = 'Saisie';
     fixture.componentInstance['change']();
-    spyOn(window, 'confirm').and.returnValue(false);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.stub();
     fixture.componentInstance['selectClass']('other');
     expect(fixture.componentInstance['classId']()).toBe('class');
     expect(fixture.componentInstance['draft'].title).toBe('Saisie');
@@ -144,18 +146,18 @@ describe('LearningWorkspaceComponent', () => {
   it('ne publie qu’après une action explicite et autorisée', async () => {
     const fixture = await create();
     expect(api.transition).not.toHaveBeenCalled();
-    spyOn(window, 'confirm').and.returnValue(true);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.callFake((_message, accept) => accept());
     fixture.componentInstance['transition'](item, 'publish');
     expect(api.transition).toHaveBeenCalledWith(jasmine.any(Object), 'content', 'publish');
   });
 
   it('expose uniquement la consultation dans le parcours parent', async () => {
     access.authorities.set(['can_guardian_read_children']);
-    routeParams.next(convertToParamMap({ studentId: 'child', academicYearId: 'year' }));
+    routeParams.next(convertToParamMap({ establishmentId: 'school', studentId: 'child', academicYearId: 'year' }));
     const fixture = TestBed.createComponent(LearningWorkspaceComponent);
     fixture.detectChanges();
     await fixture.whenStable();
-    expect(api.list).toHaveBeenCalledWith({ studentId: 'child', academicYearId: 'year' }, '', 0);
+    expect(api.list).toHaveBeenCalledWith({ establishmentId: 'school', studentId: 'child', academicYearId: 'year' }, '', 0);
     expect(fixture.nativeElement.textContent).not.toContain('Nouveau contenu');
     expect(fixture.componentInstance['allowed']('create')).toBeFalse();
     expect(subjectService.getClassSubjects).not.toHaveBeenCalled();
@@ -263,7 +265,7 @@ describe('LearningWorkspaceComponent', () => {
     api.transition.and.returnValue(throwError(() => new HttpErrorResponse({ status: 400 })));
     const fixture = await create();
     fixture.componentInstance['open'](item);
-    spyOn(window, 'confirm').and.returnValue(true);
+    spyOn(TestBed.inject(ConfirmationDialogService), 'confirm').and.callFake((_message, accept) => accept());
     fixture.componentInstance['transition'](item, 'publish');
     expect(fixture.componentInstance['error']()).toContain('y compris lors de la publication');
     expect(fixture.componentInstance['selected']()).toEqual(item);

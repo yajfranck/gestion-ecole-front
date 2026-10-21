@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -11,7 +12,7 @@ describe('AcademicYearClassesComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [AcademicYearClassesComponent],
-    providers: [
+    providers: [providePermissionFixture(['can_school_class_read', 'can_school_class_create', 'can_school_class_update', 'can_school_class_delete'], ['school', 'school-1', 'other-school']),
       provideZonelessChangeDetection(),
       provideHttpClient(),
       provideHttpClientTesting(),
@@ -28,8 +29,8 @@ describe('AcademicYearClassesComponent', () => {
     fixture.detectChanges();
 
     const text = (fixture.nativeElement as HTMLElement).textContent;
-    expect(text).toContain('Classes de l’année');
-    expect(text).toContain('Ajouter une classe');
+    expect(text).toContain('Gestion des classes');
+    expect(text).toContain('Nouvelle classe');
     expect(text).not.toContain('Niveau');
     http.verify();
   });

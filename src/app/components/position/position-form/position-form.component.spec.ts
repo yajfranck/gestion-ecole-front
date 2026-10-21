@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -7,7 +8,7 @@ import { PositionFormComponent } from './position-form.component';
 describe('PositionFormComponent', () => {
   beforeEach(() => TestBed.configureTestingModule({
     imports: [PositionFormComponent],
-    providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+    providers: [providePermissionFixture(['can_position_create', 'can_role_read']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
   }));
 
   it('creates the position form', () => {

@@ -1,3 +1,4 @@
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
@@ -14,7 +15,7 @@ describe('EstablishmentNavComponent', () => {
     imports: [EstablishmentNavComponent],
     providers: [provideZonelessChangeDetection(), provideRouter([{ path: '**', children: [] }]),
       { provide: LicenseAccessService, useValue: { canUse: () => false } },
-      { provide: WorkspaceAccessService, useValue: { hasPermission: () => false } }]
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ hasPermission: (permission: string) => ['can_employee_read', 'can_position_read', 'can_role_read', 'can_permission_read', 'can_student_read', 'can_subject_read', 'can_school_class_read', 'can_enrollment_read', 'can_academic_period_read', 'can_tuition_read', 'can_academic_year_read'].includes(permission) }) }]
   }));
 
   function create() {

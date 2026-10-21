@@ -12,14 +12,16 @@ export interface WorkspaceContext {
 @Injectable({ providedIn: 'root' })
 export class WorkspaceContextService {
   readonly current = signal<WorkspaceContext | null>(null);
+  readonly academicYearsLoaded = signal(false);
   readonly academicYears = signal<AcademicYear[]>([]);
   readonly academicYear = signal<AcademicYear | null>(null);
 
-  selectEstablishment(establishment: Establishment): void {
+  selectEstablishment(establishment: Pick<Establishment, 'id' | 'name'> & Partial<Establishment>): void {
     const current = this.current();
     const sameEstablishment = current?.establishmentId === establishment.id;
     if (!sameEstablishment) {
       this.academicYears.set([]);
+      this.academicYearsLoaded.set(false);
       this.academicYear.set(null);
     }
     this.current.set({
@@ -47,7 +49,8 @@ export class WorkspaceContextService {
   selectCurrentAcademicYear(years: AcademicYear[], today = new Date()): AcademicYear | null {
     this.setAcademicYears(years);
     const todayKey = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
-    const currentYear = years.find((year) =>
+    const previous = this.academicYears().find((year) => year.id === this.current()?.academicYearId);
+    const currentYear = previous ?? this.academicYears().find((year) =>
       year.enabled && year.startsOn <= todayKey && year.endsOn >= todayKey
     ) ?? null;
 
@@ -61,6 +64,7 @@ export class WorkspaceContextService {
   }
 
   setAcademicYears(years: AcademicYear[]): void {
+    this.academicYearsLoaded.set(true);
     const current = this.current();
     this.academicYears.set(current
       ? years.filter((year) => year.establishmentId === current.establishmentId && year.enabled)
@@ -82,6 +86,7 @@ export class WorkspaceContextService {
   clear(): void {
     this.current.set(null);
     this.academicYears.set([]);
+    this.academicYearsLoaded.set(false);
     this.academicYear.set(null);
   }
 }

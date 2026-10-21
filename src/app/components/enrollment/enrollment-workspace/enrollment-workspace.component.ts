@@ -1,7 +1,10 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
-import { combineLatest, forkJoin, Subscription } from 'rxjs';
+import { combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Enrollment, EnrollmentCreation } from '../../../models/enrollment/enrollment.model';
@@ -17,11 +20,12 @@ import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-enrollment-workspace',
-  imports: [FormsModule, RouterLink, EnrollmentFormComponent],
+  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink, EnrollmentFormComponent],
   templateUrl: './enrollment-workspace.component.html',
   styleUrl: './enrollment-workspace.component.css'
 })
 export class EnrollmentWorkspaceComponent {
+  private readonly toast = inject(ToastService);
   private readonly destroyRef = inject(DestroyRef);
   private loadRevision = 0;
   private loadSubscription?: Subscription;
@@ -57,6 +61,8 @@ export class EnrollmentWorkspaceComponent {
   private requestedClassId = '';
 
   constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.actionError, 'error');
     effect(() => {
       const params = this.params();
       if (!params) return;
@@ -78,9 +84,9 @@ export class EnrollmentWorkspaceComponent {
     this.isLoading.set(true); this.loadError.set(null); this.roomsByClass.set({});
     const establishmentId = this.establishmentId();
     const yearId = this.academicYearId();
-    this.loadSubscription = forkJoin({ students: this.studentService.getStudents(establishmentId),
-      classes: this.academicYearService.getClasses(establishmentId, yearId),
-      enrollments: this.enrollmentService.getEnrollments(establishmentId, yearId)
+    this.loadSubscription = forkJoin({ students: this.access.hasPermission('can_student_read', establishmentId) ? this.studentService.getStudents(establishmentId) : of([]),
+      classes: this.access.hasPermission('can_school_class_read', establishmentId) ? this.academicYearService.getClasses(establishmentId, yearId) : of([]),
+      enrollments: this.access.hasPermission('can_enrollment_read', establishmentId) ? this.enrollmentService.getEnrollments(establishmentId, yearId) : of([])
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ students, classes, enrollments }) => {
         if (version !== this.loadRevision) return;
@@ -100,6 +106,7 @@ export class EnrollmentWorkspaceComponent {
   }
 
   private loadRoomsForEnrollments(enrollments: Enrollment[]): void {
+    if (!this.access.hasPermission('can_school_class_read', this.establishmentId())) return;
     const version = this.loadRevision;
     this.roomsError.set(null);
     for (const classId of new Set(enrollments.map((item) => item.schoolClassId))) {
@@ -119,11 +126,12 @@ export class EnrollmentWorkspaceComponent {
   }
 
   protected startChangingRoom(enrollment: Enrollment): void {
+    if (!this.access.hasPermission('can_enrollment_update', this.establishmentId())) return;
     this.changingId.set(enrollment.id); this.targetRoomId = enrollment.classroomId; this.actionError.set(null);
   }
 
   protected changeRoom(enrollment: Enrollment): void {
-    if (this.moving() || !this.access.authorities().includes('can_enrollment_update') || !this.roomsByClass()[enrollment.schoolClassId]?.some((room) => room.id === this.targetRoomId)) return;
+    if (this.moving() || !this.access.hasPermission('can_enrollment_update', this.establishmentId()) || !this.roomsByClass()[enrollment.schoolClassId]?.some((room) => room.id === this.targetRoomId)) return;
     const targetRoom = this.roomsByClass()[enrollment.schoolClassId]?.find((room) => room.id === this.targetRoomId);
     if (targetRoom && this.roomOccupancy(targetRoom.id, enrollment.id) >= targetRoom.maxStudents) {
       this.actionError.set('La salle choisie a atteint sa capacité maximale. Choisissez une autre salle.');
@@ -164,6 +172,7 @@ export class EnrollmentWorkspaceComponent {
   }
 
   private reloadEnrollments(): void {
+    if (!this.access.hasPermission('can_enrollment_read', this.establishmentId())) return;
     this.enrollmentService.getEnrollments(this.establishmentId(), this.academicYearId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (enrollments) => { this.enrollments.set(enrollments); this.loadRoomsForEnrollments(enrollments); },
       error: (error: unknown) => this.actionError.set(this.errorMessage(error))

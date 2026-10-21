@@ -53,7 +53,7 @@ export class GuardianChildDetailComponent {
   private requestVersion = 0;
 
   constructor() {
-    this.context.clear();
+    
     effect((onCleanup) => {
       this.reloadVersion();
       const params = this.params();
@@ -96,7 +96,7 @@ export class GuardianChildDetailComponent {
               this.error.set('Cette année scolaire n’est pas disponible pour cet établissement.');
               return of(null);
             }
-            return this.api.summary(studentId, yearId);
+            return this.api.summary(child.establishmentId, studentId, yearId);
           })
         );
       })).subscribe({
@@ -144,7 +144,7 @@ export class GuardianChildDetailComponent {
     if (!summary) return;
     this.detailLoading.set(true);
     const version = ++this.requestVersion;
-    this.api.fees(summary.studentId, summary.academicYearId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.api.fees(summary.establishmentId, summary.studentId, summary.academicYearId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (fees) => { if (version !== this.requestVersion) return; this.fees.set(fees); this.detailLoading.set(false); },
       error: (error) => this.fail(error, version)
     });
@@ -157,7 +157,7 @@ export class GuardianChildDetailComponent {
     this.payments.set(null);
     this.detailLoading.set(true);
     const version = ++this.requestVersion;
-    this.api.payments(summary.studentId, summary.academicYearId, fee.chargeId, this.from, this.to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.api.payments(summary.establishmentId, summary.studentId, summary.academicYearId, fee.chargeId, this.from, this.to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (payments) => { if (version !== this.requestVersion) return; this.payments.set(payments); this.detailLoading.set(false); },
       error: (error) => this.fail(error, version)
     });
@@ -169,7 +169,7 @@ export class GuardianChildDetailComponent {
     this.attendance.set(null);
     this.detailLoading.set(true);
     const version = ++this.requestVersion;
-    this.api.attendance(summary.studentId, summary.academicYearId, this.from, this.to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.api.attendance(summary.establishmentId, summary.studentId, summary.academicYearId, this.from, this.to).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (history) => { if (version !== this.requestVersion) return; this.attendance.set(history); this.detailLoading.set(false); },
       error: (error) => this.fail(error, version)
     });
@@ -182,10 +182,10 @@ export class GuardianChildDetailComponent {
     return false;
   }
 
-  private requestContext(): { studentId: string; academicYearId: string } | null {
+  private requestContext(): { establishmentId: string; studentId: string; academicYearId: string } | null {
     const child = this.child();
     const year = this.selectedYearId();
-    return child && year ? { studentId: child.id, academicYearId: year } : null;
+    return child && year ? { establishmentId: child.establishmentId, studentId: child.id, academicYearId: year } : null;
   }
 
   private fail(error: unknown, version: number): void {

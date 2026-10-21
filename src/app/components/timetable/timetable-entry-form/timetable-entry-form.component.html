@@ -1,0 +1,123 @@
+<form
+  class="form-grid"
+  (ngSubmit)="save()"
+  (input)="dirtyChange.emit(true)"
+  (change)="dirtyChange.emit(true)"
+  [attr.aria-busy]="saving()"
+>
+  <fieldset class="form-row min-w-0 border-0 p-0" [disabled]="saving() || !allowed()">
+    <label class="form-field"
+      ><span class="form-label is-required">Matière</span
+      ><select class="form-control" name="subjectId" [(ngModel)]="subjectId" required>
+        <option value="" disabled>Choisir une matière</option>
+        @for (subject of subjects(); track subject.id) {
+          <option [value]="subject.id">{{ subject.name }}</option>
+        }
+      </select></label
+    >
+    <label class="form-field"
+      ><span class="form-label">Enseignant (facultatif)</span
+      ><select
+        class="form-control"
+        name="teacherId"
+        [(ngModel)]="teacherId"
+        [disabled]="!canChooseTeacher()"
+      >
+        <option value="">Non affecté</option>
+        @if (currentTeacherMissing()) {
+          <option [value]="entry()!.teacherId">Enseignant actuel</option>
+        }
+        @for (employee of activeEmployees(); track employee.id) {
+          <option [value]="employee.id">{{ employee.firstName }} {{ employee.lastName }}</option>
+        }</select
+      ><span class="form-hint">Le personnel doit être actif dans cet établissement.</span></label
+    >
+    <label class="form-field"
+      ><span class="form-label is-required">Jour</span
+      ><select class="form-control" name="dayOfWeek" [(ngModel)]="dayOfWeek" required>
+        @for (day of days; track day.value) {
+          <option [value]="day.value">{{ day.label }}</option>
+        }
+      </select></label
+    >
+    <div class="grid items-start gap-4 sm:grid-cols-2">
+      <label class="form-field"
+        ><span class="form-label is-required">Début</span
+        ><input
+          class="form-control"
+          type="time"
+          name="startTime"
+          step="60"
+          [(ngModel)]="startTime"
+          required /></label
+      ><label class="form-field"
+        ><span class="form-label is-required">Fin</span
+        ><input
+          class="form-control"
+          type="time"
+          name="endTime"
+          step="60"
+          [(ngModel)]="endTime"
+          required
+      /></label>
+    </div>
+    <label class="form-field"
+      ><span class="form-label">Valide à partir du</span
+      ><input
+        class="form-control"
+        type="date"
+        name="validFrom"
+        [(ngModel)]="validFrom"
+        [min]="year().startsOn"
+        [max]="validUntil || year().endsOn"
+    /></label>
+    <label class="form-field"
+      ><span class="form-label">Valide jusqu’au</span
+      ><input
+        class="form-control"
+        type="date"
+        name="validUntil"
+        [(ngModel)]="validUntil"
+        [min]="validFrom || year().startsOn"
+        [max]="year().endsOn"
+    /></label>
+    <label class="form-field form-field-wide"
+      ><span class="form-label">Local physique (facultatif)</span
+      ><input
+        class="form-control"
+        name="roomCode"
+        [(ngModel)]="roomCode"
+        maxlength="40"
+        placeholder="Ex. : LAB-A"
+      /><span class="form-hint"
+        >Ce code désigne un local partagé, distinct de la salle ou du groupe d’élèves. Les heures
+        sont celles de l’école.</span
+      ></label
+    >
+  </fieldset>
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+  @if (!subjects().length) {
+    <p class="form-hint form-field-wide">
+      Affectez d’abord une matière à la classe depuis le menu Classes.
+    </p>
+  }
+  <p class="form-legend">* Champ obligatoire</p>
+  <div class="form-actions">
+    <button
+      class="btn btn-secondary"
+      type="button"
+      (click)="cancelled.emit()"
+      [disabled]="saving()"
+    >
+      Annuler</button
+    ><button
+      class="btn btn-primary"
+      type="submit"
+      [disabled]="saving() || !allowed() || !subjects().length"
+    >
+      {{ saving() ? 'Enregistrement…' : entry() ? 'Enregistrer' : 'Créer le créneau' }}
+    </button>
+  </div>
+</form>

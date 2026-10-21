@@ -16,7 +16,7 @@ export class LicenseAccessService {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly notice = signal<string | null>(null);
-  readonly canRead = computed(() => this.access.authorities().some((authority) => ['ROLE_ADMIN', 'can_license_read'].includes(authority)));
+  readonly canRead = computed(() => this.access.has('can_license_read'));
   readonly active = computed(() => this.licenses()?.filter((license) => license.state === 'ACTIVE') ?? []);
 
   constructor() {
@@ -29,7 +29,7 @@ export class LicenseAccessService {
       this.error.set(null);
       this.notice.set(null);
       this.loading.set(false);
-      if (!id || !authorities.some((authority) => ['ROLE_ADMIN', 'can_license_read'].includes(authority))) return;
+      if (!id || !authorities.includes('can_license_read')) return;
       const subscription = this.refresh(id).subscribe();
       onCleanup(() => subscription.unsubscribe());
     });
@@ -41,7 +41,7 @@ export class LicenseAccessService {
     this.error.set(null);
     return forkJoin({
       licenses: this.api.list(id),
-      offers: this.access.authorities().includes('ROLE_ADMIN')
+      offers: this.access.has('can_license_offer_read')
         ? this.api.offers().pipe(catchError(() => of(null))) : of(null)
     }).pipe(tap({
       next: ({ licenses, offers }) => {
@@ -69,9 +69,7 @@ export class LicenseAccessService {
   }
 
   canUse(permission: string, feature: LicenseFeature, id: string): boolean {
-    const authorities = this.access.authorities();
-    const permitted = this.access.hasPermission(permission, id) ||
-      (permission.startsWith('can_learning_content_') && authorities.includes('ADMIN_ACCESS') && authorities.includes(permission));
+    const permitted = this.access.hasPermission(permission, id);
     return permitted && this.decision(feature, id) !== 'blocked';
   }
 }

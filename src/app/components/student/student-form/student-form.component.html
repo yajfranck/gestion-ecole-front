@@ -1,0 +1,50 @@
+<form *appPermission="'can_student_create'" #form="ngForm" class="form-grid" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+  <p class="form-hint">
+    Créez le dossier de l’élève. Son numéro sera généré automatiquement ; vous pourrez ensuite
+    procéder à son inscription.
+  </p>
+  <fieldset class="form-row min-w-0 border-0 p-0" [disabled]="saving()">
+    <label class="form-field"
+      ><span class="form-label is-required">Prénom</span
+      ><input
+        autofocus
+        class="form-control"
+        id="student-first-name"
+        name="studentFirstName"
+        [(ngModel)]="firstName"
+        maxlength="100"
+        required
+    /></label>
+    <label class="form-field"
+      ><span class="form-label is-required">Nom</span
+      ><input
+        class="form-control"
+        id="student-last-name"
+        name="studentLastName"
+        [(ngModel)]="lastName"
+        maxlength="100"
+        required
+    /></label>
+  </fieldset>
+  <label class="form-field"
+    ><span class="form-label">Date de naissance (facultative)</span
+    ><input
+      class="form-control"
+      type="date"
+      name="studentDateOfBirth"
+      [(ngModel)]="dateOfBirth"
+      [max]="today()"
+      [disabled]="saving()"
+  /></label>
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+  <p class="form-legend">* Champ obligatoire</p>
+  <div class="form-actions">
+    <button class="btn btn-secondary" type="button" (click)="canceled.emit()" [disabled]="saving()">
+      Annuler</button
+    ><button class="btn btn-primary" [disabled]="form.invalid || saving()">
+      {{ saving() ? 'Création…' : 'Créer l’élève' }}
+    </button>
+  </div>
+</form>

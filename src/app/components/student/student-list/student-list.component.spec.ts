@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -12,7 +13,7 @@ describe('StudentListComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [StudentListComponent],
-    providers: [
+    providers: [providePermissionFixture(['can_academic_year_read', 'can_school_class_read', 'can_student_read', 'can_student_create', 'can_student_update', 'can_student_delete', 'can_guardian_read', 'can_enrollment_create', 'can_tuition_read']),
       provideZonelessChangeDetection(),
       provideHttpClient(),
       provideHttpClientTesting(),
@@ -73,7 +74,7 @@ describe('StudentListComponent', () => {
     http.verify();
   });
 
-  it('suit la structure commune : titre de section compact, état vide, création sous la liste', () => {
+  it('suit la structure commune : titre de section compact, état vide, bouton de création sous la liste', () => {
     const http = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(StudentListComponent);
     fixture.detectChanges();
@@ -83,7 +84,7 @@ describe('StudentListComponent', () => {
 
     expect(root.querySelector('.section-header h2.section-title')?.textContent).toContain('Élèves');
     expect(root.querySelector('.state-empty')).toBeTruthy();
-    expect(root.querySelector('.section-header')?.compareDocumentPosition(root.querySelector('details') as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(root.querySelector('.section-header')?.compareDocumentPosition(root.querySelector('app-form-modal') as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     http.verify();
   });
 });

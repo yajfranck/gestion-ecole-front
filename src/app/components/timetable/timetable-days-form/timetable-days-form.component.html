@@ -1,0 +1,86 @@
+<form
+  class="form-grid"
+  (ngSubmit)="save()"
+  (input)="dirtyChange.emit(true)"
+  (change)="dirtyChange.emit(true)"
+  [attr.aria-busy]="saving() || loading()"
+>
+  <p class="form-hint form-field-wide">
+    Ces jours s’appliquent à toutes les salles de l’année {{ year().name }}. Les cours seront
+    masqués aux dates concernées, tout en restant réservés dans le modèle hebdomadaire.
+  </p>
+  @if (loading()) {
+    <p class="state-loading form-field-wide" role="status">Chargement des jours non ouvrés…</p>
+  }
+  @if (loaded()) {
+    <fieldset class="form-field-wide min-w-0 border-0 p-0" [disabled]="saving() || !allowed()">
+      <legend class="sr-only">Jours non ouvrés</legend>
+      <div class="max-h-96 space-y-4 overflow-y-auto">
+        @for (day of days; track $index; let index = $index) {
+          <div
+            class="grid items-end gap-3 rounded-lg border border-[#e1e7e0] bg-[#f8faf7] p-3 sm:grid-cols-2"
+          >
+            <label class="form-field"
+              ><span class="form-label is-required">Date</span
+              ><input
+                class="form-control"
+                type="date"
+                [name]="'closed-date-' + index"
+                [(ngModel)]="day.date"
+                [min]="year().startsOn"
+                [max]="year().endsOn"
+                required /></label
+            ><label class="form-field"
+              ><span class="form-label is-required">Libellé</span
+              ><input
+                class="form-control"
+                [name]="'closed-name-' + index"
+                [(ngModel)]="day.name"
+                maxlength="100"
+                required /></label
+            ><button
+              class="btn btn-danger sm:col-span-2 sm:justify-self-end"
+              type="button"
+              (click)="remove(index)"
+              [attr.aria-label]="'Retirer le jour ' + (day.name || index + 1)"
+            >
+              Retirer ce jour
+            </button>
+          </div>
+        } @empty {
+          <p class="state-empty">
+            Aucun jour non ouvré. Tous les jours restent disponibles pour les cours.
+          </p>
+        }
+      </div>
+      <button
+        class="btn btn-secondary mt-4"
+        type="button"
+        (click)="add()"
+        [disabled]="days.length >= 730"
+      >
+        Ajouter un jour
+      </button>
+    </fieldset>
+  }
+  @if (error()) {
+    <div class="form-error" role="alert">
+      <p>{{ error() }}</p>
+      @if (!loaded() && !loading()) {
+        <button class="state-retry" type="button" (click)="load()">Réessayer</button>
+      }
+    </div>
+  }
+  <div class="form-actions">
+    <button
+      class="btn btn-secondary"
+      type="button"
+      (click)="cancelled.emit()"
+      [disabled]="saving()"
+    >
+      Annuler</button
+    ><button class="btn btn-primary" type="submit" [disabled]="saving() || !allowed() || !loaded()">
+      {{ saving() ? 'Enregistrement…' : 'Enregistrer le calendrier' }}
+    </button>
+  </div>
+</form>

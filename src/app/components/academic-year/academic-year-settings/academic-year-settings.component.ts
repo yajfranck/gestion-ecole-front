@@ -1,3 +1,8 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -6,11 +11,14 @@ import { AcademicYearService } from '../../../service/academic-year-service/acad
 
 @Component({
   selector: 'app-academic-year-settings',
-  imports: [FormsModule],
+  imports: [FormModalComponent, PermissionDirective, FormsModule],
   templateUrl: './academic-year-settings.component.html',
   styleUrl: './academic-year-settings.component.css'
 })
 export class AcademicYearSettingsComponent {
+  private readonly toast = inject(ToastService);
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly academicYearService = inject(AcademicYearService);
 
   readonly establishmentId = input.required<string>();
@@ -28,6 +36,8 @@ export class AcademicYearSettingsComponent {
   protected endsOn = '';
 
   constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.errorMessage, 'error');
     effect(() => {
       const year = this.year();
       this.name = year.name;
@@ -37,6 +47,7 @@ export class AcademicYearSettingsComponent {
   }
 
   protected save(): void {
+    if (!this.access.hasPermission('can_academic_year_update', this.establishmentId())) return;
     const name = this.name.trim();
     if (!name || !this.startsOn || !this.endsOn || this.isSaving()) return;
 
@@ -69,8 +80,11 @@ export class AcademicYearSettingsComponent {
   }
 
   protected archive(): void {
+    if (!this.access.hasPermission('can_academic_year_delete', this.establishmentId())) return;
     const year = this.year();
-    if (this.isArchiving() || !window.confirm(`Archiver l’année « ${year.name} » ? Ses données seront conservées.`)) return;
+
+    if (this.isArchiving()) return;
+    this.confirmation.confirm(`Archiver l’année « ${year.name} » ? Ses données seront conservées.`, () => {
 
     this.errorMessage.set(null);
     this.successMessage.set(null);
@@ -84,6 +98,8 @@ export class AcademicYearSettingsComponent {
         this.errorMessage.set(this.getErrorMessage(error, 'archive'));
         this.isArchiving.set(false);
       }
+    });
+
     });
   }
 

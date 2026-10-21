@@ -1,3 +1,4 @@
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { HttpErrorResponse } from '@angular/common/http';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
@@ -19,11 +20,11 @@ describe('EnrollmentFormComponent', () => {
   const rooms = jasmine.createSpyObj('ClassroomService', ['list']);
   const tuition = jasmine.createSpyObj('TuitionService', ['getTuitionFees', 'getStudentCharges', 'getPaymentMethods']);
   const api = jasmine.createSpyObj('EnrollmentService', ['createEnrollment']);
-  const access = { authorities: signal(['can_enrollment_create', 'can_payment_record']) };
+  const access = { authorities: signal(['can_tuition_read', 'can_enrollment_create', 'can_payment_record']), has: (permission: string) => access.authorities().includes(permission), hasPermission: (permission: string) => access.authorities().includes(permission) };
   beforeEach(() => {
     for (const object of [rooms, tuition, api]) for (const method of Object.values(object)) (method as jasmine.Spy).calls.reset();
-    rooms.list.and.returnValue(of([room])); tuition.getTuitionFees.and.returnValue(of([fee])); tuition.getStudentCharges.and.returnValue(of([])); tuition.getPaymentMethods.and.returnValue(of([{ code: 'CASH', name: 'Espèces' }])); api.createEnrollment.and.returnValue(of(created)); access.authorities.set(['can_enrollment_create', 'can_payment_record']);
-    TestBed.configureTestingModule({ imports: [EnrollmentFormComponent], providers: [provideZonelessChangeDetection(), { provide: ClassroomService, useValue: rooms }, { provide: TuitionService, useValue: tuition }, { provide: EnrollmentService, useValue: api }, { provide: WorkspaceAccessService, useValue: access }] });
+    rooms.list.and.returnValue(of([room])); tuition.getTuitionFees.and.returnValue(of([fee])); tuition.getStudentCharges.and.returnValue(of([])); tuition.getPaymentMethods.and.returnValue(of([{ code: 'CASH', name: 'Espèces' }])); api.createEnrollment.and.returnValue(of(created)); access.authorities.set(['can_tuition_read', 'can_enrollment_create', 'can_payment_record']);
+    TestBed.configureTestingModule({ imports: [EnrollmentFormComponent], providers: [provideZonelessChangeDetection(), { provide: ClassroomService, useValue: rooms }, { provide: TuitionService, useValue: tuition }, { provide: EnrollmentService, useValue: api }, { provide: WorkspaceAccessService, useValue: withPermissionChecks(access) }] });
   });
   async function create() {
     const fixture = TestBed.createComponent(EnrollmentFormComponent);
@@ -77,7 +78,7 @@ describe('EnrollmentFormComponent', () => {
     response.next([room]); expect(component['classroomId']).toBe('other-room'); expect(component['rooms']()[0].id).toBe('other-room');
   });
   it('permet une inscription sans versement lorsqu’aucun frais ne s’applique', async () => {
-    access.authorities.set(['can_enrollment_create']); tuition.getTuitionFees.and.returnValue(of([])); const fixture = await create(); const component = fixture.componentInstance;
+    access.authorities.set(['can_enrollment_create', 'can_tuition_read']); tuition.getTuitionFees.and.returnValue(of([])); const fixture = await create(); const component = fixture.componentInstance;
     component['prepare'](); component['review'](); component['confirm']();
     expect(tuition.getStudentCharges).not.toHaveBeenCalled(); expect(tuition.getPaymentMethods).not.toHaveBeenCalled(); expect(api.createEnrollment.calls.mostRecent().args[2].payments).toEqual([]);
   });
@@ -107,7 +108,7 @@ describe('EnrollmentFormComponent', () => {
     });
   }
   it('refuse un encaissement sans permission', async () => {
-    access.authorities.set(['can_enrollment_create']); const fixture = await create(); const component = fixture.componentInstance; component['prepare'](); component['review'](); expect(component['error']()).toContain('permission d’encaisser'); expect(component['step']()).toBe(2);
+    access.authorities.set(['can_enrollment_create', 'can_tuition_read']); const fixture = await create(); const component = fixture.componentInstance; component['prepare'](); component['review'](); expect(component['error']()).toContain('permission d’encaisser'); expect(component['step']()).toBe(2);
   });
   it('conserve tous les versements après ENROLLMENT_PAYMENT_REQUIRED et permet une correction', async () => {
     api.createEnrollment.and.returnValue(throwError(() => new HttpErrorResponse({ status: 409, error: { code: 'ENROLLMENT_PAYMENT_REQUIRED', unpaidFeeIds: ['fee'] } })));

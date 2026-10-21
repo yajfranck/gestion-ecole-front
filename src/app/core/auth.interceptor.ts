@@ -55,7 +55,7 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
       return authService.refreshSession().pipe(
         switchMap(() => retryWithCurrentToken()),
         catchError((refreshError: unknown) => {
-          if (authService.session()?.accessToken === tokenUsed) {
+          if (refreshError instanceof HttpErrorResponse && refreshError.status === 401 && authService.session()?.accessToken === tokenUsed) {
             authService.logout();
           }
           return throwError(() => refreshError);

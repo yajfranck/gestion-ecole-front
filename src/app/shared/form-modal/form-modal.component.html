@@ -1,0 +1,13 @@
+@if (showTrigger()) {
+  <div class="flex justify-end px-5 py-3 sm:px-6">
+    <button type="button" class="btn btn-primary" aria-haspopup="dialog" [disabled]="(busy() || working())" (click)="launch($event)">{{ label() || title() }}</button>
+  </div>
+}
+@if (open()) {
+  <app-dialog [title]="title()" size="wide" [busy]="(busy() || working())" [returnFocusTo]="trigger" (dismiss)="close()">
+    @if (error()) { <p class="form-error mx-5 mt-4 sm:mx-6" role="alert">{{ error() }}</p> }
+    <fieldset class="m-0 min-w-0 border-0 p-0 [&_.form-actions]:sticky [&_.form-actions]:bottom-0 [&_.form-actions]:bg-white" [disabled]="(busy() || working())">
+      <ng-container [ngTemplateOutlet]="content() ?? null" />
+    </fieldset>
+  </app-dialog>
+}

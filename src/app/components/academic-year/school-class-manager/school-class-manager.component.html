@@ -1,66 +1,123 @@
-<section class="section" aria-labelledby="classes-manager-title">
-  <div class="section-header">
-    <div>
-      <h2 id="classes-manager-title" class="section-title">Classes de l’année</h2>
-      <p class="section-hint">Chaque classe comprend au moins une salle avec une capacité définie. Affectez les matières, consultez les élèves, modifiez ou archivez les classes.</p>
+<section class="page" aria-labelledby="classes-manager-title">
+  <header class="page-header items-start">
+    <div class="min-w-0">
+      <p class="text-xs font-semibold uppercase tracking-wide text-[#47745d]">{{ establishmentName() }}</p>
+      <h2 id="classes-manager-title" class="page-heading mt-1">Gestion des classes</h2>
+      <p class="page-subtitle">{{ academicYearName() }} <span aria-hidden="true">·</span> Organisez les classes, leurs salles et leurs effectifs.</p>
     </div>
-  </div>
+    @if (can('create')) {
+      <button #createTrigger class="btn btn-primary w-full shrink-0 sm:w-auto" type="button" (click)="openCreate()">
+        <span aria-hidden="true" class="text-lg leading-none">+</span> Nouvelle classe
+      </button>
+    }
+  </header>
 
-  @if (successMessage()) {
-    <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}</output>
-  }
+
   @if (actionError()) {
-    <p class="border-b border-[#edf0ec] px-5 py-3 text-sm text-[#8a3e2d] sm:px-6" role="alert">{{ actionError() }}</p>
+    <p class="form-error" role="alert">{{ actionError() }}</p>
   }
 
-  @if (isLoading()) {
-    <p class="state-loading" aria-live="polite">Chargement des classes…</p>
+  @if (!can('read')) {
+    <section class="section" aria-label="Accès refusé"><p class="state-empty">La consultation de cette liste n’est pas autorisée pour votre compte.</p></section>
+  } @else if (isLoading()) {
+    <section class="section"><p class="state-loading" aria-live="polite">Chargement des classes…</p></section>
   } @else if (loadError()) {
-    <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
+    <section class="section"><div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div></section>
   } @else if (classes().length === 0) {
-    <p class="state-empty">Aucune classe n’est configurée pour cette année.</p>
+    <section class="section overflow-hidden" aria-label="Aucune classe">
+      <div class="flex flex-col items-center px-5 py-12 text-center sm:px-8">
+        <span class="mb-4 flex size-14 items-center justify-center rounded-full bg-[#edf4ee] text-2xl text-[#47745d]" aria-hidden="true">⌂</span>
+        <h3 class="text-base font-semibold text-[#26372d]">Aucune classe pour cette année</h3>
+        <p class="mt-2 max-w-md text-sm leading-6 text-[#69756d]">Créez vos classes, puis ajoutez leurs salles depuis les détails pour organiser les inscriptions.</p>
+        @if (can('create')) { <button class="btn btn-primary mt-5" type="button" (click)="openCreate()">Créer la première classe</button> }
+      </div>
+    </section>
   } @else {
-    <div class="overflow-x-auto">
-      <table class="min-w-full text-left text-sm">
-        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-5 py-3 font-semibold sm:px-6">Classe</th><th class="px-5 py-3 font-semibold">Code</th><th class="px-5 py-3 text-right font-semibold sm:px-6">Actions</th></tr></thead>
+    <section class="section overflow-hidden" aria-label="Liste des classes">
+      <div class="flex flex-col gap-3 border-b border-[#e9ede8] p-4 sm:flex-row sm:items-end sm:justify-between sm:px-5">
+        <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end">
+          <label class="form-field min-w-0 sm:w-72" for="class-search">
+            <span class="form-label">Rechercher une classe</span>
+            <input id="class-search" class="form-control" type="search" placeholder="Nom, code ou série" [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)">
+          </label>
+          <label class="form-field min-w-0 sm:w-56" for="class-series-filter">
+            <span class="form-label">Série</span>
+            <select id="class-series-filter" class="form-control" [ngModel]="selectedSeries()" (ngModelChange)="selectedSeries.set($event)">
+              <option value="">Toutes les séries</option>
+              @for (series of seriesOptions(); track series) { <option [value]="series">{{ series }}</option> }
+            </select>
+          </label>
+          @if (searchTerm() || selectedSeries()) { <button class="min-h-11 px-2 text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="clearFilters()">Effacer les filtres</button> }
+        </div>
+        <p class="text-sm text-[#69756d]" aria-live="polite">{{ filteredClasses().length }} classe{{ filteredClasses().length > 1 ? 's' : '' }}</p>
+      </div>
+      @if (filteredClasses().length === 0) {
+        <div class="px-5 py-10 text-center sm:px-6">
+          <p class="text-sm font-medium text-[#35473b]">Aucun résultat pour ces critères.</p>
+          <button class="mt-2 text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="clearFilters()">Effacer les filtres</button>
+        </div>
+      } @else {
+      <div class="table-wrap">
+      <table class="min-w-[44rem] w-full text-left text-sm">
+        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold">Classe</th><th scope="col" class="px-5 py-3 font-semibold">Code</th><th scope="col" class="px-5 py-3 font-semibold">Série</th><th scope="col" class="px-5 py-3 text-right font-semibold">Actions</th></tr></thead>
         <tbody class="divide-y divide-[#edf0ec]">
-          @for (schoolClass of classes(); track schoolClass.id) {
-            <tr>
-              <td class="px-5 py-3 font-medium text-[#35473b] sm:px-6">{{ schoolClass.name }}<span class="mt-1 block text-xs font-normal text-[#78837b]">Série : {{ schoolClass.series || 'Non définie' }}</span></td>
+          @for (schoolClass of filteredClasses(); track schoolClass.id) {
+            <tr class="hover:bg-[#fbfcfa]">
+              <th scope="row" class="px-5 py-4 font-semibold text-[#26372d]">{{ schoolClass.name }}</th>
               <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ schoolClass.code }}</td>
-              <td class="whitespace-nowrap px-5 py-3 text-right sm:px-6">
-                <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" [attr.aria-expanded]="expandedId() === schoolClass.id" (click)="toggleDetail(schoolClass)">{{ expandedId() === schoolClass.id ? 'Masquer' : 'Matières et élèves · Salles' }}</button>
-                <button class="ml-2 min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(schoolClass)">Modifier</button>
-                <button class="ml-2 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!archivingId()" (click)="archive(schoolClass)">{{ archivingId() === schoolClass.id ? 'Archivage…' : 'Archiver' }}</button>
+              <td class="px-5 py-3 text-[#69756d]">{{ schoolClass.series || 'Non définie' }}</td>
+              <td class="px-5 py-3 text-right">
+                <div class="flex flex-wrap justify-end gap-2">
+                  <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" [attr.aria-expanded]="expandedId() === schoolClass.id" (click)="toggleDetail(schoolClass)">{{ expandedId() === schoolClass.id ? 'Masquer les détails' : 'Détails' }}</button>
+                  @if (can('update')) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="startEditing(schoolClass)">Modifier</button> }
+                  @if (can('delete')) { <button class="btn btn-danger min-h-9! px-3! text-xs!" type="button" [disabled]="!!archivingId()" (click)="archive(schoolClass)">{{ archivingId() === schoolClass.id ? 'Archivage…' : 'Archiver' }}</button> }
+                </div>
               </td>
             </tr>
-            @if (editingId() === schoolClass.id) {
+            @if (editingId() === schoolClass.id && can('update')) {
               <tr>
-                <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="3">
-                  <form class="form-edit" [attr.aria-label]="'Modifier ' + schoolClass.name" (ngSubmit)="save(schoolClass)" [attr.aria-busy]="isSaving()">
-                    <p class="form-title"><span>{{ schoolClass.name }}</span><span class="form-mode">Modification</span></p>
-                    <div class="form-row">
-                      <label class="form-field form-field-compact">
-                        <span class="form-label is-required">Code</span>
-                        <input class="form-control font-mono" [name]="'classCode' + schoolClass.id" [(ngModel)]="code" maxlength="40" required>
-                      </label>
-                      <label class="form-field">
-                        <span class="form-label is-required">Nom</span>
-                        <input class="form-control" [name]="'className' + schoolClass.id" [(ngModel)]="name" maxlength="100" required>
-                      </label>
+                <td class="p-0" colspan="4"><app-form-modal title="Modifier la classe" [busy]="isSaving()" (closed)="cancelEditing()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+                  <form class="min-w-0" [attr.aria-label]="'Modifier ' + schoolClass.name" (ngSubmit)="save(schoolClass)" [attr.aria-busy]="isSaving()">
+                    <div class="border-b border-[#e9ede8] px-5 py-5 sm:px-6">
+                      <div class="flex flex-wrap items-center justify-between gap-2">
+                        <p class="text-sm font-semibold text-[#26372d]">Informations de la classe</p>
+                        <span class="rounded-full bg-[#edf4ee] px-3 py-1 text-xs font-semibold text-[#47745d]">Modification</span>
+                      </div>
+                      <p class="mt-1.5 text-sm leading-6 text-[#69756d]">{{ schoolClass.name }}</p>
                     </div>
-                    <label class="form-field"><span class="form-label">Série (facultative)</span><input class="form-control" name="classSeries" [(ngModel)]="series" maxlength="100"><span class="form-hint">Laissez vide pour retirer la série.</span></label>
-                    <div class="form-actions">
-                      <button class="btn btn-secondary" type="button" (click)="cancelEditing()" [disabled]="isSaving()">Annuler</button>
-                      <button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+                    <div class="space-y-4 bg-[#f8faf7] px-5 py-5 sm:px-6">
+                      <app-school-class-grid>
+                        <label class="form-field col-span-2 sm:col-span-1">
+                          <span class="form-label is-required sm:sr-only">Code</span>
+                          <input class="form-control font-mono uppercase" [name]="'classCode' + schoolClass.id" [(ngModel)]="code" maxlength="40" placeholder="Ex. 6A" autocomplete="off" required autofocus>
+                        </label>
+                        <label class="form-field col-span-2 sm:col-span-1">
+                          <span class="form-label is-required sm:sr-only">Nom de la classe</span>
+                          <input class="form-control" [name]="'className' + schoolClass.id" [(ngModel)]="name" maxlength="100" placeholder="Ex. Sixième A" required>
+                        </label>
+                        <label class="form-field">
+                          <span class="form-label sm:sr-only">Série <span class="font-normal text-[#78837b]">(facultative)</span></span>
+                          <input class="form-control" name="classSeries" [(ngModel)]="series" maxlength="100" placeholder="Ex. Générale, Scientifique, Littéraire…">
+                        </label>
+                        <div aria-hidden="true"></div>
+                      </app-school-class-grid>
+                      <p class="text-xs leading-5 text-[#69756d]">Laissez la série vide pour la retirer.</p>
                     </div>
+                    <footer class="sticky bottom-0 z-10 flex flex-col gap-3 border-t border-[#e1e7e0] bg-white px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                      <p class="text-xs text-[#78837b]">* Champs obligatoires</p>
+                      <div class="flex flex-col-reverse gap-2 sm:flex-row">
+                        <button class="btn btn-secondary" type="button" (click)="cancelEditing()" [disabled]="isSaving()">Annuler</button>
+                        <button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button>
+                      </div>
+                    </footer>
                   </form>
+</ng-template></app-form-modal>
                 </td>
               </tr>
             }
             @if (expandedId() === schoolClass.id) {
               <tr>
-                <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="3">
+                <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="4">
                   <app-school-class-detail [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="schoolClass.id" />
                 </td>
               </tr>
@@ -69,49 +126,19 @@
         </tbody>
       </table>
     </div>
+      }
+    </section>
   }
 
-  @if (!isLoading() && !loadError()) {
-    <details class="border-t border-[#edf0ec]" [open]="classes().length === 0">
-      <summary class="flex min-h-12 cursor-pointer items-center px-5 py-3 text-sm font-semibold text-[#26372d] sm:px-6">Ajouter une classe</summary>
-      <form class="form-grid pt-1" (ngSubmit)="create()" [attr.aria-busy]="isCreating()">
-        <fieldset class="form-row min-w-0 border-0 p-0">
-          <legend class="form-title mb-3">Classe</legend>
-          <label class="form-field form-field-compact">
-            <span class="form-label is-required">Code</span>
-            <input class="form-control font-mono" id="new-class-code" name="newClassCode" [(ngModel)]="newCode" maxlength="40" required>
-            <span class="form-hint">Unique dans l’année, par exemple P1-A.</span>
-          </label>
-          <label class="form-field">
-            <span class="form-label is-required">Nom</span>
-            <input class="form-control" id="new-class-name" name="newClassName" [(ngModel)]="newName" maxlength="100" required>
-          </label>
-          <label class="form-field"><span class="form-label">Série (facultative)</span><input class="form-control" name="newClassSeries" [(ngModel)]="newSeries" maxlength="100" placeholder="Par exemple Scientifique"></label>
-        </fieldset>
-        <fieldset class="form-row min-w-0 border-0 p-0">
-          <legend class="form-title mb-3">Première salle ou groupe</legend>
-          <label class="form-field form-field-compact">
-            <span class="form-label is-required">Code de salle</span>
-            <input class="form-control font-mono" id="new-classroom-code" name="newClassroomCode" [(ngModel)]="newClassroomCode" maxlength="40" required>
-          </label>
-          <label class="form-field">
-            <span class="form-label is-required">Nom de salle</span>
-            <input class="form-control" id="new-classroom-name" name="newClassroomName" [(ngModel)]="newClassroomName" maxlength="100" required>
-          </label>
-          <label class="form-field form-field-compact">
-            <span class="form-label is-required">Capacité maximale</span>
-            <input class="form-control" id="new-classroom-capacity" name="newClassroomMaxStudents" type="number" min="1" step="1" [(ngModel)]="newClassroomMaxStudents" required>
-            <span class="form-hint">Nombre maximal d’élèves inscrits dans cette salle.</span>
-          </label>
-        </fieldset>
-        @if (createError()) {
-          <p class="form-error" role="alert">{{ createError() }}</p>
-        }
-        <p class="form-legend">* Champ obligatoire</p>
-        <div class="form-actions">
-          <button class="btn btn-primary" type="submit" [disabled]="isCreating()">{{ isCreating() ? 'Création…' : 'Créer la classe' }}</button>
-        </div>
-      </form>
-    </details>
+  @if (createOpen() && can('create')) {
+    <app-dialog title="Nouvelle classe" size="wide" [busy]="isCreating()" [returnFocusTo]="createTrigger()?.nativeElement ?? null" (dismiss)="closeCreate()">
+      <app-school-class-form
+        [establishmentId]="establishmentId()"
+        [academicYearId]="academicYearId()"
+        (busyChange)="isCreating.set($event)"
+        (saved)="onCreated($event)"
+        (cancelled)="closeCreate()"
+      />
+    </app-dialog>
   }
 </section>

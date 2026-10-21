@@ -15,31 +15,31 @@ export class EmployeeService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
 
-  getEmployees(): Observable<Employee[]> {
-    return this.http.get<Employee[]>(`${this.apiUrl}/employees`);
+  getEmployees(establishmentId: string): Observable<Employee[]> {
+    return this.http.get<Employee[]>(`${this.apiUrl}/establishments/${establishmentId}/employees`);
   }
 
-  getEmployee(employeeId: string): Observable<Employee> {
-    return this.http.get<Employee>(`${this.apiUrl}/employees/${employeeId}`);
+  getEmployee(establishmentId: string, employeeId: string): Observable<Employee> {
+    return this.http.get<Employee>(`${this.apiUrl}/establishments/${establishmentId}/employees/${employeeId}`);
   }
 
-  getMe(): Observable<Employee> {
-    return this.http.get<Employee>(`${this.apiUrl}/employees/me`);
+  getMe(establishmentId: string): Observable<Employee> {
+    return this.http.get<Employee>(`${this.apiUrl}/establishments/${establishmentId}/employees/me`);
   }
 
-  inviteEmployee(request: CreateEmployeeRequest): Observable<EmployeeInvitationResponse> {
-    return this.http.post<EmployeeInvitationResponse>(`${this.apiUrl}/employees`, request);
+  inviteEmployee(establishmentId: string, request: CreateEmployeeRequest): Observable<EmployeeInvitationResponse> {
+    return this.http.post<EmployeeInvitationResponse>(`${this.apiUrl}/establishments/${establishmentId}/employees`, request);
   }
 
   acceptInvitation(request: AcceptEmployeeInvitationRequest): Observable<void> {
     return this.http.post<void>(`${this.apiUrl}/employees/invitations/accept`, request);
   }
 
-  updateEmployee(employeeId: string, request: UpdateEmployeeRequest): Observable<Employee> {
-    return this.http.patch<Employee>(`${this.apiUrl}/employees/${employeeId}`, request);
+  updateEmployee(establishmentId: string, employeeId: string, request: UpdateEmployeeRequest): Observable<Employee> {
+    return this.http.patch<Employee>(`${this.apiUrl}/establishments/${establishmentId}/employees/${employeeId}`, request);
   }
 
-  deactivateEmployee(employeeId: string): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/employees/${employeeId}`);
+  deactivateEmployee(establishmentId: string, employeeId: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/establishments/${establishmentId}/employees/${employeeId}`);
   }
 }

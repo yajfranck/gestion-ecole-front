@@ -1,4 +1,4 @@
-<form class="form-grid rounded-xl border border-[#e1e7e0] bg-white" (ngSubmit)="save()" [attr.aria-busy]="isSaving()">
+<form *appPermission="global() ? (role() ? 'can_platform_role_update' : 'can_platform_role_create') : (role() ? 'can_role_update' : 'can_role_create'); global: global(); platform: global()" class="form-grid rounded-xl border border-[#e1e7e0] bg-white" (ngSubmit)="save()" [attr.aria-busy]="isSaving()">
   <div class="flex flex-wrap items-center justify-between gap-3 md:col-span-2">
     <div>
       <h3 class="form-title">{{ role() ? 'Modifier le rôle' : 'Créer un rôle' }} @if (role()) { <span class="form-mode">Modification</span> }</h3>
@@ -8,7 +8,7 @@
 
   <fieldset class="form-row min-w-0 border-0 p-0">
     @if (role()) {
-      <p class="form-field text-sm text-[#35473b]"><span class="form-label">Code du rôle</span><span class="font-mono text-xs text-[#78837b]">{{ role()?.code }}<span class="sr-only"> (non modifiable)</span></span></p>
+      <p class="form-field text-sm text-[#35473b]"><span class="form-label">Code du rôle</span><span class="break-all font-mono text-xs text-[#78837b]">{{ role()?.code }}<span class="sr-only"> (non modifiable)</span></span></p>
     } @else {
       <label class="form-field form-field-compact">
         <span class="form-label is-required">Code du rôle</span>
@@ -49,8 +49,8 @@
       <div class="mt-3 grid gap-2 sm:grid-cols-2">
         @for (permission of filteredPermissions(); track permission.code) {
           <label class="flex min-h-11 items-start gap-3 rounded-lg border border-[#edf0ec] px-3 py-2.5 text-sm text-[#35473b]">
-            <input class="mt-1 accent-[#244a37]" type="checkbox" [checked]="selectedPermissionCodes().includes(permission.code)" [disabled]="role()?.code === 'ADMIN' && permission.code === 'ADMIN_ACCESS'" (change)="togglePermission(permission.code, $event)">
-            <span class="min-w-0"><span class="font-mono text-xs text-[#47745d]">{{ permission.code }}</span><span class="block text-xs text-[#69756d]">{{ permissionDescription(permission) }}</span></span>
+            <input class="mt-1 accent-[#244a37]" type="checkbox" [checked]="selectedPermissionCodes().includes(permission.code)" (change)="togglePermission(permission.code, $event)">
+            <span class="min-w-0 break-words"><span class="break-all font-mono text-xs text-[#47745d]">{{ permission.code }}</span><span class="block text-xs text-[#69756d]">{{ permissionDescription(permission) }}</span></span>
           </label>
         } @empty {
           <p class="text-sm text-[#8a3e2d]">{{ permissions().length ? 'Aucune permission ne correspond à cette recherche.' : 'Aucune permission disponible.' }}</p>
@@ -66,6 +66,6 @@
   <p class="form-legend">* Champ obligatoire</p>
   <div class="form-actions">
     <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="cancelled.emit()">Annuler</button>
-    <button class="btn btn-primary" type="submit" [disabled]="isSaving() || isLoadingPermissions() || !!permissionError() || !selectedPermissionCodes().length">{{ isSaving() ? 'Enregistrement…' : (role() ? 'Enregistrer les modifications' : 'Créer le rôle') }}</button>
+    <button class="btn btn-primary" type="submit" [disabled]="isSaving() || isLoadingPermissions() || !!permissionError()">{{ isSaving() ? 'Enregistrement…' : (role() ? 'Enregistrer les modifications' : 'Créer le rôle') }}</button>
   </div>
 </form>

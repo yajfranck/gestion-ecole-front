@@ -84,7 +84,7 @@ describe('GuardianChildDetailComponent', () => {
   it('présélectionne l’année de l’URL lorsqu’elle appartient à la liste de l’établissement', async () => {
     const fixture = await create();
     expect(fixture.nativeElement.querySelector('select[name="year"]').value).toBe(yearId);
-    expect(portal.summary).toHaveBeenCalledOnceWith('child', yearId);
+    expect(portal.summary).toHaveBeenCalledOnceWith('school', 'child', yearId);
   });
 
   it('consulte l’année choisie dans la liste déroulante', async () => {
@@ -114,7 +114,7 @@ describe('GuardianChildDetailComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect(fixture.nativeElement.querySelector('select').disabled).toBeFalse();
-    expect(portal.summary).toHaveBeenCalledOnceWith('child', yearId);
+    expect(portal.summary).toHaveBeenCalledOnceWith('school', 'child', yearId);
   });
 
   it('affiche un état vide lorsque l’établissement ne propose aucune année scolaire', async () => {
@@ -140,7 +140,7 @@ describe('GuardianChildDetailComponent', () => {
     await fixture.whenStable();
     expect(calendar.getAcademicYears).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.querySelector('[role="alert"]')).toBeNull();
-    expect(portal.summary).toHaveBeenCalledOnceWith('child', yearId);
+    expect(portal.summary).toHaveBeenCalledOnceWith('school', 'child', yearId);
   });
 
   it('exclut les années archivées ou d’un autre établissement', async () => {
@@ -191,11 +191,11 @@ describe('GuardianChildDetailComponent', () => {
     const fixture = await create();
     const component = fixture.componentInstance;
     component['open']('fees');
-    expect(portal.fees).toHaveBeenCalledOnceWith('child', yearId);
+    expect(portal.fees).toHaveBeenCalledOnceWith('school', 'child', yearId);
     component['from'] = '2026-09-01';
     component['to'] = '2026-09-30';
     component['loadPayments']({ chargeId: 'charge' } as never);
-    expect(portal.payments).toHaveBeenCalledOnceWith('child', yearId, 'charge', '2026-09-01', '2026-09-30');
+    expect(portal.payments).toHaveBeenCalledOnceWith('school', 'child', yearId, 'charge', '2026-09-01', '2026-09-30');
   });
 
   it('distingue absence, présence et absence de pointages sans commentaire interne', async () => {
@@ -226,7 +226,7 @@ describe('GuardianChildDetailComponent', () => {
     portal.summary.and.returnValue(throwError(() => new HttpErrorResponse({ status: 403 })));
     const fixture = await create();
     fixture.componentInstance['open']('attendance');
-    expect(portal.attendance).toHaveBeenCalledWith('child', yearId, jasmine.any(String), jasmine.any(String));
+    expect(portal.attendance).toHaveBeenCalledWith('school', 'child', yearId, jasmine.any(String), jasmine.any(String));
     expect(fixture.nativeElement.textContent).toContain('Cours et devoirs');
   });
 

@@ -30,11 +30,11 @@ describe('LearningService', () => {
   });
 
   it('utilise exclusivement les routes parent en consultation', () => {
-    service.list({ studentId: 'child', academicYearId: 'year' }, '', 0).subscribe();
-    const request = http.expectOne((item) => item.url === `${environment.apiUrl}/guardians/me/children/child/school-years/year/learning-content`);
+    service.list({ establishmentId: 'school', studentId: 'child', academicYearId: 'year' }, '', 0).subscribe();
+    const request = http.expectOne((item) => item.url === `${environment.apiUrl}/establishments/school/guardians/me/children/child/school-years/year/learning-content`);
     expect(request.request.params.has('type')).toBeFalse();
     request.flush({ contents: [], page: 0, size: 20, totalElements: 0 });
-    expect(() => service.save({ studentId: 'child', academicYearId: 'year' }, { type: 'LESSON', title: 'Titre', description: null, body: null, subjectId: 'subject', dueDate: null })).toThrowError('Espace parent en lecture seule.');
+    expect(() => service.save({ establishmentId: 'school', studentId: 'child', academicYearId: 'year' }, { type: 'LESSON', title: 'Titre', description: null, body: null, subjectId: 'subject', dueDate: null })).toThrowError('Espace parent en lecture seule.');
   });
 
   it('crée et remplace un contenu avec sa matière dans la classe de l’URL', () => {

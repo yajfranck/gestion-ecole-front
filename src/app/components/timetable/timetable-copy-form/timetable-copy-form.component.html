@@ -1,0 +1,163 @@
+<form
+  class="form-grid"
+  (ngSubmit)="save()"
+  (input)="dirtyChange.emit(true)"
+  (change)="dirtyChange.emit(true)"
+  [attr.aria-busy]="saving()"
+>
+  <p class="form-hint form-field-wide">
+    Le planning source reste conservé. Les matières doivent déjà être affectées à la classe de
+    destination.
+  </p>
+  <label class="form-field"
+    ><span class="form-label is-required">Classe de destination</span
+    ><select
+      class="form-control"
+      name="targetClassId"
+      [(ngModel)]="targetClassId"
+      (ngModelChange)="loadRooms()"
+      [disabled]="saving()"
+      required
+    >
+      @for (item of activeClasses(); track item.id) {
+        <option [value]="item.id">{{ item.name }}</option>
+      }
+    </select></label
+  >
+  <label class="form-field"
+    ><span class="form-label is-required">Salle de destination</span
+    ><select
+      class="form-control"
+      name="targetClassroomId"
+      [(ngModel)]="targetClassroomId"
+      [disabled]="saving() || loadingRooms()"
+      required
+    >
+      <option value="" disabled>Choisir une autre salle</option>
+      @for (room of rooms(); track room.id) {
+        <option [value]="room.id">{{ room.name }}</option>
+      }
+    </select></label
+  >
+  @if (loadingRooms()) {
+    <p class="form-hint form-field-wide" role="status">Chargement des salles…</p>
+  }
+  @if (roomsError()) {
+    <div class="form-error" role="alert">
+      <p>{{ roomsError() }}</p>
+      <button class="state-retry" type="button" (click)="loadRooms()" [disabled]="saving()">
+        Réessayer
+      </button>
+    </div>
+  }
+  @if (!loadingRooms() && !roomsError() && !rooms().length) {
+    <p class="form-hint form-field-wide">Aucune autre salle disponible dans cette classe.</p>
+  }
+  <fieldset class="form-field-wide grid min-w-0 gap-3 border-0 p-0" [disabled]="saving()">
+    <legend class="form-label mb-3">Options de copie</legend>
+    <label class="flex items-start gap-2 text-sm text-[#35473b]"
+      ><input
+        class="mt-1 accent-[#244a37]"
+        type="checkbox"
+        name="copyTeachers"
+        [(ngModel)]="copyTeachers"
+      /><span>Conserver les enseignants du planning source</span></label
+    >
+    <label class="flex items-start gap-2 text-sm text-[#35473b]"
+      ><input
+        class="mt-1 accent-[#244a37]"
+        type="checkbox"
+        name="copyRoomCodes"
+        [(ngModel)]="copyRoomCodes"
+      /><span>Conserver les locaux physiques du planning source</span></label
+    >
+    @if (canReplace()) {
+      <label class="flex items-start gap-2 text-sm text-[#8a3e2d]"
+        ><input
+          class="mt-1 accent-[#244a37]"
+          type="checkbox"
+          name="replaceExisting"
+          [(ngModel)]="replaceExisting"
+        /><span
+          >Remplacer le planning de destination : tous ses créneaux actifs seront archivés avant la
+          copie.</span
+        ></label
+      >
+    }
+    <p class="form-hint">
+      Par défaut, les enseignants et les locaux physiques restent à affecter. Leur conservation
+      reste soumise aux conflits de réservation avec le planning source.
+    </p>
+  </fieldset>
+  @if (canChooseTeacher() && sourceTeachers().length) {
+    <fieldset class="form-field-wide min-w-0 border-0 p-0" [disabled]="saving()">
+      <legend class="form-label mb-3">Réaffecter les enseignants (facultatif)</legend>
+      <div class="grid items-start gap-4 md:grid-cols-2">
+        @for (id of sourceTeachers(); track id) {
+          <label class="form-field"
+            ><span class="form-label">{{ teacherName(id) }}</span
+            ><select
+              class="form-control"
+              [name]="'mapping-' + id"
+              [ngModel]="teacherMappings[id] || ''"
+              (ngModelChange)="teacherMappings[id] = $event"
+            >
+              <option value="">Aucune réaffectation</option>
+              @for (employee of activeEmployees(); track employee.id) {
+                <option [value]="employee.id">
+                  {{ employee.firstName }} {{ employee.lastName }}
+                </option>
+              }
+            </select></label
+          >
+        }
+      </div>
+    </fieldset>
+  }
+  <label class="form-field"
+    ><span class="form-label">Nouveau début (facultatif)</span
+    ><input
+      class="form-control"
+      type="date"
+      name="copyValidFrom"
+      [(ngModel)]="validFrom"
+      [min]="year().startsOn"
+      [max]="validUntil || year().endsOn"
+      [disabled]="saving()"
+  /></label>
+  <label class="form-field"
+    ><span class="form-label">Nouvelle fin (facultative)</span
+    ><input
+      class="form-control"
+      type="date"
+      name="copyValidUntil"
+      [(ngModel)]="validUntil"
+      [min]="validFrom || year().startsOn"
+      [max]="year().endsOn"
+      [disabled]="saving()"
+  /></label>
+  <p class="form-hint form-field-wide">
+    Laissez les dates vides pour conserver les périodes de validité du planning source.
+  </p>
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+  <div class="form-actions">
+    <button
+      class="btn btn-secondary"
+      type="button"
+      (click)="cancelled.emit()"
+      [disabled]="saving()"
+    >
+      Annuler</button
+    ><button
+      class="btn btn-primary"
+      type="submit"
+      [disabled]="
+        saving() || !allowed() || loadingRooms() || !targetClassroomId || !entries().length
+      "
+    >
+      {{ saving() ? 'Copie…' : 'Copier le planning' }}
+    </button>
+  </div>
+</form>

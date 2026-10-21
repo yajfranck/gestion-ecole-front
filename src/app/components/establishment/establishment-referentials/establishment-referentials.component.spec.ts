@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -11,7 +12,7 @@ describe('EstablishmentReferentialsComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [EstablishmentReferentialsComponent],
-    providers: [
+    providers: [providePermissionFixture(['can_subject_read']), 
       provideZonelessChangeDetection(),
       provideHttpClient(),
       provideHttpClientTesting(),

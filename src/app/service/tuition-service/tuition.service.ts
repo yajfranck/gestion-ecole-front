@@ -117,27 +117,28 @@ export class TuitionService {
     );
   }
 
-  getStudentCharges(establishmentId: string, studentId: string): Observable<StudentFeeCharge[]> {
+  getStudentCharges(establishmentId: string, academicYearId: string, studentId: string): Observable<StudentFeeCharge[]> {
     return this.http.get<StudentFeeCharge[]>(
-      `${this.apiUrl}/establishments/${establishmentId}/students/${studentId}/tuition-fees`
+      `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/students/${studentId}/tuition-fees`
     );
   }
 
   recordPayment(
     establishmentId: string,
+    academicYearId: string,
     studentId: string,
     chargeId: string,
     request: RecordTuitionPaymentRequest
   ): Observable<TuitionPayment> {
     return this.http.post<TuitionPayment>(
-      `${this.apiUrl}/establishments/${establishmentId}/students/${studentId}/tuition-fees/${chargeId}/payments`,
+      `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/students/${studentId}/tuition-fees/${chargeId}/payments`,
       request
     );
   }
 
-  getReceipt(establishmentId: string, paymentId: string): Observable<PaymentReceipt> {
+  getReceipt(establishmentId: string, academicYearId: string, paymentId: string): Observable<PaymentReceipt> {
     return this.http.get<PaymentReceipt>(
-      `${this.apiUrl}/establishments/${establishmentId}/payments/${paymentId}/receipt`
+      `${this.apiUrl}/establishments/${establishmentId}/school-years/${academicYearId}/payments/${paymentId}/receipt`
     );
   }
 }

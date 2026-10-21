@@ -1,3 +1,4 @@
+import { withPermissionChecks } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -15,7 +16,7 @@ describe('AttendanceHistoryComponent', () => {
     TestBed.configureTestingModule({ imports: [AttendanceHistoryComponent], providers: [
       provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
       { provide: ActivatedRoute, useValue: { paramMap: of(convertToParamMap({ studentId: 'archived-student' })), snapshot: { queryParamMap: convertToParamMap({}) } } },
-      { provide: WorkspaceAccessService, useValue: { hasPermission: () => true } }
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ hasPermission: () => true }) }
     ] });
     const context = TestBed.inject(WorkspaceContextService);
     context.selectEstablishment({ id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' });

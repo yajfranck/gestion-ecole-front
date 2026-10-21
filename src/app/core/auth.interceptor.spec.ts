@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { AuthService, AuthTokens } from './auth.service';
+import { AUTH_SESSION_STORAGE, AuthService, AuthTokens } from './auth.service';
 import { authInterceptor } from './auth.interceptor';
 import { environment } from '../../environments/environment';
 
@@ -31,7 +31,7 @@ describe('authInterceptor', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [
-        provideZonelessChangeDetection(),
+        provideZonelessChangeDetection(), { provide: AUTH_SESSION_STORAGE, useValue: null },
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
         provideRouter([])

@@ -37,5 +37,5 @@ export interface LearningAttachment {
   createdAt: string;
 }
 
-export type LearningScope = { studentId: string; academicYearId: string } |
+export type LearningScope = { establishmentId: string; studentId: string; academicYearId: string } |
   { establishmentId: string; academicYearId: string; schoolClassId: string };

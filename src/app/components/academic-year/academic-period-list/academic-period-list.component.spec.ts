@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -12,7 +13,7 @@ describe('AcademicPeriodListComponent', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [AcademicPeriodListComponent],
-      providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
+      providers: [providePermissionFixture(['can_academic_period_read', 'can_academic_period_create', 'can_academic_period_update', 'can_academic_period_delete'], ['school', 'school-1', 'other-school']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
     });
     http = TestBed.inject(HttpTestingController);
   });

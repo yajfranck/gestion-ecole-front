@@ -1,3 +1,4 @@
+Fais uniquement les taches suivantes;
 1. verifies les changements avant de pousser. avec git status
 2. ajoute les fichiers modifiés à l'index avec git add <fichier>
 3. crée un commit avec git commit -m "message du commit"

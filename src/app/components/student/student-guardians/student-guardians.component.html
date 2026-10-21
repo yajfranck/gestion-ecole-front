@@ -19,13 +19,15 @@
       @for (guardian of guardians(); track guardian.id) {
         <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
           <span class="text-[#35473b]">{{ guardian.firstName }} {{ guardian.lastName }}<span class="ml-2 text-xs text-[#78837b]">{{ guardian.email }}</span></span>
-          <button class="min-h-8 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!unlinkingId()" (click)="unlink(guardian)">{{ unlinkingId() === guardian.id ? 'Retrait…' : 'Retirer' }}</button>
+          <button *appPermission="'can_guardian_unlink'" class="min-h-8 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!unlinkingId()" (click)="unlink(guardian)">{{ unlinkingId() === guardian.id ? 'Retrait…' : 'Retirer' }}</button>
         </li>
       }
     </ul>
   }
 
-  <form class="form-edit mt-4" #guardianForm="ngForm" (ngSubmit)="link(guardianForm)" [attr.aria-busy]="isLinking()">
+
+  <app-form-modal title="Lier un tuteur" [busy]="isLinking()" *appPermission="'can_guardian_link'" [completed]="successMessage()" (opened)="successMessage.set(null); actionError.set(null)"><ng-template>
+<form *appPermission="'can_guardian_link'" class="form-grid" #guardianForm="ngForm" (ngSubmit)="link(guardianForm)" [attr.aria-busy]="isLinking()">
     <p class="form-title">Lier un tuteur</p>
     <p class="form-hint">Toute personne peut être tuteur, y compris un membre du personnel ou un administrateur. Utilisez son adresse e-mail existante pour réutiliser son compte.</p>
     <div class="form-row">
@@ -47,12 +49,10 @@
     @if (actionError()) {
       <p class="form-error" role="alert">{{ actionError() }}</p>
     }
-    @if (successMessage()) {
-      <output class="form-success">{{ successMessage() }}</output>
-    }
     <p class="form-legend">* Champ obligatoire</p>
     <div class="form-actions">
       <button class="btn btn-primary" type="submit" [disabled]="isLinking()">{{ isLinking() ? 'Liaison…' : 'Lier le tuteur' }}</button>
     </div>
   </form>
+</ng-template></app-form-modal>
 }

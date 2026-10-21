@@ -2,13 +2,13 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot, UrlTree, provideRouter } from '@angular/router';
-import { AuthService, AuthTokens } from './auth.service';
+import { AUTH_SESSION_STORAGE, AuthService, AuthTokens } from './auth.service';
 import { authGuard } from './auth.guard';
 
 describe('authGuard', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [provideZonelessChangeDetection(), provideHttpClient(), provideRouter([])]
+      providers: [provideZonelessChangeDetection(), { provide: AUTH_SESSION_STORAGE, useValue: null }, provideHttpClient(), provideRouter([])]
     });
   });
 

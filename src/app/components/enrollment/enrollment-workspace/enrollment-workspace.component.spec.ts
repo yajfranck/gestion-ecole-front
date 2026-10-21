@@ -1,3 +1,6 @@
+import { openFormModal } from '../../../testing/modal-fixture';
+import { withPermissionChecks } from '../../../testing/permission-fixture';
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection, signal } from '@angular/core';
@@ -13,7 +16,7 @@ describe('EnrollmentWorkspaceComponent', () => {
 
   beforeEach(() => TestBed.configureTestingModule({
     imports: [EnrollmentWorkspaceComponent],
-    providers: [
+    providers: [providePermissionFixture(['can_student_read', 'can_school_class_read', 'can_enrollment_create', 'can_enrollment_read', 'can_enrollment_update', 'can_payment_record']),
       provideZonelessChangeDetection(),
       provideHttpClient(),
       provideHttpClientTesting(),
@@ -35,6 +38,7 @@ describe('EnrollmentWorkspaceComponent', () => {
     fixture.detectChanges();
     flushAll(http);
     fixture.detectChanges();
+    openFormModal(fixture, 'Nouvelle inscription');
 
     const text = (fixture.nativeElement as HTMLElement).textContent;
     expect(text).toContain('Ada Lovelace');
@@ -80,6 +84,7 @@ describe('EnrollmentWorkspaceComponent', () => {
     flushAll(http, [{ id: 'e-1', establishmentId: 'school-1', studentId: 'st-1', academicYearId: 'year-1', schoolClassId: 'c-1', createdAt: '2026-10-01T00:00:00Z' }]);
     fixture.detectChanges();
 
+    openFormModal(fixture, 'Nouvelle inscription');
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('déjà inscrit');
     const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('tbody a')).map((a) => a.getAttribute('href'));
     expect(hrefs).toContain('/establishments/school-1/students?studentId=st-1');
@@ -88,7 +93,7 @@ describe('EnrollmentWorkspaceComponent', () => {
   });
 
   it('change la salle dans la même inscription sans renvoyer de paiement', () => {
-    TestBed.overrideProvider(WorkspaceAccessService, { useValue: { authorities: signal(['can_enrollment_update']) } });
+    TestBed.overrideProvider(WorkspaceAccessService, { useValue: withPermissionChecks({ authorities: signal(['can_enrollment_read', 'can_enrollment_update', 'can_student_read', 'can_school_class_read']) }) });
     const http = TestBed.inject(HttpTestingController); const fixture = TestBed.createComponent(EnrollmentWorkspaceComponent); fixture.detectChanges();
     flushAll(http, [{ id: 'e-1', establishmentId: 'school-1', studentId: 'st-1', academicYearId: 'year-1', schoolClassId: 'c-1', classroomId: 'room' }]); fixture.detectChanges();
     const component = fixture.componentInstance; const enrollment = component['enrollments']()[0]; component['roomsByClass'].update((current) => ({ ...current, 'c-1': [...current['c-1'], { ...current['c-1'][0], id: 'room-b', name: 'Salle B' }] }));
@@ -98,7 +103,7 @@ describe('EnrollmentWorkspaceComponent', () => {
   });
 
   it('refuse un changement vers une salle pleine avant l’appel API', () => {
-    TestBed.overrideProvider(WorkspaceAccessService, { useValue: { authorities: signal(['can_enrollment_update']) } });
+    TestBed.overrideProvider(WorkspaceAccessService, { useValue: withPermissionChecks({ authorities: signal(['can_enrollment_read', 'can_enrollment_update', 'can_student_read', 'can_school_class_read']) }) });
     const http = TestBed.inject(HttpTestingController); const fixture = TestBed.createComponent(EnrollmentWorkspaceComponent); fixture.detectChanges();
     const enrollment = { id: 'e-1', establishmentId: 'school-1', studentId: 'st-1', academicYearId: 'year-1', schoolClassId: 'c-1', classroomId: 'room', advanceAccepted: false, paymentDecisionBy: null, createdAt: '' };
     flushAll(http, [enrollment]); fixture.detectChanges();

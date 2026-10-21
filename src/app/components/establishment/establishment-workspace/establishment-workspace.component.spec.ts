@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -18,7 +19,7 @@ describe('EstablishmentWorkspaceComponent', () => {
     params = new BehaviorSubject(convertToParamMap({ establishmentId: 'school-1' }));
     TestBed.configureTestingModule({
       imports: [EstablishmentWorkspaceComponent],
-      providers: [
+      providers: [providePermissionFixture(['can_establishment_read', 'can_academic_year_read'], ['school', 'school-1', 'school-2', 'other-school']), 
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideHttpClientTesting(),

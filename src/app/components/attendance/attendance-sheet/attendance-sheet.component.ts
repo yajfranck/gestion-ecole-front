@@ -1,3 +1,7 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { NgTemplateOutlet } from '@angular/common';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, HostListener, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -16,11 +20,18 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
 
 @Component({
   selector: 'app-attendance-sheet',
-  imports: [FormsModule, RouterLink],
+  imports: [NgTemplateOutlet, FormModalComponent, PermissionDirective, FormsModule, RouterLink],
   templateUrl: './attendance-sheet.component.html',
   styleUrl: './attendance-sheet.component.css'
 })
 export class AttendanceSheetComponent implements OnInit, OnDestroy {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.success, 'success');
+    this.toast.connect(this.error, 'error');
+  }
+
   private readonly route = inject(ActivatedRoute);
   private readonly destroyRef = inject(DestroyRef);
   private readonly years = inject(AcademicYearService);
@@ -103,7 +114,7 @@ export class AttendanceSheetComponent implements OnInit, OnDestroy {
   }
 
   protected changeClass(value: string, select: HTMLSelectElement): void {
-    if (!this.pending.confirmLeave()) { select.value = this.classId(); return; }
+    if (!this.pending.confirmLeave(() => this.changeClass(value, select))) { select.value = this.classId(); return; }
     this.roomRequest?.unsubscribe();
     this.request?.unsubscribe();
     this.classId.set(value);
@@ -121,13 +132,13 @@ export class AttendanceSheetComponent implements OnInit, OnDestroy {
   }
 
   protected changeClassroom(value: string, select: HTMLSelectElement): void {
-    if (!this.pending.confirmLeave()) { select.value = this.classroomId(); return; }
+    if (!this.pending.confirmLeave(() => this.changeClassroom(value, select))) { select.value = this.classroomId(); return; }
     this.classroomId.set(value);
     this.load();
   }
 
   protected changeDate(value: string, input: HTMLInputElement): void {
-    if (!this.pending.confirmLeave()) { input.value = this.date(); return; }
+    if (!this.pending.confirmLeave(() => this.changeDate(value, input))) { input.value = this.date(); return; }
     this.date.set(value);
     this.load();
   }
@@ -215,8 +226,13 @@ export class AttendanceSheetComponent implements OnInit, OnDestroy {
     }
   }
 
+  protected closeAttendanceEditor(): void {
+    this.rows.set(this.baseline.map(row => ({ ...row })));
+    this.pending.dirty.set(false);
+  }
+
   protected discard(): void {
-    if (!this.pending.confirmLeave()) return;
+    if (!this.pending.confirmLeave(() => this.discard())) return;
     this.load();
   }
 

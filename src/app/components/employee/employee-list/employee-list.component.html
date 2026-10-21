@@ -1,17 +1,18 @@
 <section class="page">
-  @if (successMessage()) {
-    <output class="block rounded-lg border border-[#bdd6c5] bg-[#eef7f0] px-4 py-3 text-sm text-[#28563b]">{{ successMessage() }}</output>
-  }
+
   @if (actionError()) {
     <p class="rounded-lg border border-[#e8c4b6] bg-[#fff4ef] px-4 py-3 text-sm text-[#8a3e2d]" role="alert">{{ actionError() }}</p>
   }
   <section class="section" aria-labelledby="employees-title">
     <div class="section-header">
       <h2 id="employees-title" class="section-title">Membres du personnel</h2>
-      <label class="block w-full sm:w-72">
-        <span class="sr-only">Rechercher</span>
-        <input class="form-control" name="employeeSearch" type="search" [(ngModel)]="searchTerm" placeholder="Rechercher : nom, e-mail ou matricule" aria-label="Rechercher un membre du personnel">
-      </label>
+      <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <label class="block w-full sm:w-72">
+          <span class="sr-only">Rechercher</span>
+          <input class="form-control" name="employeeSearch" type="search" [(ngModel)]="searchTerm" placeholder="Rechercher : nom, e-mail ou matricule" aria-label="Rechercher un membre du personnel">
+        </label>
+        <button *appPermission="'can_employee_create'; establishment: establishmentId()" class="btn btn-primary" type="button" aria-haspopup="dialog" (click)="openInvitation($event)">Inviter un membre du personnel</button>
+      </div>
     </div>
     @if (isLoading()) {
       <p class="state-loading" aria-live="polite">Chargement du personnel…</p>
@@ -42,42 +43,23 @@
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-right sm:px-5">
                   @if (employee.enabled) {
-                    <button class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditing(employee)">Modifier</button>
-                    <button class="ml-1 min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditingRoles(employee)">Rôles</button>
-                    <button class="ml-1 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d]" type="button" (click)="confirmDeactivation(employee)">Désactiver</button>
+                    <button *appPermission="'can_employee_update'" class="min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" aria-haspopup="dialog" (click)="startEditing(employee, $event)">Modifier</button>
+                    <button *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" class="ml-1 min-h-9 rounded-lg border border-[#dfe5de] px-3 text-xs font-semibold text-[#35473b]" type="button" (click)="startEditingRoles(employee)">Rôles</button>
+                    <button *appPermission="'can_employee_delete'" class="ml-1 min-h-9 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d]" type="button" (click)="confirmDeactivation(employee)">Désactiver</button>
                   }
                 </td>
               </tr>
-              @if (editingId() === employee.id) {
-                <tr><td class="bg-[#f8faf7] p-4 sm:p-5" colspan="5">
-                  <form class="form-edit" [attr.aria-label]="'Modifier ' + employee.firstName + ' ' + employee.lastName" (ngSubmit)="saveEmployee(employee)" [attr.aria-busy]="isSaving()">
-                    <p class="form-title"><span>{{ employee.firstName }} {{ employee.lastName }}</span><span class="form-mode">Modification</span></p>
-                    <div class="form-row">
-                      <label class="form-field"><span class="form-label is-required">Prénom</span><input class="form-control" [name]="'first-' + employee.id" [(ngModel)]="firstName" required></label>
-                      <label class="form-field"><span class="form-label is-required">Nom</span><input class="form-control" [name]="'last-' + employee.id" [(ngModel)]="lastName" required></label>
-                    </div>
-                    <label class="form-field form-field-wide"><span class="form-label is-required">Adresse e-mail</span><input class="form-control md:max-w-md" [name]="'email-' + employee.id" type="email" [(ngModel)]="email" required></label>
-                    <div class="form-row">
-                      <label class="form-field form-field-compact"><span class="form-label is-required">Matricule</span><input class="form-control font-mono" [name]="'number-' + employee.id" [(ngModel)]="employeeNumber" maxlength="40" required></label>
-                      <label class="form-field"><span class="form-label is-required">Poste</span><select class="form-control" [name]="'position-' + employee.id" [(ngModel)]="positionId" required>@for (position of positions(); track position.id) { <option [value]="position.id">{{ position.name }}{{ position.enabled ? '' : ' (désactivé)' }}</option> }</select></label>
-                    </div>
-                    <p class="form-legend">* Champ obligatoire</p>
-                    <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="cancel()">Annuler</button><button class="btn btn-primary" type="submit" [disabled]="isSaving()">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
-                  </form>
-                </td></tr>
-              }
               @if (editingRolesId() === employee.id) {
-                <tr><td class="bg-[#f8faf7] p-4 sm:p-5" colspan="5">
-                  <form class="form-edit" [attr.aria-label]="'Rôles de ' + employee.firstName + ' ' + employee.lastName" (ngSubmit)="saveRoles(employee)" [attr.aria-busy]="isSaving()">
+                <tr><td class="p-0" colspan="5"><app-form-modal title="Modifier les rôles du personnel" [busy]="isSaving()" *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" (closed)="cancel()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+<form *appPermission="employee.directRoleCodes.includes('ESTABLISHMENT_ADMIN') ? ['can_employee_assign_roles', 'can_employee_assign_administrator'] : 'can_employee_assign_roles'" class="form-grid" [attr.aria-label]="'Rôles de ' + employee.firstName + ' ' + employee.lastName" (ngSubmit)="saveRoles(employee)" [attr.aria-busy]="isSaving()">
                     <p class="form-title"><span>Rôles de {{ employee.firstName }} {{ employee.lastName }}</span><span class="form-mode">Modification</span></p>
-                    <fieldset class="form-field form-field-wide min-w-0 border-0 p-0"><legend class="form-label is-required">Rôles directs</legend><div class="mt-2 flex flex-wrap gap-x-5 gap-y-3"><label class="inline-flex min-h-9 items-center gap-2 text-sm text-[#35473b]"><input class="accent-[#244a37]" type="checkbox" [checked]="directRoleCodes.includes('STAFF')" (change)="toggleRole('STAFF', $event)"> Personnel</label><label class="inline-flex min-h-9 items-center gap-2 text-sm text-[#35473b]"><input class="accent-[#244a37]" type="checkbox" [checked]="directRoleCodes.includes('ESTABLISHMENT_ADMIN')" (change)="toggleRole('ESTABLISHMENT_ADMIN', $event)"> Administrateur établissement</label></div><span class="form-hint mt-1">Les rôles hérités du poste restent actifs; le serveur décide des attributions permises.</span></fieldset>
+                    <fieldset class="form-field form-field-wide min-w-0 border-0 p-0"><legend class="form-label is-required">Rôles directs</legend><div class="mt-2 flex flex-wrap gap-x-5 gap-y-3"><label class="inline-flex min-h-9 items-center gap-2 text-sm text-[#35473b]"><input class="accent-[#244a37]" type="checkbox" [checked]="directRoleCodes.includes('STAFF')" (change)="toggleRole('STAFF', $event)"> Personnel</label><label *appPermission="'can_employee_assign_administrator'" class="inline-flex min-h-9 items-center gap-2 text-sm text-[#35473b]"><input class="accent-[#244a37]" type="checkbox" [disabled]="!access.has('can_employee_assign_administrator') && !directRoleCodes.includes('ESTABLISHMENT_ADMIN')" [checked]="directRoleCodes.includes('ESTABLISHMENT_ADMIN')" (change)="toggleRole('ESTABLISHMENT_ADMIN', $event)"> Administrateur établissement</label></div><span class="form-hint mt-1">Les rôles hérités du poste restent actifs; le serveur décide des attributions permises.</span></fieldset>
                     <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="cancel()">Annuler</button><button class="btn btn-primary" type="submit" [disabled]="isSaving() || directRoleCodes.length === 0">{{ isSaving() ? 'Enregistrement…' : 'Enregistrer' }}</button></div>
                   </form>
+</ng-template></app-form-modal>
                 </td></tr>
               }
-              @if (confirmingId() === employee.id) {
-                <tr><td class="bg-[#fff8f5] p-4 sm:p-5" colspan="5"><div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><p class="text-sm text-[#744436]">Désactiver le compte de {{ employee.firstName }} {{ employee.lastName }} ?</p><div class="flex gap-2"><button class="min-h-10 rounded-lg bg-[#8a3e2d] px-4 text-sm font-semibold text-white" type="button" [disabled]="isDeactivating()" (click)="deactivate(employee)">{{ isDeactivating() ? 'Désactivation…' : 'Confirmer' }}</button><button class="min-h-10 rounded-lg border border-[#dfe5de] px-4 text-sm" type="button" (click)="cancel()">Annuler</button></div></div></td></tr>
-              }
+
             }
           </tbody>
         </table>
@@ -85,11 +67,43 @@
     }
   </section>
 
-  <app-employee-form
-    [establishmentId]="establishmentId()"
-    [positions]="activePositions()"
-    [isLoadingPositions]="isLoadingPositions()"
-    [positionError]="positionError()"
-    (invited)="onInvited($event)"
-  />
+  @if (invitationOpen()) {
+    <app-dialog *appPermission="'can_employee_create'; establishment: establishmentId()"
+      title="Inviter un membre du personnel"
+      size="wide"
+      [busy]="isInviting()"
+      [returnFocusTo]="invitationTrigger"
+      (dismiss)="closeInvitation()"
+    >
+      <app-employee-form
+        [establishmentId]="establishmentId()"
+        [positions]="activePositions()"
+        [isLoadingPositions]="isLoadingPositions()"
+        [positionError]="positionError()"
+        (busyChange)="isInviting.set($event)"
+        (cancelled)="closeInvitation()"
+        (invited)="onInvited($event)"
+      />
+    </app-dialog>
+  }
+  @if (editingEmployee(); as employee) {
+    <app-dialog *appPermission="'can_employee_update'; establishment: establishmentId()"
+      title="Modifier un membre du personnel"
+      size="wide"
+      [busy]="isUpdatingEmployee()"
+      [returnFocusTo]="editTrigger"
+      (dismiss)="closeEmployeeEdit()"
+    >
+      <app-employee-form
+        [establishmentId]="establishmentId()"
+        [employee]="employee"
+        [positions]="positions()"
+        [isLoadingPositions]="isLoadingPositions()"
+        [positionError]="positionError()"
+        (busyChange)="isUpdatingEmployee.set($event)"
+        (cancelled)="closeEmployeeEdit()"
+        (saved)="onEmployeeSaved()"
+      />
+    </app-dialog>
+  }
 </section>

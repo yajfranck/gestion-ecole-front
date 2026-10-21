@@ -1,3 +1,4 @@
+import { withPermissionChecks } from '../../testing/permission-fixture';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -14,8 +15,8 @@ describe('AuthenticatedLayoutComponent', () => {
       provideZonelessChangeDetection(),
       provideRouter([]),
       { provide: AuthService, useValue: { logout: jasmine.createSpy('logout') } },
-      { provide: LicenseAccessService, useValue: { canRead: () => false, canUse: () => false, notice: () => null } },
-      { provide: WorkspaceAccessService, useValue: { hasPermission: () => false } }
+      { provide: LicenseAccessService, useValue: { canRead: () => true, canUse: () => false, notice: () => null } },
+      { provide: WorkspaceAccessService, useValue: withPermissionChecks({ has: (permission: string) => ['can_establishment_read', 'can_dashboard_read', 'can_employee_read_self', 'can_guardian_read_children'].includes(permission), hasPermission: (permission: string) => permission === 'can_establishment_read' }) }
     ]
   }));
 
@@ -43,6 +44,8 @@ describe('AuthenticatedLayoutComponent', () => {
     expect(sidebar.textContent).toContain('École Exemple');
     expect(sidebar.textContent).toContain('2025-2026');
     expect(sidebar.querySelector<HTMLAnchorElement>('a[href="/establishments/school-1"]')?.textContent).toBe('Configuration');
+    expect(sidebar.textContent).not.toContain('Licence plateforme');
+    expect(sidebar.querySelector('a[href$="/license"]')).toBeNull();
     expect(sidebar.textContent).not.toContain('Personnel');
     expect(sidebar.textContent).not.toContain('Postes');
     expect(sidebar.textContent).not.toContain('Rôles');

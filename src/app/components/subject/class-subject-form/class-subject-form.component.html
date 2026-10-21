@@ -1,0 +1,112 @@
+<form *appPermission="'can_class_subject_assign'" class="form-grid" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+  <h5 class="form-title">
+    {{ assignment() ? 'Enseignants de la matière' : 'Affecter une matière' }}
+  </h5>
+  <label class="form-field form-field-wide">
+    <span class="form-label is-required">Matière</span>
+    <select
+      class="form-control"
+      name="classSubject"
+      [(ngModel)]="selectedSubjectId"
+      [disabled]="saving() || !!assignment()"
+      required
+    >
+      <option value="" disabled>Choisir une matière</option>
+      @for (subject of subjects(); track subject.id) {
+        <option [value]="subject.id">{{ subject.name }}</option>
+      }
+    </select>
+  </label>
+  @if (canConfigureTeachers()) {
+    @if (!assignment()) {
+      <label class="form-field-wide flex items-center gap-2 text-sm text-[#35473b]"
+        ><input
+          class="accent-[#244a37]"
+          type="checkbox"
+          name="configureTeachers"
+          [(ngModel)]="configureTeachers"
+          [disabled]="saving()"
+        />Définir les enseignants par salle</label
+      >
+    }
+    @if (configureTeachers) {
+      <fieldset
+        class="form-field-wide min-w-0 border-0 p-0"
+        [disabled]="saving() || loadingEmployees() || !!employeesError()"
+      >
+        <legend class="form-label mb-3">Personnel enseignant par salle</legend>
+        <p class="form-hint mb-3">
+          Une personne par salle pour cette matière. La même personne peut enseigner dans plusieurs
+          salles.
+        </p>
+        @if (loadingEmployees()) {
+          <p class="state-loading" role="status">Chargement du personnel…</p>
+        }
+        @if (!activeRooms().length) {
+          <p class="form-hint">Aucune salle disponible. Actualisez les salles de la classe.</p>
+        }
+        <div class="grid items-start gap-4 md:grid-cols-2">
+          @for (room of activeRooms(); track room.id) {
+            <label class="form-field"
+              ><span class="form-label">{{ room.name }} · {{ room.code }}</span>
+              <select
+                class="form-control"
+                [name]="'teacher-' + room.id"
+                [ngModel]="teacherByClassroom[room.id] || ''"
+                (ngModelChange)="teacherByClassroom[room.id] = $event"
+              >
+                <option value="">Non affecté</option>
+                @for (employee of activeEmployees(); track employee.id) {
+                  <option [value]="employee.id">
+                    {{ employee.firstName }} {{ employee.lastName }} · {{ employee.positionName }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+        </div>
+        <p class="form-hint mt-3">
+          Enregistrer remplace les enseignants de cette matière dans les salles de la classe. Les
+          emplois du temps sont configurés séparément.
+        </p>
+      </fieldset>
+      @if (employeesError()) {
+        <div class="form-error" role="alert">
+          <p>{{ employeesError() }}</p>
+          <button
+            class="state-retry"
+            type="button"
+            (click)="retryEmployees.emit()"
+            [disabled]="saving() || loadingEmployees()"
+          >
+            Réessayer
+          </button>
+        </div>
+      }
+    }
+  }
+  @if (error()) {
+    <p class="form-error" role="alert">{{ error() }}</p>
+  }
+  <div class="form-actions">
+    <button
+      class="btn btn-secondary"
+      type="button"
+      (click)="cancelled.emit()"
+      [disabled]="saving()"
+    >
+      Annuler
+    </button>
+    <button
+      class="btn btn-primary"
+      type="submit"
+      [disabled]="
+        saving() ||
+        !selectedSubjectId ||
+        (configureTeachers && (loadingEmployees() || !!employeesError() || !activeRooms().length))
+      "
+    >
+      {{ saving() ? 'Enregistrement…' : assignment() ? 'Enregistrer' : 'Affecter' }}
+    </button>
+  </div>
+</form>

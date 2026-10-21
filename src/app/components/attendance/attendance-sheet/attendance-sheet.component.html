@@ -38,9 +38,7 @@
         </div>
         @if (rows().length === 0) { <p class="state-empty">Aucun élève actif inscrit dans cette classe.</p> }
         @else {
-          @if (canEdit()) {
-            <div class="flex flex-wrap gap-3 px-5 py-3"><button class="btn btn-secondary" type="button" [disabled]="pending.saving() || !unreported() || conflict()" (click)="markUnreported()">Marquer les non renseignés présents</button></div>
-          }
+          <ng-template #attendanceTable let-editMode="editMode">
           <div class="table-wrap"><table class="w-full min-w-3xl text-left text-sm">
             <caption class="sr-only">Appel du {{ date() }}</caption>
             <thead><tr><th class="px-5 py-3">Élève</th><th class="px-4 py-3">Pointage</th><th class="px-4 py-3">Justifiée</th><th class="px-4 py-3">Commentaire</th><th class="px-4 py-3">Historique</th></tr></thead>
@@ -49,28 +47,43 @@
                 <tr>
                   <td class="px-5 py-3"><span class="block font-medium">{{ row.lastName }} {{ row.firstName }}</span><span class="text-xs text-[#758178]">{{ row.studentNumber }}</span></td>
                   <td class="px-4 py-3">
-                    <select class="form-control min-w-40" [attr.aria-label]="'Pointage de ' + row.firstName + ' ' + row.lastName" [ngModel]="row.status" (ngModelChange)="status(row.studentId, $event)" [disabled]="!canEdit() || pending.saving() || conflict()">
+                    <select class="form-control min-w-40" [attr.aria-label]="'Pointage de ' + row.firstName + ' ' + row.lastName" [ngModel]="row.status" (ngModelChange)="status(row.studentId, $event)" [disabled]="!editMode || !canEdit() || pending.saving() || conflict()">
                       @if (wasUnreported(row.studentId)) { <option value="NON_RENSEIGNE">Non renseigné</option> }
                       <option value="PRESENT">Présent</option><option value="ABSENT">Absent</option>
                     </select>
                   </td>
-                  <td class="px-4 py-3"><input type="checkbox" class="h-4 w-4 accent-[#28563b]" [attr.aria-label]="'Absence justifiée pour ' + row.firstName" [ngModel]="row.absenceJustified" (ngModelChange)="update(row.studentId, { absenceJustified: $event })" [disabled]="!canEdit() || row.status !== 'ABSENT' || pending.saving() || conflict()"></td>
-                  <td class="px-4 py-3"><input class="form-control min-w-48" maxlength="500" [attr.aria-label]="'Commentaire pour ' + row.firstName" [ngModel]="row.comment" (ngModelChange)="update(row.studentId, { comment: $event })" [disabled]="!canEdit() || row.status === 'NON_RENSEIGNE' || pending.saving() || conflict()"></td>
+                  <td class="px-4 py-3"><input type="checkbox" class="h-4 w-4 accent-[#28563b]" [attr.aria-label]="'Absence justifiée pour ' + row.firstName" [ngModel]="row.absenceJustified" (ngModelChange)="update(row.studentId, { absenceJustified: $event })" [disabled]="!editMode || !canEdit() || row.status !== 'ABSENT' || pending.saving() || conflict()"></td>
+                  <td class="px-4 py-3"><input class="form-control min-w-48" maxlength="500" [attr.aria-label]="'Commentaire pour ' + row.firstName" [ngModel]="row.comment" (ngModelChange)="update(row.studentId, { comment: $event })" [disabled]="!editMode || !canEdit() || row.status === 'NON_RENSEIGNE' || pending.saving() || conflict()"></td>
                   <td class="px-4 py-3"><a class="font-semibold text-[#47745d]" [routerLink]="['history', row.studentId]" [queryParams]="{ name: row.firstName + ' ' + row.lastName }">Historique</a></td>
                 </tr>
               }
             </tbody>
           </table></div>
+          </ng-template>
+          <ng-container [ngTemplateOutlet]="attendanceTable" [ngTemplateOutletContext]="{ editMode: false }" />
+          @if (canEdit()) {
+            <app-form-modal title="Saisir ou modifier les présences" [busy]="pending.saving()" [protectChanges]="true" [completed]="success()" [error]="error()" (opened)="success.set(null)" (closed)="closeAttendanceEditor()">
+              <ng-template>
+                <div class="p-5 sm:p-6">
+          @if (canEdit()) {
+            <div class="flex flex-wrap gap-3 px-5 py-3"><button *appPermission="'can_attendance_write'" class="btn btn-secondary" type="button" [disabled]="pending.saving() || !unreported() || conflict()" (click)="markUnreported()">Marquer les non renseignés présents</button></div>
+          }
+                  <ng-container [ngTemplateOutlet]="attendanceTable" [ngTemplateOutletContext]="{ editMode: true }" />
           @if (canEdit()) {
             <div class="form-actions flex-wrap">
               @if (pending.dirty()) { <output class="text-sm text-[#8a3e2d]">Modifications non enregistrées</output> }
               <button class="btn btn-secondary" type="button" [disabled]="!pending.dirty() || pending.saving()" (click)="discard()">Annuler</button>
-              <button class="btn btn-primary" type="button" [disabled]="!pending.dirty() || pending.saving() || conflict()" (click)="save()">{{ pending.saving() ? 'Enregistrement…' : 'Enregistrer l’appel' }}</button>
+              <button *appPermission="'can_attendance_write'" class="btn btn-primary" type="button" [disabled]="!pending.dirty() || pending.saving() || conflict()" (click)="save()">{{ pending.saving() ? 'Enregistrement…' : 'Enregistrer l’appel' }}</button>
             </div>
+          }                  @if (error()) { <button class="state-retry" type="button" [disabled]="pending.saving()" (click)="discard()">Recharger et abandonner la saisie</button> }
+                </div>
+              </ng-template>
+            </app-form-modal>
           }
+
         }
       }
-      @if (success()) { <output class="block px-5 py-3 text-sm text-[#28563b]">{{ success() }}</output> }
+
     </section>
   }
 </div>

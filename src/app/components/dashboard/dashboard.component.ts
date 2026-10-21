@@ -1,3 +1,4 @@
+import { WorkspaceAccessService } from '../../core/workspace-access.service';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
@@ -13,6 +14,7 @@ import { apiError } from '../../shared/api-error';
 @Component({ selector: 'app-dashboard', imports: [RouterLink, FormsModule, CurrencyPipe, DatePipe],
   templateUrl: './dashboard.component.html', styleUrl: './dashboard.component.css' })
 export class DashboardComponent implements OnInit {
+  private readonly access = inject(WorkspaceAccessService);
   private readonly api = inject(DashboardService);
   private readonly academicYears = inject(AcademicYearService);
   private readonly context = inject(WorkspaceContextService);
@@ -41,7 +43,7 @@ export class DashboardComponent implements OnInit {
         if (version !== this.revision) return;
         this.data.set(data);
         this.isLoading.set(false);
-        if (data.scope === 'PLATFORM') { this.context.clear(); this.years.set([]); return; }
+        if (data.scope === 'PLATFORM') { this.years.set([]); return; }
         const school = data.establishment;
         this.yearId = school.academicYear?.id ?? '';
         const today = new Date().toISOString().slice(0, 10);
@@ -64,6 +66,7 @@ export class DashboardComponent implements OnInit {
   protected loadYears(): void {
     const school = this.data()?.establishment;
     if (!school) return;
+    if (!this.access.hasPermission('can_academic_year_read', school.id)) { this.years.set(school.academicYear ? [school.academicYear] : []); return; }
     this.yearsError.set(null);
     this.academicYears.getAcademicYears(school.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (years) => this.years.set(years.filter((year) => year.enabled && year.establishmentId === school.id)),

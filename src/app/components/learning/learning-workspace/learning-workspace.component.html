@@ -8,7 +8,7 @@
     @if (!classes().length && !loading() && !error()) { <p class="state-empty">Aucune classe disponible pour cette année.</p> }
   }
   @if (error()) { <p class="state-error" role="alert">{{ error() }}</p> }
-  @if (success()) { <p class="form-success" role="status">{{ success() }}</p> }
+
   @if (scope()) {
     <form class="flex flex-wrap items-end gap-3" (ngSubmit)="load()"><label class="form-field"><span class="form-label">Type</span><select class="form-control" name="typeFilter" [(ngModel)]="type" [disabled]="pending.saving()"><option value="">Tous</option><option value="LESSON">Cours</option><option value="ASSIGNMENT">Devoirs</option></select></label><button class="btn btn-secondary" [disabled]="loading() || pending.saving()">Filtrer</button></form>
   }
@@ -22,8 +22,8 @@
   }
   @if (detailsLoading()) { <p class="state-loading" role="status">Chargement du contenu et des documents…</p> }
   @if (editing()) {
-    <section class="section section-body"><h2 class="section-title">{{ selected() ? 'Modifier le contenu' : 'Nouveau brouillon' }}</h2>
-      <form #form="ngForm" class="mt-4 grid gap-4 sm:grid-cols-2" (ngSubmit)="save()">
+      <app-form-modal title="Créer ou modifier un contenu" [busy]="pending.saving()" (closed)="cancel()" [showTrigger]="false" [open]="true" [error]="error()" [guarded]="true"><ng-template>
+<form #form="ngForm" class="form-grid" (ngSubmit)="save()">
         <label class="form-field"><span class="form-label">Type</span><select class="form-control" name="type" [(ngModel)]="draft.type" (ngModelChange)="change()" [disabled]="!!selected() || pending.saving()"><option value="LESSON">Cours</option><option value="ASSIGNMENT">Devoir</option></select></label>
         <label class="form-field"><span class="form-label">Titre</span><input class="form-control" name="title" [(ngModel)]="draft.title" (ngModelChange)="change()" maxlength="160" required [disabled]="pending.saving()"></label>
         <label class="form-field sm:col-span-2">
@@ -52,7 +52,7 @@
         @if (pending.saving()) { <p class="text-sm" role="status">Enregistrement et envoi des documents… {{ uploadProgress() !== null ? uploadProgress() + ' %' : '' }}</p> }
         <div class="form-actions sm:col-span-2"><button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="pending.saving()">Annuler</button><button class="btn btn-primary" [disabled]="form.invalid || !draft.title.trim() || !validSubject() || subjectsLoading() || pending.saving()">Enregistrer</button></div>
       </form>
-    </section>
+</ng-template></app-form-modal>
   } @else if (selected(); as detail) {
     <section class="section section-body"><header class="page-header"><h2 class="section-title break-words">{{ detail.title }}</h2><div class="flex flex-wrap gap-2">
       @if (allowed('update') && detail.status !== 'ARCHIVED') { <button class="btn btn-secondary" (click)="edit(detail)" [disabled]="pending.saving()">Modifier</button> }

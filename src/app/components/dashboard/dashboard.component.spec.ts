@@ -1,3 +1,4 @@
+import { providePermissionFixture } from '../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
@@ -11,7 +12,7 @@ const school = { id: 'school', name: 'École Nord', academicYear: { id: 'year', 
 
 describe('DashboardComponent', () => {
   let http: HttpTestingController;
-  beforeEach(() => { TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])] }); http = TestBed.inject(HttpTestingController); });
+  beforeEach(() => { TestBed.configureTestingModule({ imports: [DashboardComponent], providers: [providePermissionFixture(['can_dashboard_read', 'can_academic_year_read'], ['school', 'school-1'], ['can_dashboard_read'], true), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([])] }); http = TestBed.inject(HttpTestingController); });
   afterEach(() => http.verify());
   function create(payload: object) {
     const fixture = TestBed.createComponent(DashboardComponent); fixture.detectChanges();
@@ -41,7 +42,7 @@ describe('DashboardComponent', () => {
     expect(TestBed.inject(WorkspaceContextService).current()?.academicYearId).toBe('year');
     fixture.componentInstance['date'] = '2026-10-18';
     fixture.componentInstance['load'](true);
-    http.expectOne(`${environment.apiUrl}/dashboard?academicYearId=year&date=2026-10-18`).flush({ scope: 'ESTABLISHMENT', establishment: school, platform: null });
+    http.expectOne(`${environment.apiUrl}/establishments/school/school-years/year/dashboard?date=2026-10-18`).flush({ scope: 'ESTABLISHMENT', establishment: school, platform: null });
   });
   it('distingue les fonctionnalités non disponibles des agrégats vides', () => {
     const fixture = create({ scope: 'ESTABLISHMENT', establishment: { ...school, academicYear: null, classes: [], finance: [], attendance: null, learning: null }, platform: null });
@@ -63,7 +64,7 @@ describe('DashboardComponent', () => {
     const payload = { scope: 'ESTABLISHMENT', establishment: { ...school, attendance: null }, platform: null };
     const fixture = create(payload); flushYears();
     fixture.componentInstance['date'] = '2026-10-18'; fixture.componentInstance['load'](true);
-    http.expectOne(`${environment.apiUrl}/dashboard?academicYearId=year&date=2026-10-18`).flush(payload);
+    http.expectOne(`${environment.apiUrl}/establishments/school/school-years/year/dashboard?date=2026-10-18`).flush(payload);
     expect(fixture.componentInstance['date']).toBe('2026-10-18');
   });
 });

@@ -1,5 +1,3 @@
-import { ClassroomRequest } from '../classroom/classroom.model';
-
 export interface SchoolClass {
   id: string;
   establishmentId: string;
@@ -12,6 +10,8 @@ export interface SchoolClass {
 
 export type SchoolClassRequest = Pick<SchoolClass, 'code' | 'name' | 'series'>;
 
-export interface CreateSchoolClassRequest extends SchoolClassRequest {
-  classrooms: ClassroomRequest[];
+export type CreateSchoolClassRequest = SchoolClassRequest;
+
+export interface CreateSchoolClassesRequest {
+  classes: CreateSchoolClassRequest[];
 }

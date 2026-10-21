@@ -5,6 +5,9 @@
     <span class="text-[#35473b]">{{ establishmentName() || 'Espace établissement' }}</span>
   </nav>
   <h1 class="sr-only">{{ establishmentName() || 'Établissement' }}</h1>
+  @if (licenseRegistered()) {
+    <p class="mb-4 border-l-4 border-[#47745d] bg-[#eef7f0] p-4 text-sm text-[#28563b]" role="status">La licence de l’établissement a été enregistrée.</p>
+  }
 
   @if (isLoading()) {
     <div class="h-36 animate-pulse rounded-xl border border-[#e1e7e0] bg-white" aria-label="Chargement de l’établissement"></div>

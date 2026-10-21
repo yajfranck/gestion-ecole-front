@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Employee } from '../../../models/employee/employee.model';
+import { WorkspaceContextService } from '../../../shared/workspace-context.service';
 import { EmployeeService } from '../../../service/employee-service/employee.service';
 
 @Component({
@@ -13,6 +14,7 @@ import { EmployeeService } from '../../../service/employee-service/employee.serv
 export class EmployeeDetailComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly employeeService = inject(EmployeeService);
+  private readonly context = inject(WorkspaceContextService);
 
   protected readonly isSelf = this.route.snapshot.data?.['self'] === true;
   protected readonly establishmentId = signal('');
@@ -22,12 +24,18 @@ export class EmployeeDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.establishmentId.set(
-      this.route.parent?.snapshot.paramMap.get('establishmentId') ?? this.route.snapshot.paramMap.get('establishmentId') ?? ''
+      this.route.parent?.snapshot.paramMap.get('establishmentId') ?? this.route.snapshot.paramMap.get('establishmentId') ?? this.context.current()?.establishmentId ?? ''
     );
     this.load();
   }
 
   protected load(): void {
+    if (!this.establishmentId()) { this.isLoading.set(false); this.errorMessage.set('Sélectionnez un établissement pour consulter votre profil.'); return; }
+    if (!this.establishmentId()) {
+      this.isLoading.set(false);
+      this.errorMessage.set('Sélectionnez un établissement pour consulter votre fiche de personnel.');
+      return;
+    }
     const employeeId = this.route.snapshot.paramMap.get('employeeId');
     if (!this.isSelf && !employeeId) {
       this.isLoading.set(false);
@@ -37,7 +45,7 @@ export class EmployeeDetailComponent implements OnInit {
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
-    const call = this.isSelf ? this.employeeService.getMe() : this.employeeService.getEmployee(employeeId ?? '');
+    const call = this.isSelf ? this.employeeService.getMe(this.establishmentId()) : this.employeeService.getEmployee(this.establishmentId(), employeeId ?? '');
     call.subscribe({
       next: (employee) => {
         this.employee.set(employee);

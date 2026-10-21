@@ -1,46 +1,57 @@
-<details class="form-panel" open>
-  <summary>Inviter un membre du personnel</summary>
-  <form class="form-grid" (ngSubmit)="invite()" [attr.aria-busy]="isSaving()">
-    @if (positions().length === 0 && !isLoadingPositions()) {
-      <p class="form-error">Créez d’abord un poste actif dans l’onglet Postes.</p>
-    }
-    @if (positionError()) {
-      <p class="form-error" role="alert">{{ positionError() }}</p>
-    }
-    <fieldset class="form-row min-w-0 border-0 p-0">
-      <legend class="form-title mb-3">Identité</legend>
-      <label class="form-field">
-        <span class="form-label is-required">Prénom</span>
-        <input class="form-control" name="firstName" [(ngModel)]="firstName" required>
-      </label>
-      <label class="form-field">
-        <span class="form-label is-required">Nom</span>
-        <input class="form-control" name="lastName" [(ngModel)]="lastName" required>
-      </label>
-      <label class="form-field form-field-wide">
-        <span class="form-label is-required">Adresse e-mail</span>
-        <input class="form-control md:max-w-md" name="email" type="email" [(ngModel)]="email" required>
-        <span class="form-hint">L’invitation pour définir le mot de passe est envoyée à cette adresse.</span>
-      </label>
-    </fieldset>
-    <fieldset class="form-row min-w-0 border-0 p-0">
-      <legend class="form-title mb-3">Affectation</legend>
-      <label class="form-field form-field-compact">
-        <span class="form-label is-required">Matricule</span>
-        <input class="form-control font-mono" name="employeeNumber" [(ngModel)]="employeeNumber" maxlength="40" required>
-      </label>
-      <label class="form-field">
-        <span class="form-label is-required">Poste</span>
-        <select class="form-control" name="positionId" [(ngModel)]="positionId" required [disabled]="positions().length === 0">
-          <option value="" disabled>Choisir un poste</option>
-          @for (position of positions(); track position.id) { <option [value]="position.id">{{ position.name }}</option> }
-        </select>
-      </label>
-    </fieldset>
-    @if (errorMessage()) { <p class="form-error" role="alert">{{ errorMessage() }}</p> }
-    <p class="form-legend">* Champ obligatoire</p>
-    <div class="form-actions">
-      <button class="btn btn-primary" type="submit" [disabled]="isSaving() || positions().length === 0">{{ isSaving() ? 'Envoi en cours…' : 'Envoyer l’invitation' }}</button>
-    </div>
-  </form>
-</details>
+<p class="px-5 pt-5 text-sm leading-6 text-[#69756d] sm:px-6">
+  @if (employee(); as current) { Modifiez les informations de {{ current.firstName }} {{ current.lastName }} et son affectation. }
+  @else { Renseignez l’identité du membre et son poste. Une invitation lui permettra de définir son mot de passe. }
+</p>
+<form *appPermission="permission(); establishment: establishmentId()" #employeeForm="ngForm" class="grid min-w-0 gap-5 pt-5 md:grid-cols-2" novalidate (ngSubmit)="employeeForm.valid && save()" [attr.aria-busy]="isSaving()">
+  @if (isLoadingPositions()) {
+    <p class="mx-5 text-sm text-[#69756d] sm:mx-6 md:col-span-2" role="status">Chargement des postes…</p>
+  } @else if (positionError()) {
+    <p class="form-error mx-5 sm:mx-6" role="alert">{{ positionError() }}</p>
+  } @else if (!employee() && availablePositions().length === 0) {
+    <p class="form-error mx-5 sm:mx-6" role="status">Créez d’abord un poste actif dans l’onglet Postes.</p>
+  }
+  <fieldset class="form-row m-0 min-w-0 border-0 px-5 sm:px-6" [disabled]="isSaving()">
+    <legend class="form-title mb-3">Identité</legend>
+    <label class="form-field">
+      <span class="form-label is-required">Prénom</span>
+      <input #firstCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" name="firstName" [(ngModel)]="firstName" maxlength="100" required pattern=".*\S.*" autocomplete="given-name" autofocus [attr.aria-invalid]="firstCtrl.invalid && (firstCtrl.touched || employeeForm.submitted)">
+      @if (firstCtrl.invalid && (firstCtrl.touched || employeeForm.submitted)) { <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le prénom.</span> }
+    </label>
+    <label class="form-field">
+      <span class="form-label is-required">Nom</span>
+      <input #lastCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" name="lastName" [(ngModel)]="lastName" maxlength="100" required pattern=".*\S.*" autocomplete="family-name" [attr.aria-invalid]="lastCtrl.invalid && (lastCtrl.touched || employeeForm.submitted)">
+      @if (lastCtrl.invalid && (lastCtrl.touched || employeeForm.submitted)) { <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le nom.</span> }
+    </label>
+    <label class="form-field form-field-wide">
+      <span class="form-label is-required">Adresse e-mail</span>
+      <input #emailCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" name="email" type="email" [(ngModel)]="email" maxlength="254" required email autocomplete="email" [attr.aria-invalid]="emailCtrl.invalid && (emailCtrl.touched || employeeForm.submitted)">
+      @if (emailCtrl.invalid && (emailCtrl.touched || employeeForm.submitted)) { <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez une adresse e-mail valide.</span> }
+      <span class="form-hint">{{ employee() ? 'Cette adresse est également utilisée comme identifiant de connexion.' : 'L’invitation pour définir le mot de passe est envoyée à cette adresse.' }}</span>
+    </label>
+  </fieldset>
+  <fieldset class="form-row m-0 min-w-0 border-0 px-5 sm:px-6" [disabled]="isSaving()">
+    <legend class="form-title mb-3">Affectation</legend>
+    <label class="form-field">
+      <span class="form-label is-required">Matricule</span>
+      <input #numberCtrl="ngModel" class="form-control font-mono aria-invalid:border-[#c9735f]" name="employeeNumber" [(ngModel)]="employeeNumber" maxlength="40" required pattern=".*\S.*" autocomplete="off" [attr.aria-invalid]="numberCtrl.invalid && (numberCtrl.touched || employeeForm.submitted)">
+      @if (numberCtrl.invalid && (numberCtrl.touched || employeeForm.submitted)) { <span class="text-xs text-[#8a3e2d]" role="alert">Saisissez le matricule.</span> }
+    </label>
+    <label class="form-field">
+      <span class="form-label is-required">Poste</span>
+      <select #positionCtrl="ngModel" class="form-control aria-invalid:border-[#c9735f]" name="positionId" [(ngModel)]="positionId" required [disabled]="isLoadingPositions() || !!positionError() || availablePositions().length === 0" [attr.aria-invalid]="positionCtrl.invalid && (positionCtrl.touched || employeeForm.submitted)">
+        <option value="" disabled>Choisir un poste</option>
+        @if (employee(); as current) {
+          @if (!hasCurrentPosition()) { <option [value]="current.positionId">{{ current.positionName }} (poste actuel)</option> }
+        }
+        @for (position of availablePositions(); track position.id) { <option [value]="position.id">{{ position.name }}{{ position.enabled ? '' : ' (désactivé)' }}</option> }
+      </select>
+      @if (positionCtrl.invalid && (positionCtrl.touched || employeeForm.submitted)) { <span class="text-xs text-[#8a3e2d]" role="alert">Choisissez un poste.</span> }
+    </label>
+  </fieldset>
+  @if (errorMessage()) { <p class="form-error mx-5 sm:mx-6" role="alert">{{ errorMessage() }}</p> }
+  <p class="form-legend px-5 sm:px-6">* Champ obligatoire</p>
+  <footer class="sticky bottom-0 flex flex-col-reverse gap-2 border-t border-[#e9ede8] bg-[#f8faf7] px-5 py-4 sm:flex-row sm:justify-end sm:px-6 md:col-span-2">
+    <button class="btn btn-secondary" type="button" [disabled]="isSaving()" (click)="cancelled.emit()">Annuler</button>
+    <button class="btn btn-primary" type="submit" [disabled]="isSaving() || (!employee() && (isLoadingPositions() || !!positionError() || availablePositions().length === 0))">{{ isSaving() ? (employee() ? 'Enregistrement…' : 'Envoi en cours…') : (employee() ? 'Enregistrer les modifications' : 'Envoyer l’invitation') }}</button>
+  </footer>
+</form>

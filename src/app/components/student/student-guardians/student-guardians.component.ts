@@ -1,3 +1,8 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, input, OnInit, signal } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
@@ -8,11 +13,20 @@ import { StudentService } from '../../../service/student-service/student.service
 
 @Component({
   selector: 'app-student-guardians',
-  imports: [FormsModule],
+  imports: [FormModalComponent, PermissionDirective, FormsModule],
   templateUrl: './student-guardians.component.html',
   styleUrl: './student-guardians.component.css'
 })
 export class StudentGuardiansComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.actionError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly guardianService = inject(GuardianService);
   private readonly studentService = inject(StudentService);
 
@@ -55,6 +69,7 @@ export class StudentGuardiansComponent implements OnInit {
   }
 
   protected link(form: NgForm): void {
+    if (!this.access.hasPermission('can_guardian_link', this.establishmentId())) return;
     if (this.isLinking()) return;
 
     const firstName = this.firstName.trim();
@@ -89,7 +104,10 @@ export class StudentGuardiansComponent implements OnInit {
   }
 
   protected unlink(guardian: Guardian): void {
-    if (this.unlinkingId() || !window.confirm(`Retirer ${guardian.firstName} ${guardian.lastName} des tuteurs de cet élève ?`)) return;
+    if (!this.access.hasPermission('can_guardian_unlink', this.establishmentId())) return;
+
+    if (this.unlinkingId()) return;
+    this.confirmation.confirm(`Retirer ${guardian.firstName} ${guardian.lastName} des tuteurs de cet élève ?`, () => {
 
     this.unlinkingId.set(guardian.id);
     this.actionError.set(null);
@@ -104,6 +122,8 @@ export class StudentGuardiansComponent implements OnInit {
         this.actionError.set(this.errorMessage(error));
         this.unlinkingId.set(null);
       }
+    });
+
     });
   }
 

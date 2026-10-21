@@ -113,14 +113,14 @@ describe('TuitionService', () => {
 
   it('records a payment and retrieves its receipt', () => {
     const paymentRequest = { amount: 25000, paymentMethodCode: 'CASH', reference: 'C-01' };
-    service.recordPayment('school-1', 'student-1', 'charge-1', paymentRequest).subscribe();
-    const postRequest = http.expectOne(`${apiUrl}/establishments/school-1/students/student-1/tuition-fees/charge-1/payments`);
+    service.recordPayment('school-1', 'year-1', 'student-1', 'charge-1', paymentRequest).subscribe();
+    const postRequest = http.expectOne(`${apiUrl}/establishments/school-1/school-years/year-1/students/student-1/tuition-fees/charge-1/payments`);
     expect(postRequest.request.method).toBe('POST');
     expect(postRequest.request.body).toEqual(paymentRequest);
     postRequest.flush({});
 
-    service.getReceipt('school-1', 'payment-1').subscribe();
-    const receiptRequest = http.expectOne(`${apiUrl}/establishments/school-1/payments/payment-1/receipt`);
+    service.getReceipt('school-1', 'year-1', 'payment-1').subscribe();
+    const receiptRequest = http.expectOne(`${apiUrl}/establishments/school-1/school-years/year-1/payments/payment-1/receipt`);
     expect(receiptRequest.request.method).toBe('GET');
     receiptRequest.flush({});
   });

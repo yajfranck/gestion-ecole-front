@@ -1,0 +1,209 @@
+<div class="space-y-3" aria-label="Planning de la salle">
+  <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-[#78837b]">
+    <p class="flex items-center gap-2">
+      <span class="size-2 rounded-full border border-[#cdd7cf] bg-white" aria-hidden="true"></span>
+      Créneaux libres en fond clair
+    </p>
+    @if (columns().length > 1) {
+      <p class="hidden md:block">Faites défiler horizontalement pour parcourir la semaine</p>
+      <p class="md:hidden">Planning organisé par journée</p>
+    }
+  </div>
+  <div
+    class="rounded-xl border border-[#dce5de] bg-white md:overflow-x-auto md:focus-visible:outline-2 md:focus-visible:outline-[#47745d]"
+    tabindex="0"
+    role="region"
+    aria-label="Grille des horaires de l’emploi du temps"
+  >
+    <div
+      class="flex flex-col md:grid"
+      [style.grid-template-columns]="columnTemplate()"
+      [style.grid-template-rows]="rowTemplate()"
+    >
+      <div
+        class="sticky left-0 z-10 hidden border-r border-[#dce5de] bg-[#f8faf8] md:grid"
+        style="grid-column: 1; grid-row: 1 / -1; grid-template-rows: subgrid"
+      >
+        <div
+          class="flex items-center justify-center border-b border-[#dce5de] px-2 text-[10px] font-semibold uppercase tracking-wider text-[#78837b]"
+        >
+          Heure
+        </div>
+        @for (slot of slots(); track slot.start; let last = $last) {
+          <div
+            class="relative border-b border-[#e6ece7] px-2 pt-3 text-center text-xs font-medium tabular-nums text-[#69756d]"
+            [style.grid-row]="slot.row"
+          >
+            {{ slot.start }}
+            @if (last) {
+              <span class="absolute inset-x-0 bottom-2 text-[10px]">{{ slot.end }}</span>
+            }
+          </div>
+        }
+      </div>
+      @for (day of layout(); track day.key; let column = $index) {
+        <section
+          class="flex min-w-0 flex-col border-b border-[#dce5de] last:border-b-0 md:grid md:border-r md:border-b-0 md:last:border-r-0"
+          [style.grid-column]="column + 2"
+          style="grid-row: 1 / -1; grid-template-rows: subgrid"
+          [style.grid-template-columns]="'repeat(' + day.lanes + ', minmax(0, 1fr))'"
+          [attr.aria-label]="day.label + (day.date ? ' ' + day.date : '')"
+        >
+          <header
+            class="flex min-h-20 items-center justify-between gap-2 border-b border-[#dce5de] bg-[#f8faf8] px-4 py-3 md:block"
+            style="grid-row: 1; grid-column: 1 / -1"
+            [class.bg-[#edf5ef]]="day.date === today"
+          >
+            <div class="flex flex-wrap items-center gap-2">
+              <h3 class="text-sm font-semibold text-[#273d30]">{{ day.label }}</h3>
+              @if (day.date === today) {
+                <span
+                  class="rounded-full bg-[#47745d] px-2 py-0.5 text-[10px] font-semibold text-white"
+                  >Aujourd’hui</span
+                >
+              }
+            </div>
+            @if (day.date) {
+              <p class="text-xs tabular-nums text-[#78837b] md:mt-1.5">
+                {{ dayDate(day.date) }}
+              </p>
+            }
+          </header>
+          @for (slot of slots(); track slot.start) {
+            <div
+              class="pointer-events-none hidden border-b border-[#e6ece7] bg-[#fcfdfb] md:block"
+              [style.grid-row]="slot.row"
+              style="grid-column: 1 / -1"
+              aria-hidden="true"
+            ></div>
+          }
+          @if (!day.withinAcademicYear || day.nonWorkingDay || !day.courses.length) {
+            <div
+              class="z-0 flex min-h-28 items-start justify-center p-4 pt-7 text-center text-xs leading-5 text-[#78837b]"
+              style="grid-row: 2 / -1; grid-column: 1 / -1"
+              [class.bg-[#fff8ec]]="!!day.nonWorkingDay"
+              [class.bg-[#f3f5f3]]="!day.withinAcademicYear"
+            >
+              @if (!day.withinAcademicYear) {
+                <p>Hors année scolaire</p>
+              } @else if (day.nonWorkingDay) {
+                <p class="font-medium text-[#956b31]">{{ day.nonWorkingDay }}</p>
+              } @else {
+                <p>Aucun cours<br /><span class="text-[10px]">Créneaux libres</span></p>
+              }
+            </div>
+          } @else {
+            @for (block of day.blocks; track $index) {
+              @if (block.kind === 'course') {
+                @let course = block.course;
+                @let entry = course.entry;
+                <article
+                  class="relative z-0 m-2 flex min-w-0 flex-col gap-2 rounded-lg border border-l-[3px] p-3 text-[#35473b] transition duration-150 hover:-translate-y-0.5 hover:shadow-md focus-within:ring-2 focus-within:ring-[#47745d]/30 motion-reduce:transform-none motion-reduce:transition-none"
+                  [class]="palette(entry.subjectId).card"
+                  [style.grid-row]="course.row"
+                  [style.grid-column]="course.lane"
+                >
+                  <p
+                    class="flex items-center gap-1.5 whitespace-nowrap text-xs font-semibold tabular-nums"
+                  >
+                    <svg lucideClock3 class="size-3.5 shrink-0 opacity-60" aria-hidden="true"></svg>
+                    {{ entry.startTime.slice(0, 5) }} – {{ entry.endTime.slice(0, 5) }}
+                  </p>
+                  <h4 class="break-words text-sm font-semibold leading-5 text-[#273d30]">
+                    {{ subjectName(entry.subjectId) }}
+                  </h4>
+                  <p class="flex items-start gap-1.5 text-xs leading-5 text-[#536258]">
+                    <svg
+                      lucideUserRound
+                      class="mt-0.5 size-3.5 shrink-0 opacity-60"
+                      aria-hidden="true"
+                    ></svg>
+                    <span class="min-w-0 break-words">{{ teacherName(entry.teacherId) }}</span>
+                  </p>
+                  @if (entry.roomCode) {
+                    <p class="flex items-start gap-1.5 text-xs leading-5 text-[#536258]">
+                      <svg
+                        lucideMapPin
+                        class="mt-0.5 size-3.5 shrink-0 opacity-60"
+                        aria-hidden="true"
+                      ></svg>
+                      <span class="min-w-0 break-words">Local : {{ entry.roomCode }}</span>
+                    </p>
+                  }
+                  @if (showPeriod()) {
+                    <p class="border-t border-current/10 pt-2 text-[11px] leading-5 text-[#69756d]">
+                      Du {{ entry.validFrom | date: 'dd/MM/yyyy' }} au
+                      {{ entry.validUntil | date: 'dd/MM/yyyy' }}
+                    </p>
+                  }
+                  @if (canEdit() || canArchive()) {
+                    <div class="mt-auto flex justify-end pt-1">
+                      <app-table-actions
+                        [label]="
+                          'Actions du cours de ' +
+                          subjectName(entry.subjectId) +
+                          ' à ' +
+                          entry.startTime.slice(0, 5)
+                        "
+                      >
+                        @if (canEdit()) {
+                          <button
+                            class="table-action"
+                            type="button"
+                            (click)="edit.emit(entry)"
+                            [disabled]="disabled()"
+                          >
+                            Modifier le créneau
+                          </button>
+                        }
+                        @if (canArchive()) {
+                          <button
+                            class="table-action table-action-danger"
+                            type="button"
+                            (click)="archive.emit(entry)"
+                            [disabled]="disabled()"
+                          >
+                            Archiver le créneau récurrent
+                          </button>
+                        }
+                      </app-table-actions>
+                    </div>
+                  }
+                </article>
+              } @else {
+                @let gap = block.gap;
+                <div
+                  class="z-0 m-2 flex items-center justify-center rounded-lg border border-dashed border-[#e0e7e1] px-3 py-3 text-center text-[11px] leading-5 text-[#8a948b]"
+                  [style.grid-row]="gap.row"
+                  style="grid-column: 1 / -1"
+                >
+                  <p>
+                    <span class="tabular-nums md:hidden">{{ gap.start }} – {{ gap.end }} · </span
+                    >Créneau libre
+                  </p>
+                </div>
+              }
+            }
+          }
+        </section>
+      }
+    </div>
+  </div>
+  @if (legend().length) {
+    <ul
+      class="flex flex-wrap gap-x-4 gap-y-2 px-1 text-xs text-[#69756d]"
+      aria-label="Légende des matières"
+    >
+      @for (subjectId of legend(); track subjectId) {
+        <li class="flex min-w-0 items-center gap-2">
+          <span
+            class="size-2 shrink-0 rounded-full"
+            [class]="palette(subjectId).dot"
+            aria-hidden="true"
+          ></span
+          ><span class="break-words">{{ subjectName(subjectId) }}</span>
+        </li>
+      }
+    </ul>
+  }
+</div>

@@ -1,5 +1,12 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DialogComponent } from '../../../shared/dialog/dialog.component';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Employee } from '../../../models/employee/employee.model';
@@ -12,17 +19,30 @@ import { EmployeeFormComponent } from '../employee-form/employee-form.component'
 
 @Component({
   selector: 'app-employee-list',
-  imports: [FormsModule, EmployeeFormComponent, RouterLink],
+  imports: [FormModalComponent, DialogComponent, PermissionDirective, FormsModule, EmployeeFormComponent, RouterLink],
   templateUrl: './employee-list.component.html',
   styleUrl: './employee-list.component.css'
 })
 export class EmployeeListComponent implements OnInit {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.successMessage, 'success');
+    this.toast.connect(this.actionError, 'error');
+  }
+
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly employeeService = inject(EmployeeService);
   private readonly roleService = inject(EmployeeRoleService);
   private readonly positionService = inject(PositionService);
 
   protected readonly establishmentId = signal('');
+  protected readonly invitationOpen = signal(false);
+  protected readonly isInviting = signal(false);
+  protected invitationTrigger: HTMLElement | null = null;
   protected readonly employees = signal<Employee[]>([]);
   protected readonly positions = signal<EmployeePosition[]>([]);
   protected readonly isLoading = signal(true);
@@ -33,21 +53,21 @@ export class EmployeeListComponent implements OnInit {
   protected readonly positionError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
-  protected readonly editingId = signal<string | null>(null);
+  protected readonly editingEmployee = signal<Employee | null>(null);
+  protected readonly isUpdatingEmployee = signal(false);
+  protected editTrigger: HTMLElement | null = null;
   protected readonly editingRolesId = signal<string | null>(null);
-  protected readonly confirmingId = signal<string | null>(null);
 
   protected searchTerm = '';
-  protected employeeNumber = '';
-  protected firstName = '';
-  protected lastName = '';
-  protected email = '';
-  protected positionId = '';
   protected directRoleCodes: EmployeeRole[] = ['STAFF'];
 
   ngOnInit(): void {
     const establishmentRoute = this.route.parent ?? this.route;
-    establishmentRoute.paramMap.subscribe((params) => {
+    establishmentRoute.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      this.invitationOpen.set(false);
+      this.isInviting.set(false);
+      this.editingEmployee.set(null);
+      this.isUpdatingEmployee.set(false);
       const establishmentId = params.get('establishmentId');
       if (!establishmentId) {
         this.employeeError.set('Établissement introuvable.');
@@ -74,15 +94,17 @@ export class EmployeeListComponent implements OnInit {
   }
 
   protected loadEmployees(): void {
+    if (!this.access.hasPermission('can_employee_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.employeeError.set(null);
-    this.employeeService.getEmployees().subscribe({
+    this.employeeService.getEmployees(this.establishmentId()).subscribe({
       next: (employees) => { this.employees.set(employees); this.isLoading.set(false); },
       error: (error: unknown) => { this.employeeError.set(this.errorFor(error)); this.isLoading.set(false); }
     });
   }
 
   protected loadPositions(): void {
+    if (!this.access.hasPermission('can_position_read', this.establishmentId())) { this.isLoadingPositions.set(false); return; }
     this.isLoadingPositions.set(true);
     this.positionError.set(null);
     this.positionService.getPositions(this.establishmentId()).subscribe({
@@ -94,44 +116,44 @@ export class EmployeeListComponent implements OnInit {
     });
   }
 
+  protected openInvitation(event: Event): void {
+    if (!this.access.hasPermission('can_employee_create', this.establishmentId()) || this.isInviting()) return;
+    this.successMessage.set(null);
+    this.invitationTrigger = event.currentTarget as HTMLElement;
+    this.invitationOpen.set(true);
+  }
+
+  protected closeInvitation(): void {
+    if (!this.isInviting()) this.invitationOpen.set(false);
+  }
+
   protected onInvited(email: string): void {
+    this.invitationOpen.set(false);
     this.successMessage.set(`Invitation envoyée à ${email}.`);
     this.loadEmployees();
   }
 
-  protected startEditing(employee: Employee): void {
+  protected startEditing(employee: Employee, event: Event): void {
+    if (!this.access.hasPermission('can_employee_update', this.establishmentId()) || this.isUpdatingEmployee()) return;
+    this.successMessage.set(null);
     this.cancel();
-    this.editingId.set(employee.id);
-    this.employeeNumber = employee.employeeNumber;
-    this.firstName = employee.firstName;
-    this.lastName = employee.lastName;
-    this.email = employee.email;
-    this.positionId = employee.positionId;
+    this.editTrigger = event.currentTarget as HTMLElement;
+    this.editingEmployee.set(employee);
   }
 
-  protected saveEmployee(employee: Employee): void {
-    const request = {
-      employeeNumber: this.employeeNumber.trim(),
-      firstName: this.firstName.trim(),
-      lastName: this.lastName.trim(),
-      email: this.email.trim(),
-      positionId: this.positionId
-    };
-    if (!request.employeeNumber || !request.firstName || !request.lastName || !request.email || !request.positionId || this.isSaving()) return;
-    this.isSaving.set(true);
-    this.actionError.set(null);
-    this.employeeService.updateEmployee(employee.id, request).subscribe({
-      next: () => {
-        this.editingId.set(null);
-        this.isSaving.set(false);
-        this.successMessage.set('La fiche du membre du personnel a été mise à jour.');
-        this.loadEmployees();
-      },
-      error: (error: unknown) => { this.actionError.set(this.errorFor(error)); this.isSaving.set(false); }
-    });
+  protected closeEmployeeEdit(): void {
+    if (!this.isUpdatingEmployee()) this.editingEmployee.set(null);
+  }
+
+  protected onEmployeeSaved(): void {
+    this.editingEmployee.set(null);
+    this.successMessage.set('La fiche du membre du personnel a été mise à jour.');
+    this.loadEmployees();
   }
 
   protected startEditingRoles(employee: Employee): void {
+    if (!this.access.hasPermission('can_employee_assign_roles', this.establishmentId())) return;
+    this.successMessage.set(null);
     this.cancel();
     this.editingRolesId.set(employee.id);
     this.directRoleCodes = [...employee.directRoleCodes];
@@ -139,16 +161,18 @@ export class EmployeeListComponent implements OnInit {
 
   protected toggleRole(role: EmployeeRole, event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
+    if (role === 'ESTABLISHMENT_ADMIN' && checked && !this.access.has('can_employee_assign_administrator')) return;
     this.directRoleCodes = checked
       ? [...new Set([...this.directRoleCodes, role])]
       : this.directRoleCodes.filter((item) => item !== role);
   }
 
   protected saveRoles(employee: Employee): void {
+    if (!this.access.hasPermission('can_employee_assign_roles', this.establishmentId())) return;
     if (!this.directRoleCodes.length || this.isSaving()) return;
     this.isSaving.set(true);
     this.actionError.set(null);
-    this.roleService.updateEmployeeRoles(employee.id, this.directRoleCodes).subscribe({
+    this.roleService.updateEmployeeRoles(this.establishmentId(), employee.id, this.directRoleCodes).subscribe({
       next: () => {
         this.editingRolesId.set(null);
         this.isSaving.set(false);
@@ -160,18 +184,19 @@ export class EmployeeListComponent implements OnInit {
   }
 
   protected confirmDeactivation(employee: Employee): void {
+    if (!this.access.hasPermission('can_employee_delete', this.establishmentId())) return;
     this.cancel();
-    this.confirmingId.set(employee.id);
+    this.confirmation.confirm(`Désactiver le compte de ${employee.firstName} ${employee.lastName} ?`, () => this.deactivate(employee));
   }
 
   protected deactivate(employee: Employee): void {
+    if (!this.access.hasPermission('can_employee_delete', this.establishmentId())) return;
     if (this.isDeactivating()) return;
     this.isDeactivating.set(true);
     this.actionError.set(null);
-    this.employeeService.deactivateEmployee(employee.id).subscribe({
+    this.employeeService.deactivateEmployee(this.establishmentId(), employee.id).subscribe({
       next: () => {
-        this.confirmingId.set(null);
-        this.isDeactivating.set(false);
+            this.isDeactivating.set(false);
         this.successMessage.set(`${employee.firstName} ${employee.lastName} a été désactivé.`);
         this.loadEmployees();
       },
@@ -180,9 +205,8 @@ export class EmployeeListComponent implements OnInit {
   }
 
   protected cancel(): void {
-    this.editingId.set(null);
+    this.closeEmployeeEdit();
     this.editingRolesId.set(null);
-    this.confirmingId.set(null);
   }
 
   protected roleLabel(role: EmployeeRole): string {

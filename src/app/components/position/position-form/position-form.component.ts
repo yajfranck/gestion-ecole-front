@@ -1,16 +1,28 @@
+import { ToastService } from '../../../service/toast-service/toast.service';
+import { WorkspaceAccessService } from '../../../core/workspace-access.service';
+import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, input, output, signal } from '@angular/core';
+import { effect, Component, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { EstablishmentRole } from '../../../models/role/role.model';
 import { PositionService } from '../../../service/position-service/position.service';
 
 @Component({
   selector: 'app-position-form',
-  imports: [FormsModule],
+  imports: [PermissionDirective, FormsModule],
   templateUrl: './position-form.component.html',
   styleUrl: './position-form.component.css'
 })
 export class PositionFormComponent {
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    this.toast.connect(this.errorMessage, 'error');
+  }
+
+  readonly busyChange = output<boolean>();
+  private readonly reportBusy = effect(() => this.busyChange.emit(this.isSaving()));
+  protected readonly access = inject(WorkspaceAccessService);
   private readonly service = inject(PositionService);
 
   readonly establishmentId = input.required<string>();
@@ -36,12 +48,13 @@ export class PositionFormComponent {
   }
 
   protected create(): void {
+    if (!this.access.hasPermission('can_position_create', this.establishmentId())) return;
     const name = this.name.trim();
     if (!name || this.isSaving()) return;
 
     this.errorMessage.set(null);
     this.isSaving.set(true);
-    this.service.createPosition(this.establishmentId(), { name, roleCodes: this.roleCodes }).subscribe({
+    this.service.createPosition(this.establishmentId(), { name, roleCodes: this.access.hasPermission('can_role_read', this.establishmentId()) ? this.roleCodes : [] }).subscribe({
       next: () => {
         this.name = '';
         this.roleCodes = this.assignableRoles().some((role) => role.code === 'STAFF') ? ['STAFF'] : [];

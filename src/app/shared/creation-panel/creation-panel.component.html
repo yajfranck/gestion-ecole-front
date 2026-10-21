@@ -1,0 +1,29 @@
+<div class="gap-y-3" [class.section-header]="inset()" [class.page-header]="!inset()">
+  <div class="min-w-0 flex-1">
+    <ng-content select="[creation-heading]" />
+  </div>
+  <div class="flex w-full flex-wrap items-center gap-3 sm:w-auto">
+    <ng-content select="[creation-tools]" />
+    <button
+      class="btn btn-primary w-full shrink-0 sm:w-auto"
+      type="button"
+      [attr.aria-controls]="panelId()"
+      [attr.aria-expanded]="open()"
+      [disabled]="busy() || (!open() && disabled())"
+      (click)="toggle()"
+    >
+      {{ open() ? 'Fermer le formulaire' : label() }}
+    </button>
+  </div>
+</div>
+<div
+  [id]="panelId()"
+  [hidden]="!open()"
+  class="creation-body min-w-0 border-b border-[#e9ede8] bg-[#f8faf7]"
+  [class.section]="!inset()"
+  [class.mt-4]="!inset()"
+>
+  <fieldset class="min-w-0 border-0 p-0" [disabled]="busy()">
+    <ng-content />
+  </fieldset>
+</div>
