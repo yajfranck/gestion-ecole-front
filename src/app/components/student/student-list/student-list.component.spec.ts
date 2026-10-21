@@ -1,90 +1,71 @@
-import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { environment } from '../../../../environments/environment';
-import { WorkspaceContextService } from '../../../shared/workspace-context.service';
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { StudentListComponent } from './student-list.component';
 
 describe('StudentListComponent', () => {
-  const url = `${environment.apiUrl}/establishments/school-1/students`;
-
+  const base = `${environment.apiUrl}/establishments/school-1/students`;
+  const student = { id: 'st-1', establishmentId: 'school-1', studentNumber: 'STU-00000001', firstName: 'Adèle', lastName: 'Lovelace', enabled: true };
   beforeEach(() => TestBed.configureTestingModule({
-    imports: [StudentListComponent],
-    providers: [providePermissionFixture(['can_academic_year_read', 'can_school_class_read', 'can_student_read', 'can_student_create', 'can_student_update', 'can_student_delete', 'can_guardian_read', 'can_enrollment_create', 'can_tuition_read']),
-      provideZonelessChangeDetection(),
-      provideHttpClient(),
-      provideHttpClientTesting(),
-      provideRouter([]),
-      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1' }), queryParamMap: convertToParamMap({}) } } }
-    ]
+    imports: [StudentListComponent], providers: [providePermissionFixture(['can_student_read', 'can_student_create', 'can_student_update', 'can_student_delete', 'can_guardian_read', 'can_guardian_link', 'can_guardian_unlink']),
+      provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting(), provideRouter([]),
+      { provide: ActivatedRoute, useValue: { snapshot: { paramMap: convertToParamMap({ establishmentId: 'school-1' }), queryParamMap: convertToParamMap({}) } } }]
   }));
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+  function create(students = [student]) {
+    const fixture = TestBed.createComponent(StudentListComponent); fixture.detectChanges();
+    TestBed.inject(HttpTestingController).expectOne(base).flush(students); fixture.detectChanges(); return fixture;
+  }
 
-  it('liste les élèves de l’établissement sans notion d’inscription', () => {
-    const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(StudentListComponent);
-    fixture.detectChanges();
-    http.expectOne(url).flush([{ id: 'st-1', establishmentId: 'school-1', studentNumber: 'STU-00000001', firstName: 'Ada', lastName: 'Lovelace', enabled: true }]);
-    fixture.detectChanges();
-
-    const text = (fixture.nativeElement as HTMLElement).textContent;
-    expect(text).toContain('Ada Lovelace');
-    expect(text).toContain('Fiche et tuteurs');
-    expect(text).not.toContain('À inscrire');
-    http.verify();
+  it('réserve le menu à la consultation même avec tous les droits de mutation', () => {
+    const root = create().nativeElement as HTMLElement;
+    expect(root.textContent).toContain('Adèle Lovelace');
+    expect(root.textContent).toContain('Voir le dossier');
+    expect(root.querySelector('app-student-form, app-form-modal')).toBeNull();
+    expect(root.textContent).not.toContain('Ajouter un élève');
+    expect(root.querySelector('a[href*="enrollments"]')).toBeNull();
   });
 
-  it('indique l’absence d’élève', () => {
-    const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(StudentListComponent);
-    fixture.detectChanges();
-    http.expectOne(url).flush([{ id: 'st-1', establishmentId: 'school-1', studentNumber: 'STU-1', firstName: 'Ada', lastName: 'Lovelace', enabled: true }]);
-    fixture.detectChanges();
-
-    expect((fixture.nativeElement as HTMLElement).querySelector('a[href*="enrollments"]')).toBeNull();
-    http.verify();
+  it('recherche par identité sans accents ou par numéro sans modifier les données sources', () => {
+    const fixture = create(); const component = fixture.componentInstance;
+    component['searchTerm'].set('adele'); fixture.detectChanges();
+    expect(component['filteredStudents']()).toHaveSize(1);
+    component['searchTerm'].set('STU-00000001'); expect(component['filteredStudents']()).toHaveSize(1);
+    component['searchTerm'].set('inconnu'); fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Aucun élève ne correspond');
+    expect(component['students']()).toHaveSize(1);
   });
 
-  it('propose inscription et situation financière lorsqu’une année de cet établissement est sélectionnée', () => {
-    const context = TestBed.inject(WorkspaceContextService);
-    context.selectEstablishment({ id: 'school-1', code: 'S1', name: 'École', enabled: true, createdAt: '', updatedAt: '' });
-    context.selectAcademicYear({ id: 'year-1', establishmentId: 'school-1', name: '2026-2027', startsOn: '2026-09-01', endsOn: '2027-06-30', enabled: true });
+  it('affiche l’identité et les tuteurs en modale sans mutation possible', () => {
+    const fixture = create(); const root = fixture.nativeElement as HTMLElement;
+    root.querySelector<HTMLButtonElement>('button[aria-haspopup="dialog"]')!.click(); fixture.detectChanges();
     const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(StudentListComponent);
-    fixture.detectChanges();
-    http.expectOne(url).flush([{ id: 'st-1', establishmentId: 'school-1', studentNumber: 'STU-1', firstName: 'Ada', lastName: 'Lovelace', enabled: true }]);
-    fixture.detectChanges();
-
-    const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('tbody a')).map((a) => a.getAttribute('href'));
-    expect(hrefs).toContain('/establishments/school-1/school-years/year-1/enrollments?studentId=st-1');
-    expect(hrefs).toContain('/establishments/school-1/school-years/year-1/finance?studentId=st-1');
-    http.verify();
+    http.expectOne(`${base}/st-1`).flush(student);
+    http.expectOne(`${base}/st-1/guardians`).flush([{ id: 'guardian', firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' }]); fixture.detectChanges();
+    expect(root.querySelector('dialog')!.textContent).toContain('STU-00000001');
+    expect(root.querySelector('dialog')!.textContent).toContain('grace@example.org');
+    expect(root.querySelector('dialog form')).toBeNull();
+    expect(root.querySelector('dialog')!.textContent).not.toContain('Lier un tuteur');
+    expect(root.querySelector('dialog')!.textContent).not.toContain('Retirer');
+    http.expectNone(request => request.method !== 'GET');
   });
 
-  it('indique l’absence d’élève', () => {
+  it('ouvre la fiche demandée dans l’URL', () => {
+    const route = TestBed.inject(ActivatedRoute) as unknown as { snapshot: { queryParamMap: unknown } };
+    route.snapshot.queryParamMap = convertToParamMap({ studentId: 'st-1' });
+    const fixture = create();
     const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(StudentListComponent);
-    fixture.detectChanges();
-    http.expectOne(url).flush([]);
-    fixture.detectChanges();
-
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Aucun élève enregistré');
-    http.verify();
+    http.expectOne(`${base}/st-1`).flush(student); http.expectOne(`${base}/st-1/guardians`).flush([]); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('dialog')).not.toBeNull();
   });
 
-  it('suit la structure commune : titre de section compact, état vide, bouton de création sous la liste', () => {
-    const http = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(StudentListComponent);
-    fixture.detectChanges();
-    http.expectOne(url).flush([]);
-    fixture.detectChanges();
-    const root = fixture.nativeElement as HTMLElement;
-
-    expect(root.querySelector('.section-header h2.section-title')?.textContent).toContain('Élèves');
-    expect(root.querySelector('.state-empty')).toBeTruthy();
-    expect(root.querySelector('.section-header')?.compareDocumentPosition(root.querySelector('app-form-modal') as Node)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    http.verify();
+  it('oriente les nouveaux dossiers vers les inscriptions lorsque le catalogue est vide', () => {
+    const fixture = create([]);
+    expect(fixture.nativeElement.textContent).toContain('Aucun élève enregistré');
+    expect(fixture.nativeElement.textContent).toContain('menu Inscriptions');
   });
 });

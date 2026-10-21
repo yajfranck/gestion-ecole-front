@@ -1,20 +1,26 @@
 <section class="section-body" aria-label="Nouvelle inscription">
+  @if (!embedded()) {
   <ol class="mb-5 grid gap-2 text-sm sm:grid-cols-3" aria-label="Étapes de l’inscription"><li [class.font-bold]="step() === 1" [class.text-green-900]="step() === 1" [attr.aria-current]="step() === 1 ? 'step' : null">1. Élève et affectation</li><li [class.font-bold]="step() === 2" [class.text-green-900]="step() === 2" [attr.aria-current]="step() === 2 ? 'step' : null">2. Règlement des frais</li><li [class.font-bold]="step() === 3" [class.text-green-900]="step() === 3" [attr.aria-current]="step() === 3 ? 'step' : null">3. Vérification</li></ol>
-  @if (error()) { <div class="form-error mb-4" role="alert"><p>{{ error() }}</p>@if (unpaidFeeIds().length) { <button class="state-retry" type="button" (click)="prepare(true)" [disabled]="loading()">Actualiser les frais applicables</button> }</div> }
+  }
+  @if (error()) { <div class="form-error mb-4" role="alert"><p>{{ error() }}</p>@if (unpaidFeeIds().length) { <button class="state-retry" type="button" (click)="prepare(true, true)" [disabled]="loading()">Actualiser les frais applicables</button> }</div> }
   @if (step() === 1) {
     <form *appPermission="'can_enrollment_create'" class="grid gap-4 sm:grid-cols-2" (ngSubmit)="prepare()">
+      @if (embedded()) {
+        <p class="rounded-lg border border-[#bdd6c5] bg-[#eef7f0] px-4 py-3 text-sm text-[#28563b] sm:col-span-2">Dossier de {{ studentName() }}</p>
+      } @else {
       <label class="form-field"><span class="form-label is-required">Élève</span><select class="form-control" name="enrollmentStudentId" [(ngModel)]="studentId" (ngModelChange)="selectionChanged()" required [disabled]="loading()"><option value="" disabled>Choisir un élève</option>@for (student of students(); track student.id) { <option [value]="student.id" [disabled]="hasEnrollment(student.id)">{{ student.firstName }} {{ student.lastName }}{{ hasEnrollment(student.id) ? ' · déjà inscrit' : '' }}</option> }</select></label>
+      }
       <label class="form-field"><span class="form-label is-required">Classe</span><select class="form-control" name="enrollmentClassId" [(ngModel)]="schoolClassId" (ngModelChange)="selectionChanged(true)" required [disabled]="loading()"><option value="" disabled>Choisir une classe</option>@for (item of classes(); track item.id) { <option [value]="item.id">{{ item.name }}{{ item.series ? ' · ' + item.series : '' }}</option> }</select></label>
-      <label class="form-field"><span class="form-label is-required">Salle / groupe</span><select class="form-control" name="enrollmentClassroomId" [(ngModel)]="classroomId" required [disabled]="loading() || loadingRooms() || !rooms().length"><option value="" disabled>Choisir une salle</option>@for (room of rooms(); track room.id) { <option [value]="room.id" [disabled]="roomFull(room) && classroomId !== room.id">{{ room.name }} · {{ roomOccupancy(room.id) }}/{{ room.maxStudents }} élèves{{ roomFull(room) ? ' · complète' : '' }}</option> }</select><span class="form-hint">Une seule salle par inscription. Le serveur vérifie la capacité disponible.</span></label>
+      <label class="form-field"><span class="form-label is-required">Salle / groupe</span><select class="form-control" name="enrollmentClassroomId" [(ngModel)]="classroomId" (ngModelChange)="selectionChanged()" required [disabled]="loading() || loadingRooms() || !rooms().length"><option value="" disabled>Choisir une salle</option>@for (room of rooms(); track room.id) { <option [value]="room.id" [disabled]="roomFull(room) && classroomId !== room.id">{{ room.name }} · {{ roomOccupancy(room.id) }}/{{ room.maxStudents }} élèves{{ roomFull(room) ? ' · complète' : '' }}</option> }</select>@if (!embedded()) { <span class="form-hint">Une seule salle par inscription. Le serveur vérifie la capacité disponible.</span> }</label>
       @if (loadingRooms()) { <output class="state-loading">Chargement des salles…</output> }
       @if (roomError()) { <div class="state-error" role="alert"><p>{{ roomError() }}</p><button type="button" class="state-retry" (click)="loadRooms()">Réessayer</button></div> }
       @if (schoolClassId && !loadingRooms() && !roomError() && !rooms().length) { <p class="form-error">Cette classe ne possède aucune salle active. Créez une salle dans la gestion des classes.</p> }
-      <div class="form-actions sm:col-span-2"><button class="btn btn-primary" [disabled]="loading() || loadingRooms() || !studentId || !schoolClassId || !classroomId">{{ loading() ? 'Chargement des frais…' : 'Continuer vers le règlement' }}</button></div>
+      @if (!embedded()) { <div class="form-actions sm:col-span-2"><button class="btn btn-primary" [disabled]="loading() || loadingRooms() || !studentId || !schoolClassId || !classroomId">{{ loading() ? 'Chargement des frais…' : 'Continuer vers le règlement' }}</button></div> }
     </form>
   }
   @if (step() === 2) {
     <h3 class="section-title">Frais applicables · {{ studentName() }} · {{ className() }} · {{ roomName() }}</h3>
-    <p class="form-hint my-3">Le règlement intégral est requis par défaut, même pour une échéance future. Les paiements déjà enregistrés sont déduits des soldes.</p>
+    @if (!embedded()) { <p class="form-hint my-3">Le règlement intégral est requis par défaut, même pour une échéance future. Les paiements déjà enregistrés sont déduits des soldes.</p> }
     <form *appPermission="'can_enrollment_create'" class="grid gap-4" (ngSubmit)="review()">
       @for (line of lines(); track line.fee.id) {
         <fieldset class="grid min-w-0 gap-3 rounded-lg border border-[#e1e7e0] p-4 sm:grid-cols-3"><legend class="px-1 text-sm font-semibold">{{ line.fee.name }}</legend><p class="text-sm sm:col-span-3">À régler : {{ line.balance | currency:line.fee.currency:'code' }}</p>
@@ -27,17 +33,17 @@
         </fieldset>
       } @empty { <p class="state-empty">Aucun frais applicable. L’inscription ne nécessite aucun paiement.</p> }
       @if (lines().length) {
-        <label class="flex items-start gap-3 text-sm"><input class="mt-1 size-4 accent-[#47745d]" name="acceptAdvance" type="checkbox" [(ngModel)]="acceptAdvance"><span>J’accepte explicitement une avance et le suivi du solde restant. Un versement positif, déjà enregistré ou joint à l’inscription, reste obligatoire si un solde est dû.</span></label>
+        <label class="flex items-start gap-3 text-sm"><input class="mt-1 size-4 accent-[#47745d]" name="acceptAdvance" type="checkbox" [(ngModel)]="acceptAdvance"><span>J’accepte une avance et le suivi du solde restant.</span></label>
       }
       @if (!canPay() && lines().length) { <p class="form-hint">Pour encaisser un règlement, votre compte doit disposer de la permission d’enregistrer les paiements.</p> }
-      <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="back()">Retour à l’affectation</button><button class="btn btn-primary" [disabled]="loading()">Vérifier l’inscription</button></div>
+      @if (!embedded()) { <div class="form-actions"><button class="btn btn-secondary" type="button" (click)="back()">Retour à l’affectation</button><button class="btn btn-primary" [disabled]="loading()">Vérifier l’inscription</button></div> }
     </form>
   }
   @if (step() === 3) {
-    <h3 class="section-title">Vérifier avant confirmation</h3><dl class="my-4 grid gap-3 text-sm sm:grid-cols-3"><div><dt>Élève</dt><dd>{{ studentName() }}</dd></div><div><dt>Classe</dt><dd>{{ className() }}</dd></div><div><dt>Salle</dt><dd>{{ roomName() }}</dd></div></dl>
+    <h3 class="section-title">Vérifier l’inscription et les paiements</h3><dl class="my-4 grid gap-3 text-sm sm:grid-cols-3"><div><dt>Élève</dt><dd>{{ studentName() }}</dd></div><div><dt>Classe</dt><dd>{{ className() }}</dd></div><div><dt>Salle</dt><dd>{{ roomName() }}</dd></div></dl>
     <p class="text-sm">{{ acceptAdvance ? 'Avance explicitement acceptée.' : 'Règlement intégral des soldes applicables.' }}</p>
     <ul class="my-4 space-y-2 text-sm">@for (line of lines(); track line.fee.id) { <li>{{ line.fee.name }} : {{ (line.amount || 0) | currency:line.fee.currency:'code' }} versés · Reste {{ (line.balance - (line.amount || 0)) | currency:line.fee.currency:'code' }}@if (line.amount && line.amount > 0) { <span class="block">{{ methodName(line.method) }} · {{ line.reference || 'Sans référence' }}</span> }</li> } @empty { <li>Aucun frais applicable.</li> }</ul>
-    <p class="form-hint">La confirmation enregistre l’inscription et ses paiements ensemble. Un refus annule l’ensemble de cette tentative.</p>
-    <div class="form-actions mt-4"><button class="btn btn-secondary" type="button" (click)="back()" [disabled]="saving()">Modifier le règlement</button><button class="btn btn-primary" type="button" (click)="confirm()" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : 'Confirmer l’inscription et les paiements' }}</button></div>
+    @if (!embedded()) { <p class="form-hint">La confirmation enregistre l’inscription et ses paiements ensemble. Un refus annule l’ensemble de cette tentative.</p> }
+      @if (!embedded()) { <div class="form-actions mt-4"><button class="btn btn-secondary" type="button" (click)="back()" [disabled]="saving()">Modifier le règlement</button><button class="btn btn-primary" type="button" (click)="confirm()" [disabled]="saving()">{{ saving() ? 'Enregistrement…' : 'Confirmer l’inscription et les paiements' }}</button></div> }
   }
 </section>

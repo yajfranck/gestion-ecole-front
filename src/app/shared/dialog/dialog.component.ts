@@ -10,7 +10,7 @@ let nextDialogId = 0;
 export class DialogComponent implements OnDestroy {
   protected readonly headingId = `dialog-heading-${nextDialogId++}`;
   readonly title = input.required<string>();
-  readonly size = input<'default' | 'wide'>('default');
+  readonly size = input<'default' | 'wide' | 'extra-wide'>('default');
   readonly busy = input(false);
   readonly returnFocusTo = input<HTMLElement | null>(null);
   readonly dismiss = output<void>();

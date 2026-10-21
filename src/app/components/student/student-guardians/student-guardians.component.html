@@ -1,58 +1,29 @@
 @if (isLoading()) {
-  <p class="text-sm text-[#849087]" aria-label="Chargement de la fiche élève">Chargement de la fiche…</p>
+  <p class="text-sm text-[#849087]" aria-label="Chargement de la fiche élève">Chargement…</p>
 } @else if (loadError()) {
   <div role="alert"><p class="text-sm text-[#8a3e2d]">{{ loadError() }}</p><button class="mt-1 text-sm font-semibold text-[#47745d] underline" type="button" (click)="load()">Réessayer</button></div>
 } @else {
-  @if (student(); as current) {
+  @if (!embedded() && student(); as current) {
     <dl class="mb-4 grid gap-3 text-sm sm:grid-cols-3">
       <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Numéro</dt><dd class="mt-1 font-mono text-[#35473b]">{{ current.studentNumber }}</dd></div>
       <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">Élève</dt><dd class="mt-1 text-[#35473b]">{{ current.firstName }} {{ current.lastName }}</dd></div>
       <div><dt class="text-xs font-semibold uppercase tracking-wide text-[#78847b]">État</dt><dd class="mt-1 text-[#35473b]">{{ current.enabled ? 'Actif' : 'Archivé' }}</dd></div>
     </dl>
   }
-
-  <h4 class="text-sm font-semibold text-[#35473b]">Parents et tuteurs</h4>
-  @if (guardians().length === 0) {
-    <p class="mt-2 text-sm text-[#69756d]">Aucun tuteur n’est lié à cet élève.</p>
+  @if (embedded() && !readOnly()) {
+    <app-guardian-form [guardians]="guardians()" [initialValues]="initialValues()" [disabled]="isLinking() || !!unlinkingId()" [canLink]="access.hasPermission('can_guardian_link', establishmentId())" [canUnlink]="access.hasPermission('can_guardian_unlink', establishmentId())" [embedded]="true" (submitted)="link($event)" (removeRequested)="unlink($event)" (draftsChanged)="draftsChanged.emit()" />
   } @else {
-    <ul class="mt-2 divide-y divide-[#edf0ec] rounded-lg border border-[#e1e7e0] bg-white">
-      @for (guardian of guardians(); track guardian.id) {
-        <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm">
-          <span class="text-[#35473b]">{{ guardian.firstName }} {{ guardian.lastName }}<span class="ml-2 text-xs text-[#78837b]">{{ guardian.email }}</span></span>
-          <button *appPermission="'can_guardian_unlink'" class="min-h-8 rounded-lg border border-[#e8c4b6] px-3 text-xs font-semibold text-[#8a3e2d] disabled:opacity-60" type="button" [disabled]="!!unlinkingId()" (click)="unlink(guardian)">{{ unlinkingId() === guardian.id ? 'Retrait…' : 'Retirer' }}</button>
-        </li>
-      }
-    </ul>
-  }
-
-
-  <app-form-modal title="Lier un tuteur" [busy]="isLinking()" *appPermission="'can_guardian_link'" [completed]="successMessage()" (opened)="successMessage.set(null); actionError.set(null)"><ng-template>
-<form *appPermission="'can_guardian_link'" class="form-grid" #guardianForm="ngForm" (ngSubmit)="link(guardianForm)" [attr.aria-busy]="isLinking()">
-    <p class="form-title">Lier un tuteur</p>
-    <p class="form-hint">Toute personne peut être tuteur, y compris un membre du personnel ou un administrateur. Utilisez son adresse e-mail existante pour réutiliser son compte.</p>
-    <div class="form-row">
-      <label class="form-field">
-        <span class="form-label is-required">Prénom</span>
-        <input class="form-control" [name]="'guardianFirstName' + studentId()" [(ngModel)]="firstName" maxlength="100" required>
-      </label>
-      <label class="form-field">
-        <span class="form-label is-required">Nom</span>
-        <input class="form-control" [name]="'guardianLastName' + studentId()" [(ngModel)]="lastName" maxlength="100" required>
-      </label>
-    </div>
-    <p class="form-hint">Le prénom et le nom servent à créer une nouvelle fiche. Une fiche existante conserve son identité.</p>
-    <label class="form-field form-field-wide">
-      <span class="form-label is-required">Adresse e-mail</span>
-      <input class="form-control md:max-w-md" [name]="'guardianEmail' + studentId()" type="email" email [(ngModel)]="email" (blur)="email = email.trim().toLowerCase()" maxlength="254" required>
-      <span class="form-hint">Si un compte existe, il est réutilisé avec ses rôles et son mot de passe conservés. Sinon, une invitation valable 48 heures est envoyée à cette adresse.</span>
-    </label>
-    @if (actionError()) {
-      <p class="form-error" role="alert">{{ actionError() }}</p>
+    <h4 class="text-sm font-semibold text-[#35473b]">Renseignement tuteur(s)</h4>
+    @if (access.hasPermission('can_guardian_read', establishmentId())) {
+      <ul class="mt-2 divide-y divide-[#edf0ec] rounded-lg border border-[#e1e7e0] bg-white">
+        @for (guardian of guardians(); track guardian.id) { <li class="flex flex-wrap items-center justify-between gap-3 px-3 py-2 text-sm"><span class="text-[#35473b]">{{ guardian.firstName }} {{ guardian.lastName }}<span class="ml-2 text-xs text-[#78837b]">{{ guardian.email }}</span></span></li> }
+        @empty { <li class="px-3 py-3 text-sm text-[#69756d]">Aucun tuteur renseigné.</li> }
+      </ul>
     }
-    <p class="form-legend">* Champ obligatoire</p>
-    <div class="form-actions">
-      <button class="btn btn-primary" type="submit" [disabled]="isLinking()">{{ isLinking() ? 'Liaison…' : 'Lier le tuteur' }}</button>
-    </div>
-  </form>
-</ng-template></app-form-modal>
+    @if (!readOnly()) {
+      <app-form-modal title="Renseignement tuteur(s)" [busy]="isLinking() || !!unlinkingId()" *appPermission="'can_guardian_link'" [completed]="successMessage()" (opened)="successMessage.set(null); actionError.set(null)"><ng-template><div class="p-5 sm:p-6"><app-guardian-form [guardians]="guardians()" [initialValues]="initialValues()" [disabled]="isLinking() || !!unlinkingId()" [canLink]="access.hasPermission('can_guardian_link', establishmentId())" [canUnlink]="access.hasPermission('can_guardian_unlink', establishmentId())" (submitted)="link($event)" (removeRequested)="unlink($event)" (draftsChanged)="draftsChanged.emit()" />@if (actionError()) { <p class="form-error mt-4" role="alert">{{ actionError() }}</p> }</div></ng-template></app-form-modal>
+    }
+  }
+  @if (!access.hasPermission('can_guardian_read', establishmentId())) { <p class="mt-2 text-sm text-[#69756d]">Votre compte ne permet pas de consulter les tuteurs de cet élève.</p> }
+  @if (embedded() && actionError()) { <p class="form-error mt-4" role="alert">{{ actionError() }}</p> }
 }

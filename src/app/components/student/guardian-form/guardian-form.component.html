@@ -1,0 +1,28 @@
+<form class="min-w-0 space-y-4" (ngSubmit)="submit()" [attr.aria-busy]="disabled()">
+  <fieldset class="m-0 min-w-0 border-0 p-0" [disabled]="disabled()">
+    <legend class="sr-only">Informations des tuteurs</legend>
+    <div class="max-h-[26rem] overflow-y-auto overscroll-contain rounded-xl border border-[#e1e7e0] bg-white">
+      <div class="grid min-w-0 grid-cols-[minmax(0,1fr)_5.5rem] items-end gap-x-3 gap-y-4 p-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.5fr)_5.5rem] sm:p-5">
+        <span class="form-label is-required hidden sm:block" aria-hidden="true">Prénom</span>
+        <span class="form-label is-required hidden sm:block" aria-hidden="true">Nom</span>
+        <span class="form-label is-required hidden sm:block" aria-hidden="true">E-mail</span>
+        <span class="hidden sm:block" aria-hidden="true"></span>
+        @for (row of rows(); track row.key; let index = $index) {
+          @if (index > 0) { <div class="col-span-full h-px bg-[#edf0ec]" aria-hidden="true"></div> }
+          <div class="contents" role="group" [attr.aria-label]="'Tuteur ' + (index + 1)">
+            <label class="form-field col-span-2 sm:col-span-1"><span class="form-label is-required sm:sr-only">Prénom</span><input class="form-control" [name]="'guardianFirstName-' + row.key" [attr.name]="'guardianFirstName-' + row.key" [ngModel]="row.value.firstName" (ngModelChange)="change(row, 'firstName', $event)" maxlength="100" [readonly]="!row.editing || !canLink()" [attr.aria-readonly]="!row.editing || !canLink()" required></label>
+            <label class="form-field col-span-2 sm:col-span-1"><span class="form-label is-required sm:sr-only">Nom</span><input class="form-control" [name]="'guardianLastName-' + row.key" [attr.name]="'guardianLastName-' + row.key" [ngModel]="row.value.lastName" (ngModelChange)="change(row, 'lastName', $event)" maxlength="100" [readonly]="!row.editing || !canLink()" required></label>
+            <label class="form-field"><span class="form-label is-required sm:sr-only">E-mail</span><input class="form-control" [name]="'guardianEmail-' + row.key" [attr.name]="'guardianEmail-' + row.key" type="email" email [ngModel]="row.value.email" (ngModelChange)="change(row, 'email', $event)" maxlength="254" [readonly]="!row.editing || !canLink()" required></label>
+            <div class="flex items-center justify-end gap-1">
+              @if (!row.guardian && !row.editing && canLink()) { <button class="btn btn-secondary size-11! p-0!" type="button" (click)="edit(row)" [attr.aria-label]="'Modifier le tuteur ' + (index + 1)" title="Modifier la saisie du tuteur"><svg lucidePencil class="size-4" aria-hidden="true"></svg></button> }
+              @if (row.guardian ? canUnlink() : canLink()) { <button class="btn btn-secondary size-11! p-0!" type="button" (click)="remove(row)" [attr.aria-label]="'Supprimer le tuteur ' + (index + 1)" title="Supprimer le tuteur"><svg lucideTrash2 class="size-4" aria-hidden="true"></svg></button> }
+            </div>
+          </div>
+        } @empty { <p class="col-span-full text-sm text-[#69756d]">Aucun tuteur renseigné.</p> }
+      </div>
+    </div>
+    @if (canLink()) { <button class="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#b9cdbd] bg-white px-4 py-3 text-sm font-semibold text-[#47745d] transition hover:border-[#47745d] hover:bg-[#edf4ee] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#47745d] disabled:opacity-60" type="button" (click)="add()" [disabled]="draftCount() >= 100"><svg lucidePlus class="size-4 shrink-0" aria-hidden="true"></svg>Ajouter un tuteur</button> }
+  </fieldset>
+  @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+  @if (!embedded()) { <div class="form-actions"><button class="btn btn-primary" type="submit" [disabled]="disabled()">{{ disabled() ? 'Enregistrement…' : 'Enregistrer' }}</button></div> }
+</form>

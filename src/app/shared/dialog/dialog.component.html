@@ -4,6 +4,7 @@
   class="dialog-surface [overflow-wrap:anywhere] m-auto max-h-[90dvh] w-[calc(100%_-_2rem)] overflow-y-auto overscroll-contain rounded-xl border border-[#e1e7e0] bg-white p-0 text-[#26372d] shadow-xl backdrop:bg-[#13291f]/50"
   [class.max-w-xl]="size() === 'default'"
   [class.max-w-3xl]="size() === 'wide'"
+  [class.max-w-5xl]="size() === 'extra-wide'"
   (cancel)="cancel($event)"
 >
   <header

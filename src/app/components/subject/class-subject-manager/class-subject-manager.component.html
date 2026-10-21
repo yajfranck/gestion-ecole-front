@@ -1,0 +1,43 @@
+<section aria-label="Matières de la classe">
+  @if (!access.hasPermission('can_class_subject_read', establishmentId())) {
+    <p class="state-empty">Votre compte ne permet pas de consulter les matières de cette classe.</p>
+  } @else if (loading()) {
+    <p class="state-loading" role="status">Chargement des matières…</p>
+  } @else if (loadError()) {
+    <div class="state-error" role="alert"><p>{{ loadError() }}</p><button type="button" class="state-retry" (click)="load()">Réessayer</button></div>
+  } @else {
+    <form class="min-w-0 space-y-4" (ngSubmit)="save()" [attr.aria-busy]="busy()">
+      <fieldset class="m-0 min-w-0 space-y-4 border-0 p-0" [disabled]="busy()">
+        <legend class="sr-only">Matières de la classe</legend>
+        @if (access.hasPermission('can_class_subject_assign', establishmentId())) {
+          <div class="flex justify-end"><button class="btn btn-secondary" type="button" (click)="add()" [disabled]="!canAdd()"><svg lucidePlus class="size-4" aria-hidden="true"></svg>Ajouter une matière</button></div>
+        }
+        <app-form-rows [headings]="['Matière *']">
+          @for (item of assignedSubjects(); track item.assignment.id; let index = $index) {
+            @if (index > 0) { <div class="col-span-full h-px bg-[#edf0ec]" aria-hidden="true"></div> }
+            <div class="contents" role="group" [attr.aria-label]="'Matière ' + (item.subject?.name ?? 'indisponible')">
+              <div class="form-control flex items-center gap-2 bg-[#f8faf7] text-sm"><span class="min-w-0 break-words">{{ item.subject?.name ?? 'Matière indisponible' }}</span><span class="shrink-0 font-mono text-xs text-[#47745d]">{{ item.subject?.code }}</span></div>
+              <div>@if (access.hasPermission('can_class_subject_unassign', establishmentId())) { <button class="btn btn-secondary size-11! p-0!" type="button" (click)="unassign(item.assignment)" [attr.aria-label]="'Retirer la matière ' + (item.subject?.name ?? 'indisponible')" title="Retirer la matière de la classe"><svg lucideTrash2 class="size-4" aria-hidden="true"></svg></button> }</div>
+            </div>
+          }
+          @for (row of rows; track row.key; let index = $index) {
+            @if (assignedSubjects().length || index > 0) { <div class="col-span-full h-px bg-[#edf0ec]" aria-hidden="true"></div> }
+            <div class="contents" role="group" [attr.aria-label]="'Nouvelle matière ' + (index + 1)">
+              <label class="form-field"><span class="sr-only">Matière à ajouter {{ index + 1 }}</span><select class="form-control" [name]="'classSubject-' + row.key" [(ngModel)]="row.subjectId" required><option value="" disabled>Choisir une matière</option>@for (subject of options(row.key); track subject.id) { <option [value]="subject.id">{{ subject.name }}{{ subject.code ? ' · ' + subject.code : '' }}</option> }</select></label>
+              <button class="btn btn-secondary size-11! p-0!" type="button" (click)="remove(row.key)" [attr.aria-label]="'Retirer la nouvelle matière ' + (index + 1)" title="Retirer la ligne"><svg lucideTrash2 class="size-4" aria-hidden="true"></svg></button>
+            </div>
+          }
+          @if (!assignedSubjects().length && !rows.length) { <p class="col-span-full state-empty">Aucune matière affectée à cette classe.</p> }
+        </app-form-rows>
+      </fieldset>
+      @if (!subjects().length && access.hasPermission('can_subject_read', establishmentId())) {
+        <p class="text-sm text-[#69756d]">Créez des matières dans le <a class="font-semibold text-[#47745d] underline" [routerLink]="['/establishments', establishmentId(), 'referentials']">catalogue Matières</a> pour les affecter à cette classe.</p>
+      }
+      @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+      <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e7e0] pt-4">
+        <p class="text-xs text-[#78837b]">* Champ obligatoire</p>
+        <div class="flex gap-2"><button class="btn btn-secondary" type="button" (click)="canceled.emit()" [disabled]="busy()">Fermer</button>@if (access.hasPermission('can_class_subject_assign', establishmentId())) { <button class="btn btn-primary" type="submit" [disabled]="busy() || !rows.length">{{ busy() ? 'Enregistrement…' : 'Enregistrer' }}</button> }</div>
+      </footer>
+    </form>
+  }
+</section>

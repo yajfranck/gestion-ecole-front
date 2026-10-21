@@ -124,6 +124,7 @@ export class ClassSubjectFormComponent {
         next: (assignment) => {
           this.saving.set(false);
           this.busyChange.emit(false);
+          if (!this.assignment()) this.selectedSubjectId = '';
           this.saved.emit(assignment);
         },
         error: (error: unknown) => {

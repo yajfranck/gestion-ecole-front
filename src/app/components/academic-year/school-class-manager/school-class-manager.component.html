@@ -28,7 +28,7 @@
       <div class="flex flex-col items-center px-5 py-12 text-center sm:px-8">
         <span class="mb-4 flex size-14 items-center justify-center rounded-full bg-[#edf4ee] text-2xl text-[#47745d]" aria-hidden="true">⌂</span>
         <h3 class="text-base font-semibold text-[#26372d]">Aucune classe pour cette année</h3>
-        <p class="mt-2 max-w-md text-sm leading-6 text-[#69756d]">Créez vos classes, puis ajoutez leurs salles depuis les détails pour organiser les inscriptions.</p>
+        <p class="mt-2 max-w-md text-sm leading-6 text-[#69756d]">Créez vos classes, puis ajoutez leurs salles depuis le bouton Salles pour organiser les inscriptions.</p>
         @if (can('create')) { <button class="btn btn-primary mt-5" type="button" (click)="openCreate()">Créer la première classe</button> }
       </div>
     </section>
@@ -49,8 +49,12 @@
           </label>
           @if (searchTerm() || selectedSeries()) { <button class="min-h-11 px-2 text-sm font-semibold text-[#47745d] underline underline-offset-4" type="button" (click)="clearFilters()">Effacer les filtres</button> }
         </div>
-        <p class="text-sm text-[#69756d]" aria-live="polite">{{ filteredClasses().length }} classe{{ filteredClasses().length > 1 ? 's' : '' }}</p>
+        <div class="flex shrink-0 items-center gap-3">
+          <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="refreshCapacity()" [disabled]="capacity.loading()">{{ capacity.loading() ? 'Chargement des indicateurs…' : 'Actualiser les indicateurs' }}</button>
+          <p class="text-sm text-[#69756d]" aria-live="polite">{{ filteredClasses().length }} classe{{ filteredClasses().length > 1 ? 's' : '' }}</p>
+        </div>
       </div>
+      @if (capacity.error()) { <p class="border-b border-[#e9ede8] bg-[#fff4ef] px-5 py-3 text-sm text-[#8a3e2d]" role="alert">Certains indicateurs sont indisponibles. Actualisez les indicateurs pour réessayer.</p> }
       @if (filteredClasses().length === 0) {
         <div class="px-5 py-10 text-center sm:px-6">
           <p class="text-sm font-medium text-[#35473b]">Aucun résultat pour ces critères.</p>
@@ -58,16 +62,29 @@
         </div>
       } @else {
       <div class="table-wrap">
-      <table class="min-w-[44rem] w-full text-left text-sm">
-        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold">Classe</th><th scope="col" class="px-5 py-3 font-semibold">Code</th><th scope="col" class="px-5 py-3 font-semibold">Série</th><th scope="col" class="px-5 py-3 text-right font-semibold">Actions</th></tr></thead>
+      <table class="min-w-[64rem] w-full text-left text-sm">
+        <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold">Classe</th><th scope="col" class="px-5 py-3 font-semibold">Code</th><th scope="col" class="px-5 py-3 font-semibold">Série</th><th scope="col" class="px-4 py-3 text-center font-semibold">Élèves inscrits</th><th scope="col" class="px-4 py-3 text-center font-semibold">Salles actives</th><th scope="col" class="px-4 py-3 text-center font-semibold">Places restantes</th><th scope="col" class="px-5 py-3 text-right font-semibold">Actions</th></tr></thead>
         <tbody class="divide-y divide-[#edf0ec]">
           @for (schoolClass of filteredClasses(); track schoolClass.id) {
             <tr class="hover:bg-[#fbfcfa]">
               <th scope="row" class="px-5 py-4 font-semibold text-[#26372d]">{{ schoolClass.name }}</th>
               <td class="px-5 py-3 font-mono text-xs text-[#47745d]">{{ schoolClass.code }}</td>
               <td class="px-5 py-3 text-[#69756d]">{{ schoolClass.series || 'Non définie' }}</td>
+              @if (capacity.indicators()[schoolClass.id]; as stats) {
+                <td data-label="Élèves inscrits" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]" [title]="stats.restricted ? 'La consultation des inscriptions n’est pas autorisée pour votre compte.' : 'Inscriptions de l’année, y compris les dossiers archivés qui restent comptabilisés dans la capacité.'">{{ stats.enrolled ?? (stats.loading ? '…' : '—') }}</td>
+                <td data-label="Salles actives" class="px-4 py-3 text-center font-semibold tabular-nums text-[#35473b]">{{ stats.activeRooms ?? (stats.loading ? '…' : '—') }}</td>
+                <td data-label="Places restantes" class="px-4 py-3 text-center" [title]="stats.restricted ? 'La consultation des inscriptions est nécessaire pour calculer les places restantes.' : 'Capacité disponible des salles actives après déduction des inscriptions enregistrées.'">
+                  <span class="font-semibold tabular-nums" [class]="stats.remaining === 0 ? 'text-[#8a3e2d]' : stats.remaining !== null && stats.capacity && stats.remaining <= stats.capacity * 0.1 ? 'text-[#8a672f]' : 'text-[#47745d]'">{{ stats.remaining ?? (stats.loading ? '…' : '—') }}</span>
+                  @if (stats.capacity !== null) { <span class="mt-0.5 block whitespace-nowrap text-xs text-[#78837b]">sur {{ stats.capacity }} places</span> }
+                  @if (stats.activeRooms === 0) { <span class="mt-1 inline-block whitespace-nowrap rounded-full bg-[#f7f1e6] px-2 py-0.5 text-xs font-medium text-[#8a672f]">Aucune salle</span> }
+                  @else if (stats.remaining === 0 && stats.capacity) { <span class="mt-1 inline-block rounded-full bg-[#fff4ef] px-2 py-0.5 text-xs font-medium text-[#8a3e2d]">Complète</span> }
+                  @else if (stats.remaining !== null && stats.capacity && stats.remaining <= stats.capacity * 0.1) { <span class="mt-1 inline-block whitespace-nowrap rounded-full bg-[#f7f1e6] px-2 py-0.5 text-xs font-medium text-[#8a672f]">Presque pleine</span> }
+                </td>
+              }
               <td class="px-5 py-3 text-right">
                 <div class="flex flex-wrap justify-end gap-2">
+                  @if (access.hasPermission('can_class_subject_read', establishmentId())) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" [attr.aria-label]="'Matières de ' + schoolClass.name" (click)="openManagement(schoolClass, 'subjects', $event)">Matières</button> }
+                  <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" aria-haspopup="dialog" [attr.aria-label]="'Salles de ' + schoolClass.name" (click)="openManagement(schoolClass, 'rooms', $event)">Salles</button>
                   <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" [attr.aria-expanded]="expandedId() === schoolClass.id" (click)="toggleDetail(schoolClass)">{{ expandedId() === schoolClass.id ? 'Masquer les détails' : 'Détails' }}</button>
                   @if (can('update')) { <button class="btn btn-secondary min-h-9! px-3! text-xs!" type="button" (click)="startEditing(schoolClass)">Modifier</button> }
                   @if (can('delete')) { <button class="btn btn-danger min-h-9! px-3! text-xs!" type="button" [disabled]="!!archivingId()" (click)="archive(schoolClass)">{{ archivingId() === schoolClass.id ? 'Archivage…' : 'Archiver' }}</button> }
@@ -76,7 +93,7 @@
             </tr>
             @if (editingId() === schoolClass.id && can('update')) {
               <tr>
-                <td class="p-0" colspan="4"><app-form-modal title="Modifier la classe" [busy]="isSaving()" (closed)="cancelEditing()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+                <td class="p-0" colspan="7"><app-form-modal title="Modifier la classe" [busy]="isSaving()" (closed)="cancelEditing()" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
                   <form class="min-w-0" [attr.aria-label]="'Modifier ' + schoolClass.name" (ngSubmit)="save(schoolClass)" [attr.aria-busy]="isSaving()">
                     <div class="border-b border-[#e9ede8] px-5 py-5 sm:px-6">
                       <div class="flex flex-wrap items-center justify-between gap-2">
@@ -117,7 +134,7 @@
             }
             @if (expandedId() === schoolClass.id) {
               <tr>
-                <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="4">
+                <td class="bg-[#f8faf7] p-4 sm:p-5" colspan="7">
                   <app-school-class-detail [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="schoolClass.id" />
                 </td>
               </tr>
@@ -139,6 +156,15 @@
         (saved)="onCreated($event)"
         (cancelled)="closeCreate()"
       />
+    </app-dialog>
+  }
+
+  @if (management(); as panel) {
+    <app-dialog [title]="(panel.kind === 'subjects' ? 'Matières' : 'Salles') + ' · ' + panel.schoolClass.name" size="wide" [busy]="managementBusy()" [returnFocusTo]="panel.trigger" (dismiss)="closeManagement()">
+      <div class="section-body">
+        @if (panel.kind === 'subjects') { <app-class-subject-manager [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="panel.schoolClass.id" (canceled)="closeManagement()" /> }
+        @else { <app-classroom-manager [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [schoolClassId]="panel.schoolClass.id" (canceled)="closeManagement()" (changed)="updateClassrooms(panel.schoolClass.id, $event)" /> }
+      </div>
     </app-dialog>
   }
 </section>

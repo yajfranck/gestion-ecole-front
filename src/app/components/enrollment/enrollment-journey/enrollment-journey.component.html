@@ -1,0 +1,48 @@
+<div class="min-w-0">
+  <header class="border-b border-[#e1e7e0] bg-[#f8faf7] px-5 py-5 sm:px-6">
+    <ol class="grid grid-cols-3 gap-2 sm:gap-3" aria-label="Progression de l’inscription">
+      @for (label of ['Identité de l’élève', 'Parent ou tuteur', 'Classe et encaissement']; track label; let index = $index) {
+        <li><button type="button" [attr.aria-label]="label" class="flex h-full w-full min-w-0 flex-col items-center gap-2 rounded-lg border px-2 py-3 text-center text-[10px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 sm:flex-row sm:px-3 sm:text-left sm:text-xs" [class]="step() === index + 1 ? 'border-[#47745d] bg-[#edf4ee] text-[#244a37]' : 'border-[#e1e7e0] bg-white text-[#69756d]'" [attr.aria-current]="step() === index + 1 ? 'step' : null" [disabled]="saving() || (index > 0 && (!student() || identityPending())) || (index === 2 && (!guardianReady() || guardianPending()))" (click)="navigate(index + 1)"><span class="grid size-6 shrink-0 place-items-center rounded-full border border-current">{{ index + 1 }}</span><span class="sm:hidden">{{ index === 2 ? 'Classe et frais' : label }}</span><span class="hidden sm:inline">{{ label }}</span></button></li>
+      }
+    </ol>
+  </header>
+  @if (storageError()) { <p class="form-error mx-5 mt-4 sm:mx-6" role="alert">{{ storageError() }}</p> }
+  @if (step() === 1) {
+    @if (student(); as current) {
+      @if (access.hasPermission('can_student_update', establishmentId())) {
+        <app-student-form [establishmentId]="establishmentId()" [student]="current" [initialIdentity]="identityInitial()" [showDateOfBirth]="false" [embedded]="true" (updated)="onStudentUpdated($event)" (busyChange)="onBusy($event)" />
+      } @else {
+        <div class="section-body"><p class="form-success">{{ current.firstName }} {{ current.lastName }} · {{ current.studentNumber }}</p><p class="form-hint mt-3">Votre compte ne permet pas de modifier l’identité de cet élève.</p></div>
+      }
+    } @else {
+      <div class="flex flex-wrap gap-2 px-5 pt-5 sm:px-6" aria-label="Type de dossier">
+        @if (access.hasPermission('can_student_create', establishmentId()) && !unavailable()) { <button type="button" class="btn" [class]="mode() === 'new' ? 'btn-primary' : 'btn-secondary'" (click)="switchMode('new')">Nouvel élève</button> }
+        <button type="button" class="btn" [class]="mode() === 'existing' ? 'btn-primary' : 'btn-secondary'" (click)="switchMode('existing')">Dossier existant</button>
+      </div>
+      @if (mode() === 'new') {
+        <app-student-form [establishmentId]="establishmentId()" [initialIdentity]="identityInitial()" [showDateOfBirth]="false" [embedded]="true" (created)="acceptStudent($event)" (busyChange)="onBusy($event)" />
+      } @else {
+        <form class="form-grid" (ngSubmit)="chooseExisting()">
+          @if (unavailable()) { <p class="form-error" role="alert">Ce dossier est indisponible ou déjà inscrit pour cette année. Recherchez un dossier actif avant de poursuivre.</p> }
+          <label class="form-field form-field-wide"><span class="form-label">Rechercher un élève</span><input class="form-control" name="journeyStudentSearch" type="search" [(ngModel)]="existingSearch" placeholder="Nom, prénom ou numéro"></label>
+          <label class="form-field form-field-wide"><span class="form-label is-required">Dossier élève</span><select class="form-control" name="journeyStudentId" [(ngModel)]="existingId" required><option value="" disabled>Choisir un élève</option>@for (item of matchingStudents(); track item.id) { <option [value]="item.id" [disabled]="enrolled(item.id)">{{ item.firstName }} {{ item.lastName }} · {{ item.studentNumber }}{{ enrolled(item.id) ? ' · déjà inscrit' : '' }}</option> }</select></label>
+        </form>
+      }
+    }
+  }
+  @if (step() === 2 && student(); as current) {
+    <div class="section-body">
+      <app-student-guardians [establishmentId]="establishmentId()" [studentId]="current.id" [embedded]="true" [initialGuardians]="guardiansInitial()" (guardiansLoaded)="onGuardians($event)" (guardianLinked)="onGuardianLinked()" (continued)="onGuardiansContinued()" (draftsChanged)="onProgress()" (busyChange)="onBusy($event)" />
+    </div>
+  }
+  @if (step() === 3 && student(); as current) {
+    @if (access.hasPermission('can_enrollment_create', establishmentId()) && access.hasPermission('can_school_class_read', establishmentId())) {
+      <app-enrollment-form [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="journeyStudents()" [classes]="classes()" [enrollments]="enrollments()" [initialStudentId]="current.id" [initialSelection]="selectionInitial()" [embedded]="true" (progressChanged)="onProgress()" (busyChange)="onBusy($event)" (created)="finish($event)" />
+    } @else { <p class="state-empty">Votre compte permet de préparer le dossier. Un membre autorisé pourra finaliser l’affectation et l’encaissement.</p> }
+  }
+  <footer class="sticky bottom-0 z-10 grid gap-2 border-t border-[#e1e7e0] bg-white px-4 py-4 sm:gap-3 sm:px-6" [class.grid-cols-2]="isFinalStep()" [class.grid-cols-3]="!isFinalStep()">
+    <button class="btn btn-secondary min-w-0 px-2! py-2 text-[10px]! leading-4! sm:px-4! sm:text-sm! sm:leading-5!" type="button" [disabled]="saving() || step() === 1" (click)="previous()">Étape précédente</button>
+    @if (!isFinalStep()) { <button class="btn btn-secondary min-w-0 px-2! py-2 text-[10px]! leading-4! sm:px-4! sm:text-sm! sm:leading-5!" type="button" [disabled]="saving()" (click)="saveAndClose()">Enregistrer et quitter</button> }
+    <button class="btn btn-primary min-w-0 px-2! py-2 text-[10px]! leading-4! sm:px-4! sm:text-sm! sm:leading-5!" type="button" [disabled]="!canContinue()" (click)="saveAndContinue()">{{ saving() ? 'Enregistrement…' : isFinalStep() ? 'Terminer' : 'Enregistrer et continuer' }}</button>
+  </footer>
+</div>

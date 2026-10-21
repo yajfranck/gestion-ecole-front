@@ -1,8 +1,15 @@
+import { DatePipe } from '@angular/common';
+import { EnrollmentDraft } from '../../../models/enrollment/enrollment-draft.model';
+import { EnrollmentTableRow } from '../../../models/enrollment/enrollment-table-row.model';
+import { EnrollmentDraftService } from '../../../service/enrollment-draft-service/enrollment-draft.service';
+import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
+import { DialogComponent } from '../../../shared/dialog/dialog.component';
+import { EnrollmentJourneyComponent } from '../enrollment-journey/enrollment-journey.component';
 import { ToastService } from '../../../service/toast-service/toast.service';
 import { FormModalComponent } from '../../../shared/form-modal/form-modal.component';
 import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { combineLatest, forkJoin, of, Subscription } from 'rxjs';
 import { FormsModule } from '@angular/forms';
@@ -13,19 +20,26 @@ import { Student } from '../../../models/student/student.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
 import { EnrollmentService } from '../../../service/enrollment-service/enrollment.service';
 import { StudentService } from '../../../service/student-service/student.service';
-import { EnrollmentFormComponent } from '../enrollment-form/enrollment-form.component';
 import { ClassroomService } from '../../../service/classroom-service/classroom.service';
 import { Classroom } from '../../../models/classroom/classroom.model';
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 
 @Component({
   selector: 'app-enrollment-workspace',
-  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink, EnrollmentFormComponent],
+  imports: [FormModalComponent, PermissionDirective, FormsModule, RouterLink, EnrollmentJourneyComponent, DialogComponent, DatePipe],
   templateUrl: './enrollment-workspace.component.html',
   styleUrl: './enrollment-workspace.component.css'
 })
 export class EnrollmentWorkspaceComponent {
   private readonly toast = inject(ToastService);
+  private readonly drafts = inject(EnrollmentDraftService);
+  private readonly confirmation = inject(ConfirmationDialogService);
+  protected readonly journeyOpen = signal(false);
+  protected readonly activeDraft = signal<EnrollmentDraft | null>(null);
+  protected readonly journey = viewChild<EnrollmentJourneyComponent>('journeyEditor');
+  protected journeyTrigger: HTMLElement | null = null;
+  protected readonly pendingDrafts = computed(() => this.drafts.list(this.establishmentId(), this.academicYearId()).filter(draft => !draft.studentId || !this.enrollments().some(enrollment => enrollment.studentId === draft.studentId)));
+  protected readonly canStart = computed(() => this.access.hasPermission('can_student_read', this.establishmentId()) && this.access.hasAnyPermission(['can_student_create', 'can_enrollment_create', 'can_guardian_link'], this.establishmentId()));
   private readonly destroyRef = inject(DestroyRef);
   private loadRevision = 0;
   private loadSubscription?: Subscription;
@@ -48,8 +62,28 @@ export class EnrollmentWorkspaceComponent {
   protected readonly students = signal<Student[]>([]);
   protected readonly classes = signal<SchoolClass[]>([]);
   protected readonly enrollments = signal<Enrollment[]>([]);
+  protected readonly enrollmentRows = computed<EnrollmentTableRow[]>(() => {
+    const rows: EnrollmentTableRow[] = this.pendingDrafts().map(draft => ({
+      key: `draft-${draft.id}`, status: 'IN_PROGRESS', draft, enrollment: null,
+      studentName: `${draft.identity.firstName} ${draft.identity.lastName}`.trim() || 'Nouveau dossier',
+      studentId: draft.studentId, schoolClassId: draft.selection.schoolClassId || null,
+      className: draft.selection.schoolClassId ? this.classNameFor(draft.selection.schoolClassId) : 'À choisir',
+      roomName: this.roomsByClass()[draft.selection.schoolClassId]?.find(room => room.id === draft.selection.classroomId)?.name ?? (draft.selection.classroomId ? 'À confirmer' : 'À choisir'),
+      progress: draft.step === 1 ? 'Identité à compléter' : draft.step === 2 ? 'Tuteur à vérifier' : 'Classe et règlement à finaliser',
+      updatedAt: draft.updatedAt
+    }));
+    if (this.access.hasPermission('can_enrollment_read', this.establishmentId())) {
+      rows.push(...this.enrollments().map(enrollment => ({
+        key: `enrollment-${enrollment.id}`, status: 'COMPLETED' as const, draft: null, enrollment,
+        studentName: this.studentNameFor(enrollment.studentId), studentId: enrollment.studentId,
+        schoolClassId: enrollment.schoolClassId, className: this.classNameFor(enrollment.schoolClassId), roomName: this.roomNameFor(enrollment),
+        progress: enrollment.paymentDecisionBy ? (enrollment.advanceAccepted ? 'Avance acceptée' : 'Règlement intégral ou sans frais') : 'Inscription antérieure · décision non renseignée',
+        updatedAt: enrollment.createdAt || null
+      })));
+    }
+    return rows.sort((left, right) => (Date.parse(right.updatedAt ?? '') || 0) - (Date.parse(left.updatedAt ?? '') || 0));
+  });
   protected readonly isLoading = signal(true);
-  protected readonly isCreating = signal(false);
   protected readonly loadError = signal<string | null>(null);
   protected readonly actionError = signal<string | null>(null);
   protected readonly successMessage = signal<string | null>(null);
@@ -73,7 +107,7 @@ export class EnrollmentWorkspaceComponent {
         this.requestedClassId = params[1].get('classId') ?? '';
         this.requestedClassroomId = params[1].get('classroomId') ?? '';
         this.studentId = ''; this.schoolClassId = ''; this.lastEnrollment.set(null); this.successMessage.set(null); this.actionError.set(null);
-        this.changingId.set(null); this.load();
+        this.changingId.set(null); this.journeyOpen.set(false); this.activeDraft.set(null); this.load();
       });
     });
   }
@@ -97,12 +131,34 @@ export class EnrollmentWorkspaceComponent {
     });
   }
 
+  protected startJourney(event: Event, draft: EnrollmentDraft | null = null): void {
+    if (!this.canStart()) return;
+    this.journeyTrigger = event.currentTarget as HTMLElement;
+    this.successMessage.set(null);
+    this.actionError.set(null);
+    this.activeDraft.set(draft);
+    this.journeyOpen.set(true);
+  }
+
+  protected removeDraft(draft: EnrollmentDraft): void {
+    this.confirmation.confirm('Supprimer ce brouillon ? Les informations de l’élève et les tuteurs déjà enregistrés seront conservés.', () => {
+      if (!this.drafts.remove(this.establishmentId(), this.academicYearId(), draft.id)) this.toast.error('Impossible de supprimer ce brouillon sur cet appareil.');
+    }, 'Supprimer le brouillon');
+  }
+
   protected onCreated(enrollment: EnrollmentCreation): void {
+    this.journeyOpen.set(false);
+    this.activeDraft.set(null);
     this.studentId = '';
     this.schoolClassId = '';
     this.lastEnrollment.set(enrollment);
     this.successMessage.set('L’inscription et ses règlements ont été enregistrés.');
-    this.reloadEnrollments();
+    this.load();
+  }
+
+  protected onStudentSaved(student: Student): void {
+    if (student.establishmentId !== this.establishmentId()) return;
+    this.students.update(students => [...students.filter(item => item.id !== student.id), student]);
   }
 
   private loadRoomsForEnrollments(enrollments: Enrollment[]): void {
@@ -160,6 +216,7 @@ export class EnrollmentWorkspaceComponent {
     if (id && this.students().some((student) => student.id === id) && !this.hasEnrollment(id)) {
       this.studentId = id;
     }
+    if ((this.studentId || this.schoolClassId) && this.canStart()) this.journeyOpen.set(true);
   }
 
   protected studentNameFor(studentId: string): string {
@@ -169,14 +226,6 @@ export class EnrollmentWorkspaceComponent {
 
   protected classNameFor(schoolClassId: string): string {
     return this.classes().find((item) => item.id === schoolClassId)?.name ?? 'Classe indisponible';
-  }
-
-  private reloadEnrollments(): void {
-    if (!this.access.hasPermission('can_enrollment_read', this.establishmentId())) return;
-    this.enrollmentService.getEnrollments(this.establishmentId(), this.academicYearId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (enrollments) => { this.enrollments.set(enrollments); this.loadRoomsForEnrollments(enrollments); },
-      error: (error: unknown) => this.actionError.set(this.errorMessage(error))
-    });
   }
 
   private failLoad(error: unknown): void {

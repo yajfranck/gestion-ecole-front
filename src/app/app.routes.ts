@@ -78,7 +78,7 @@ export const routes: Routes = [
 							{ path: '', redirectTo: 'employees', pathMatch: 'full' }
 						]
 					},
-					{ path: 'students/:studentId/edit', component: StudentListComponent, data: { permissions: ['can_student_update'] } },
+					{ path: 'students/:studentId/edit', component: StudentListComponent, data: { permissions: ['can_student_read'] } },
                     { path: 'students', component: StudentListComponent, data: { permissionRule: features.students } },
 					{ path: 'referentials', component: EstablishmentReferentialsComponent, data: { permissionRule: features.subjects } },
 					{

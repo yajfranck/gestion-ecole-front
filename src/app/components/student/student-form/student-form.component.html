@@ -1,8 +1,8 @@
-<form *appPermission="'can_student_create'" #form="ngForm" class="form-grid" (ngSubmit)="save()" [attr.aria-busy]="saving()">
-  <p class="form-hint">
-    Créez le dossier de l’élève. Son numéro sera généré automatiquement ; vous pourrez ensuite
-    procéder à son inscription.
-  </p>
+<form *appPermission="student() ? 'can_student_update' : 'can_student_create'; establishment: establishmentId()" #form="ngForm" class="form-grid" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+  @if (!embedded()) { <p class="form-hint form-field-wide">
+    @if (student(); as current) { Modification du dossier {{ current.studentNumber }}. }
+    @else { Le numéro d’élève est généré automatiquement lors de la validation de l’identité. }
+  </p> }
   <fieldset class="form-row min-w-0 border-0 p-0" [disabled]="saving()">
     <label class="form-field"
       ><span class="form-label is-required">Prénom</span
@@ -26,6 +26,7 @@
         required
     /></label>
   </fieldset>
+  @if (showDateOfBirth() && !student()) {
   <label class="form-field"
     ><span class="form-label">Date de naissance (facultative)</span
     ><input
@@ -36,15 +37,18 @@
       [max]="today()"
       [disabled]="saving()"
   /></label>
+  }
   @if (error()) {
     <p class="form-error" role="alert">{{ error() }}</p>
   }
+  @if (!embedded()) {
   <p class="form-legend">* Champ obligatoire</p>
   <div class="form-actions">
     <button class="btn btn-secondary" type="button" (click)="canceled.emit()" [disabled]="saving()">
-      Annuler</button
+      {{ cancelLabel() }}</button
     ><button class="btn btn-primary" [disabled]="form.invalid || saving()">
-      {{ saving() ? 'Création…' : 'Créer l’élève' }}
+      {{ saving() ? 'Enregistrement…' : submitLabel() || (student() ? 'Enregistrer les modifications' : 'Créer l’élève') }}
     </button>
   </div>
+  }
 </form>

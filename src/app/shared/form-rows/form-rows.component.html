@@ -1,0 +1,7 @@
+<div class="overflow-x-auto rounded-xl border border-[#e1e7e0] bg-white">
+  <div class="relative grid items-end gap-x-3 gap-y-4 p-4 sm:p-5" [class]="layout() === 'triple' ? 'min-w-[36rem] grid-cols-[minmax(0,0.7fr)_minmax(0,1.3fr)_minmax(0,0.8fr)_2.75rem]' : 'min-w-[15rem] grid-cols-[minmax(0,1fr)_2.75rem]'">
+    @for (heading of headings(); track $index) { <span class="form-label" aria-hidden="true">{{ heading }}</span> }
+    <span><span class="sr-only">Actions</span></span>
+    <ng-content />
+  </div>
+</div>

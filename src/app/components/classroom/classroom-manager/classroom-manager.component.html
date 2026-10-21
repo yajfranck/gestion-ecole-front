@@ -1,11 +1,34 @@
-<section class="mb-6 border-b border-[#e1e7e0] pb-5" aria-label="Salles de la classe">
-  <h4 class="text-sm font-semibold text-[#35473b]">Salles et groupes</h4><p class="form-hint mt-1">Chaque élève est affecté à une seule salle. Une classe doit conserver au moins une salle active ; aucune salle n’est créée automatiquement.</p>
-  @if (loading()) { <output class="state-loading">Chargement des salles…</output> }
-  @if (error()) { <div class="state-error" role="alert"><p>{{ error() }}</p><button class="state-retry" type="button" (click)="load()" [disabled]="saving()">Actualiser les salles</button></div> }
-  <ul class="mt-3 divide-y divide-[#e1e7e0]">@for (room of rooms(); track room.id) { <li class="flex flex-wrap items-center justify-between gap-3 py-2 text-sm"><span>{{ room.name }} · {{ room.code }} · {{ room.maxStudents }} places maximum</span><div class="flex gap-2">@if (can('update')) { <button class="btn btn-secondary" type="button" (click)="edit(room)" [disabled]="saving()">Modifier</button> } @if (can('delete')) { <button class="btn btn-secondary" type="button" (click)="archive(room)" [disabled]="saving()">Archiver</button> }</div></li> } @empty { @if (!loading() && !error()) { <li class="state-empty">Aucune salle active. Créez une salle avant d’inscrire des élèves.</li> } }</ul>
-  @if (can('create') || (editingId && can('update'))) {
-    <app-form-modal title="Ajouter ou modifier une salle" [completed]="formCompleted()" [open]="!!editingId" [busy]="saving()" (closed)="cancel()" [error]="error()"><ng-template>
-<form class="form-grid" (ngSubmit)="save()"><label class="form-field">Code<input class="form-control" name="roomCode" [(ngModel)]="code" required maxlength="40" [disabled]="saving()"></label><label class="form-field">Nom de la salle<input class="form-control" name="roomName" [(ngModel)]="name" required maxlength="100" [disabled]="saving()"></label><label class="form-field">Capacité maximale<input class="form-control" name="roomMaxStudents" type="number" min="1" step="1" [(ngModel)]="maxStudents" required [disabled]="saving()"></label><div class="flex items-end gap-2"><button class="btn btn-primary" [disabled]="saving()">{{ editingId ? 'Enregistrer' : 'Ajouter une salle' }}</button>@if (editingId) { <button type="button" class="btn btn-secondary" (click)="cancel()" [disabled]="saving()">Annuler</button> }</div></form>
-</ng-template></app-form-modal>
+<section aria-label="Salles de la classe">
+  @if (!can('read')) {
+    <p class="state-empty">Votre compte ne permet pas de consulter les salles.</p>
+  } @else if (loading()) {
+    <p class="state-loading" role="status">Chargement des salles…</p>
+  } @else if (loadError()) {
+    <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
+  } @else {
+    <form class="min-w-0 space-y-4" (ngSubmit)="save()" [attr.aria-busy]="saving()">
+      <fieldset class="m-0 min-w-0 space-y-4 border-0 p-0" [disabled]="saving()">
+        <legend class="sr-only">Informations des salles</legend>
+        @if (can('create')) {
+          <div class="flex justify-end"><button class="btn btn-secondary" type="button" (click)="add()" [disabled]="!canAdd()"><svg lucidePlus class="size-4" aria-hidden="true"></svg>Ajouter une salle</button></div>
+        }
+        <app-form-rows [headings]="['Code *', 'Nom de la salle *', 'Capacité maximale *']" layout="triple">
+          @for (row of rows; track row.key; let index = $index) {
+            @if (index > 0) { <div class="col-span-full h-px bg-[#edf0ec]" aria-hidden="true"></div> }
+            <div class="contents" role="group" [attr.aria-label]="'Salle ' + (index + 1)">
+              <label class="form-field"><span class="sr-only">Code de la salle {{ index + 1 }}</span><input class="form-control font-mono uppercase" [name]="'roomCode-' + row.key" [(ngModel)]="row.code" required maxlength="40" placeholder="Ex. A" autocomplete="off" [readOnly]="!!row.saved && !can('update')"></label>
+              <label class="form-field"><span class="sr-only">Nom de la salle {{ index + 1 }}</span><input class="form-control" [name]="'roomName-' + row.key" [(ngModel)]="row.name" required maxlength="100" placeholder="Ex. Sixième A" [readOnly]="!!row.saved && !can('update')"></label>
+              <label class="form-field"><span class="sr-only">Capacité maximale de la salle {{ index + 1 }}</span><input class="form-control" [name]="'roomMaxStudents-' + row.key" type="number" min="1" step="1" [(ngModel)]="row.maxStudents" required placeholder="Ex. 40" [readOnly]="!!row.saved && !can('update')"></label>
+              <div>@if (!row.saved || can('delete')) { <button class="btn btn-secondary size-11! p-0!" type="button" (click)="remove(row)" [attr.aria-label]="row.saved ? 'Archiver la salle ' + row.saved.name : 'Retirer la salle ' + (index + 1)" [title]="row.saved ? 'Archiver la salle' : 'Retirer la ligne'"><svg lucideTrash2 class="size-4" aria-hidden="true"></svg></button> }</div>
+            </div>
+          } @empty { <p class="col-span-full state-empty">Aucune salle active.</p> }
+        </app-form-rows>
+      </fieldset>
+      @if (error()) { <p class="form-error" role="alert">{{ error() }}</p> }
+      <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-[#e1e7e0] pt-4">
+        <p class="text-xs text-[#78837b]">* Champs obligatoires</p>
+        <div class="flex gap-2"><button class="btn btn-secondary" type="button" (click)="canceled.emit()" [disabled]="saving()">Fermer</button>@if (can('create') || can('update')) { <button class="btn btn-primary" type="submit" [disabled]="saving() || !hasChanges()">{{ saving() ? 'Enregistrement…' : 'Enregistrer' }}</button> }</div>
+      </footer>
+    </form>
   }
 </section>

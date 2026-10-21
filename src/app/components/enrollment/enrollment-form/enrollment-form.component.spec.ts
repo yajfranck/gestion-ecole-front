@@ -126,4 +126,43 @@ describe('EnrollmentFormComponent', () => {
     tuition.getTuitionFees.and.returnValue(of([fee, { ...fee, id: 'new-fee', name: 'Nouveau frais' }])); component['prepare'](true);
     expect(component['lines']().map((line) => [line.fee.id, line.amount])).toEqual([['fee', 25], ['new-fee', 100]]); expect(component['lines']()[0].reference).toBe('REF'); expect(component['acceptAdvance']).toBeTrue();
   });
+
+  it('conserve le versement et sa référence après retour à l’affectation sans encaisser', async () => {
+    const fixture = await create(); const component = fixture.componentInstance;
+    component['prepare'](); component['lines']()[0].amount = 35; component['lines']()[0].reference = 'AC-001'; component['acceptAdvance'] = true;
+    component['review'](); component['back'](); component['back']();
+    expect(component['step']()).toBe(1);
+    component['prepare']();
+    expect(component['step']()).toBe(2);
+    expect(component['lines']()[0].amount).toBe(35); expect(component['lines']()[0].reference).toBe('AC-001');
+    expect(component['acceptAdvance']).toBeTrue(); expect(api.createEnrollment).not.toHaveBeenCalled();
+  });
+
+  it('reprend les montants d’un brouillon après une lecture à jour des frais sans rejouer un paiement', async () => {
+    const fixture = await create();
+    fixture.componentRef.setInput('initialStudentId', 'student');
+    fixture.componentRef.setInput('initialSelection', { schoolClassId: 'class', classroomId: 'room', phase: 3, acceptAdvance: true,
+      payments: [{ feeId: 'fee', amount: 35, method: 'CASH', reference: 'AC-001' }] });
+    fixture.detectChanges(); await fixture.whenStable();
+    const component = fixture.componentInstance;
+    expect(component['step']()).toBe(2);
+    expect(component['lines']()[0].amount).toBe(35);
+    expect(component['acceptAdvance']).toBeTrue();
+    expect(tuition.getTuitionFees).toHaveBeenCalled();
+    expect(api.createEnrollment).not.toHaveBeenCalled();
+  });
+
+  it('ne prépare aucun nouvel encaissement pour un frais déjà soldé entre deux reprises', async () => {
+    tuition.getStudentCharges.and.returnValue(of([{ feeId: 'fee', studentId: 'student', academicYearId: 'year', establishmentId: 'school', balance: 0, totalPaid: 100 }]));
+    const fixture = await create();
+    fixture.componentRef.setInput('initialStudentId', 'student');
+    fixture.componentRef.setInput('initialSelection', { schoolClassId: 'class', classroomId: 'room', phase: 2, acceptAdvance: false,
+      payments: [{ feeId: 'fee', amount: 100, method: 'CASH', reference: 'Ancienne saisie' }] });
+    fixture.detectChanges(); await fixture.whenStable();
+    const component = fixture.componentInstance;
+    expect(component['lines']()[0].balance).toBe(0);
+    expect(component['payments']()).toEqual([]);
+    expect(component['validPayments']()).toBeTrue();
+    expect(api.createEnrollment).not.toHaveBeenCalled();
+  });
 });

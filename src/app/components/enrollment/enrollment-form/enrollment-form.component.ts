@@ -1,7 +1,9 @@
+import { EnrollmentSelectionDraft } from '../../../models/enrollment/enrollment-draft.model';
+import { ToastService } from '../../../service/toast-service/toast.service';
 import { PermissionDirective } from '../../../shared/permission/permission.directive';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, effect, inject, HostListener, input, OnDestroy, output, signal, untracked } from '@angular/core';
+import { Component, computed, DestroyRef, effect, inject, HostListener, input, OnDestroy, output, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize, forkJoin, of, switchMap } from 'rxjs';
@@ -16,6 +18,7 @@ import { TuitionService } from '../../../service/tuition-service/tuition.service
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { PendingChangesService } from '../../../shared/pending-changes.service';
 import { apiError } from '../../../shared/api-error';
+import { EnrollmentContextService } from '../../../service/enrollment-context-service/enrollment-context.service';
 
 interface FeeLine { fee: TuitionFee; balance: number; previouslyPaid: number; amount: number | null; method: string; reference: string }
 
@@ -27,6 +30,7 @@ export class EnrollmentFormComponent implements OnDestroy {
   private readonly roomsApi = inject(ClassroomService);
   private readonly tuition = inject(TuitionService);
   private readonly api = inject(EnrollmentService);
+  private readonly context = inject(EnrollmentContextService, { optional: true });
   private readonly access = inject(WorkspaceAccessService);
   private readonly destroyRef = inject(DestroyRef);
   readonly establishmentId = input.required<string>();
@@ -35,10 +39,14 @@ export class EnrollmentFormComponent implements OnDestroy {
   readonly classes = input<SchoolClass[]>([]);
   readonly enrollments = input<Enrollment[]>([]);
   readonly initialStudentId = input('');
+  readonly embedded = input(false);
+  readonly initialSelection = input<EnrollmentSelectionDraft | null>(null);
+  readonly progressChanged = output<number>();
   readonly initialClassId = input('');
   readonly initialClassroomId = input('');
   readonly created = output<EnrollmentCreation>();
   protected readonly step = signal(1);
+  readonly isLastStep = computed(() => this.step() === 3);
   protected readonly rooms = signal<Classroom[]>([]);
   protected readonly loadingRooms = signal(false);
   protected readonly loading = signal(false);
@@ -56,9 +64,12 @@ export class EnrollmentFormComponent implements OnDestroy {
   private roomsRevision = 0;
 
   constructor() {
+    inject(ToastService).connect(this.error, 'error');
+    effect(() => { const step = this.step(); untracked(() => this.progressChanged.emit(step)); });
     effect(() => {
       const studentId = this.initialStudentId();
-      const classId = this.initialClassId();
+      const selection = this.initialSelection();
+      const classId = selection?.schoolClassId || this.initialClassId();
       const students = this.students();
       const classes = this.classes();
       const enrollments = this.enrollments();
@@ -68,6 +79,28 @@ export class EnrollmentFormComponent implements OnDestroy {
         this.selectionChanged(true);
       });
     });
+  }
+
+  snapshot(): EnrollmentSelectionDraft {
+    const initial = this.initialSelection();
+    const restoring = (this.loading() || this.loadingRooms()) && initial?.schoolClassId === this.schoolClassId && initial.phase > 1;
+    return { schoolClassId: this.schoolClassId, classroomId: this.classroomId || (restoring ? initial.classroomId : ''), phase: restoring ? initial.phase : this.step(), acceptAdvance: restoring ? initial.acceptAdvance : this.acceptAdvance,
+      payments: restoring && !this.lines().length ? initial.payments : this.lines().map(line => ({ feeId: line.fee.id, amount: line.amount, method: line.method, reference: line.reference })) };
+  }
+
+  continue(): void {
+    if (this.saving() || this.loading() || this.loadingRooms()) return;
+    if (this.step() === 1) this.prepare();
+    else if (this.step() === 2) this.review();
+    else this.confirm();
+  }
+
+  canContinue(): boolean { return !this.saving() && !this.loading() && !this.loadingRooms(); }
+
+  previous(): boolean {
+    if (this.step() <= 1) return false;
+    this.back();
+    return true;
   }
 
   ngOnDestroy(): void { this.pending.dirty.set(false); this.pending.saving.set(false); }
@@ -89,19 +122,22 @@ export class EnrollmentFormComponent implements OnDestroy {
     if (!classId) { this.roomsRevision++; this.loadingRooms.set(false); return; }
     const version = ++this.roomsRevision;
     this.loadingRooms.set(true);
-    this.roomsApi.list(this.establishmentId(), this.academicYearId(), classId).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    const rooms = this.context?.getClassrooms(this.establishmentId(), this.academicYearId(), classId) ?? this.roomsApi.list(this.establishmentId(), this.academicYearId(), classId);
+    rooms.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (rooms) => {
         if (version !== this.roomsRevision) return;
         const available = rooms.filter((room) => room.enabled && room.establishmentId === this.establishmentId() && room.academicYearId === this.academicYearId() && room.schoolClassId === classId);
         this.rooms.set(available);
-        const requested = this.initialClassroomId();
+        const initial = this.initialSelection();
+        const requested = initial?.schoolClassId === classId ? initial.classroomId : this.initialClassroomId();
         this.classroomId = available.some((room) => room.id === requested) ? requested : available.length === 1 ? available[0].id : '';
         this.loadingRooms.set(false);
+        if (initial && initial.phase > 1 && initial.schoolClassId === classId && this.classroomId === requested) this.prepare();
       }, error: (error) => { if (version !== this.roomsRevision) return; this.roomError.set(apiError(error)); this.loadingRooms.set(false); }
     });
   }
 
-  protected prepare(preservePayments = false): void {
+  protected prepare(preservePayments = true, refresh = false): void {
     if (this.loading() || this.saving() || this.loadingRooms()) return;
     if (!this.students().some((student) => student.id === this.studentId && student.enabled && student.establishmentId === this.establishmentId()) || this.hasEnrollment(this.studentId) ||
         !this.classes().some((item) => item.id === this.schoolClassId && item.enabled && item.establishmentId === this.establishmentId() && item.academicYearId === this.academicYearId()) ||
@@ -116,13 +152,20 @@ export class EnrollmentFormComponent implements OnDestroy {
       return;
     }
     const version = ++this.revision;
-    const previous = new Map(preservePayments ? this.lines().map((line) => [line.fee.id, line] as const) : []);
+    const initial = this.initialSelection();
+    const restored = initial?.schoolClassId === this.schoolClassId && initial.classroomId === this.classroomId ? initial : null;
+    const preserveCurrent = preservePayments && this.lines().length > 0;
+    const previous = new Map<string, { amount: number | null; method: string; reference: string }>(preserveCurrent ? this.lines().map(line => [line.fee.id, line]) : (restored?.payments ?? []).map(payment => [payment.feeId, payment]));
+    if (restored && !preserveCurrent) this.acceptAdvance = restored.acceptAdvance;
     this.loading.set(true); this.error.set(null);
-    this.tuition.getTuitionFees(this.establishmentId(), this.academicYearId()).pipe(switchMap((fees) => {
+    const fees = this.context?.getTuitionFees(this.establishmentId(), this.academicYearId(), refresh) ?? this.tuition.getTuitionFees(this.establishmentId(), this.academicYearId());
+    fees.pipe(switchMap((fees) => {
       const applicable = fees.filter((fee) => fee.establishmentId === this.establishmentId() && fee.academicYearId === this.academicYearId() && (
         fee.scope === 'ACADEMIC_YEAR' || (fee.scope === 'SCHOOL_CLASS' && (fee.schoolClassIds ?? (fee.schoolClassId ? [fee.schoolClassId] : [])).includes(this.schoolClassId)) || (fee.scope === 'STUDENT' && fee.studentId === this.studentId)
       ));
-      return applicable.length ? forkJoin({ fees: of(applicable), charges: this.tuition.getStudentCharges(this.establishmentId(), this.academicYearId(), this.studentId), methods: this.tuition.getPaymentMethods(this.establishmentId()) })
+      return applicable.length ? forkJoin({ fees: of(applicable),
+        charges: this.context?.getStudentCharges(this.establishmentId(), this.academicYearId(), this.studentId, refresh) ?? this.tuition.getStudentCharges(this.establishmentId(), this.academicYearId(), this.studentId),
+        methods: this.context?.getPaymentMethods(this.establishmentId(), refresh) ?? this.tuition.getPaymentMethods(this.establishmentId()) })
         : of({ fees: [], charges: [], methods: [] });
     }), takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ fees, charges, methods }) => {
@@ -132,7 +175,7 @@ export class EnrollmentFormComponent implements OnDestroy {
           const charge = charges.find((item) => item.feeId === fee.id && item.studentId === this.studentId && item.academicYearId === this.academicYearId() && item.establishmentId === this.establishmentId());
           const balance = Math.max(0, charge?.balance ?? fee.amount);
           const saved = previous.get(fee.id);
-          return { fee, balance, previouslyPaid: charge?.totalPaid ?? 0, amount: saved ? saved.amount : balance || null, method: saved?.method ?? methods[0]?.code ?? '', reference: saved?.reference ?? '' };
+          return { fee, balance, previouslyPaid: charge?.totalPaid ?? 0, amount: balance === 0 ? null : saved ? saved.amount : balance, method: saved?.method ?? methods[0]?.code ?? '', reference: saved?.reference ?? '' };
         }));
         this.step.set(2); this.pending.dirty.set(true); this.loading.set(false);
       }, error: (error) => { if (version !== this.revision) return; this.error.set(apiError(error)); this.loading.set(false); }
@@ -179,6 +222,7 @@ export class EnrollmentFormComponent implements OnDestroy {
       next: (enrollment) => { this.pending.dirty.set(false); this.pending.saving.set(false); this.saving.set(false); this.studentId = ''; this.schoolClassId = ''; this.classroomId = ''; this.rooms.set([]); this.lines.set([]); this.step.set(1); this.created.emit(enrollment); },
       error: (error: unknown) => {
         this.saving.set(false);
+        this.context?.invalidatePayments(this.establishmentId(), this.academicYearId(), this.studentId);
         if (error instanceof HttpErrorResponse && error.error?.code === 'ENROLLMENT_PAYMENT_REQUIRED') {
           this.unpaidFeeIds.set(Array.isArray(error.error.unpaidFeeIds) ? error.error.unpaidFeeIds.filter((id: unknown): id is string => typeof id === 'string') : []);
           this.step.set(2);

@@ -1,144 +1,88 @@
-import { ToastService } from '../../../service/toast-service/toast.service';
-import { openFormModal } from '../../../testing/modal-fixture';
-import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { environment } from '../../../../environments/environment';
+import { providePermissionFixture } from '../../../testing/permission-fixture';
 import { StudentGuardiansComponent } from './student-guardians.component';
+
+const student = { id: 'student-1', establishmentId: 'school-1', studentNumber: 'STU-1', firstName: 'Ada', lastName: 'Lovelace', enabled: true };
+const guardian = { id: 'g-1', firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' };
+const other = { id: 'g-2', firstName: 'Marie', lastName: 'Diallo', email: 'marie@example.org' };
 
 describe('StudentGuardiansComponent', () => {
   const url = `${environment.apiUrl}/establishments/school-1/students/student-1`;
-  const student = { id: 'student-1', establishmentId: 'school-1', studentNumber: 'STU-00000001', firstName: 'Ada', lastName: 'Lovelace', enabled: true };
-  const guardian = { id: 'g-1', firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' };
   let http: HttpTestingController;
   let fixture: ComponentFixture<StudentGuardiansComponent>;
   let element: HTMLElement;
-
-  beforeEach(() => TestBed.configureTestingModule({
-    imports: [StudentGuardiansComponent],
-    providers: [providePermissionFixture(['can_student_read', 'can_guardian_read', 'can_guardian_link', 'can_guardian_unlink']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()]
-  }));
-
   beforeEach(async () => {
+    TestBed.configureTestingModule({ imports: [StudentGuardiansComponent], providers: [providePermissionFixture(['can_student_read', 'can_guardian_read', 'can_guardian_link', 'can_guardian_unlink']), provideZonelessChangeDetection(), provideHttpClient(), provideHttpClientTesting()] });
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(StudentGuardiansComponent);
-    fixture.componentRef.setInput('establishmentId', 'school-1');
-    fixture.componentRef.setInput('studentId', 'student-1');
-    fixture.detectChanges();
-    http.expectOne(url).flush(student);
-    http.expectOne(`${url}/guardians`).flush([guardian]);
-    fixture.detectChanges();
-    await fixture.whenStable();
-    openFormModal(fixture, 'Lier un tuteur');
-    await fixture.whenStable();
-    element = fixture.nativeElement as HTMLElement;
+    fixture.componentRef.setInput('establishmentId', 'school-1'); fixture.componentRef.setInput('studentId', 'student-1'); fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges(); http.expectOne(url).flush(student); http.expectOne(`${url}/guardians`).flush([]); fixture.detectChanges(); await fixture.whenStable();
+    element = fixture.nativeElement;
   });
-
   afterEach(() => http.verify());
-
-  async function fillForm(firstName = 'Grace', lastName = 'Hopper', email = 'grace@example.org'): Promise<void> {
-    const inputs = element.querySelectorAll('input');
-    [firstName, lastName, email].forEach((value, index) => {
-      inputs[index].value = value;
-      inputs[index].dispatchEvent(new Event('input'));
-      inputs[index].dispatchEvent(new Event('blur'));
-    });
-    fixture.detectChanges();
-    await fixture.whenStable();
+  async function fill(firstName = 'Grace', lastName = 'Hopper', email = 'grace@example.org') {
+    const inputs = [...element.querySelectorAll<HTMLInputElement>('input:not([readonly])')].slice(-3);
+    [firstName, lastName, email].forEach((value, index) => { inputs[index].value = value; inputs[index].dispatchEvent(new Event('input', { bubbles: true })); });
+    fixture.detectChanges(); await fixture.whenStable();
   }
+  function submit() { fixture.componentInstance.saveAndContinue(); fixture.detectChanges(); }
 
-  function submit(): void {
-    if (!element.querySelector('form')) openFormModal(fixture, 'Lier un tuteur');
-    element.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-    fixture.detectChanges();
-  }
-
-  function finishLink(): void {
-    http.expectOne(url).flush(student);
-    http.expectOne(`${url}/guardians`).flush([guardian]);
-    fixture.detectChanges();
-  }
-
-  it('affiche la fiche de l’élève, ses tuteurs et la possibilité de réutiliser un compte du personnel', () => {
-    expect(element.textContent).toContain('STU-00000001');
-    expect(element.textContent).toContain('Grace Hopper');
-    expect(element.textContent).toContain('y compris un membre du personnel ou un administrateur');
+  it('affiche les champs utiles dans une grille commune sans titre supplémentaire', () => {
+    expect(element.querySelector('app-guardian-form h3')).toBeNull();
+    expect(element.textContent).toContain('Ajouter un tuteur');
+    expect(element.textContent).not.toContain('Lier un tuteur');
+    expect(element.textContent).not.toContain('Toute personne');
+    expect(element.querySelectorAll('input').length).toBe(3);
+    expect(element.querySelector('button[aria-label="Supprimer le tuteur 1"] svg')).not.toBeNull();
   });
-
-  it('normalise la saisie et confirme une invitation pour un nouveau compte', async () => {
-    await fillForm(' Grace ', ' Hopper ', ' GRACE@EXAMPLE.ORG ');
-    submit();
-
-    const request = http.expectOne(`${url}/guardians`);
-    expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual({ firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' });
-    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBeTrue();
-    request.flush({ guardian, accessStatus: 'INVITATION_SENT' }, { status: 201, statusText: 'Created' });
-    finishLink();
-    await fixture.whenStable();
-
-    expect(TestBed.inject(ToastService).notifications().map(item => item.message).join(' ')).toContain('Une invitation a été envoyée à grace@example.org');
-    expect(Array.from(element.querySelectorAll('input')).every((input) => input.value === '')).toBeTrue();
-    submit();
-    http.expectNone((request) => request.method === 'POST');
+  it('normalise les champs et utilise la réponse sans nouvelle lecture API', async () => {
+    await fill(' Grace ', ' Hopper ', ' GRACE@EXAMPLE.ORG '); submit();
+    const call = http.expectOne(`${url}/guardians`);
+    expect(call.request.body).toEqual({ firstName: 'Grace', lastName: 'Hopper', email: 'grace@example.org' });
+    expect(element.querySelector('fieldset')!.disabled).toBeTrue();
+    call.flush({ guardian, accessStatus: 'INVITATION_SENT' }); fixture.detectChanges(); await fixture.whenStable();
+    expect(fixture.componentInstance.snapshots()).toEqual([]);
+    expect([...element.querySelectorAll<HTMLInputElement>('input')].map(input => input.value)).toEqual(['Grace', 'Hopper', 'grace@example.org']);
+    expect([...element.querySelectorAll<HTMLInputElement>('input')].every(input => input.readOnly)).toBeTrue();
+    submit(); http.expectNone(() => true);
   });
-
-  it('confirme la réutilisation du compte sans invitation et conserve l’identité renvoyée par le serveur', async () => {
-    await fillForm('Autre prénom', 'Autre nom');
-    submit();
-    http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'ACCESS_ALREADY_ACTIVE' }, { status: 201, statusText: 'Created' });
-    finishLink();
-
-    const message = TestBed.inject(ToastService).notifications().map(item => item.message).join(' ');
-    expect(message).toContain('compte existant de grace@example.org, sans nouvelle invitation');
-    expect(message).toContain('Ses rôles et son mot de passe sont conservés');
-    expect(message).toContain('se reconnecter');
-    expect(element.querySelector('li')!.textContent).toContain('Grace Hopper');
+  it('conserve l’identité renvoyée pour un compte existant sans prétendre la modifier', async () => {
+    await fill('Autre prénom', 'Autre nom'); submit();
+    http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'ACCESS_ALREADY_ACTIVE' }); fixture.detectChanges(); await fixture.whenStable();
+    expect(element.querySelector<HTMLInputElement>('input')!.value).toBe('Grace');
+    expect(element.querySelector('button[aria-label^="Modifier"]')).toBeNull();
+    http.expectNone(request => request.method === 'PATCH' || request.method === 'GET');
   });
-
   for (const [label, firstName, lastName, email] of [
     ['un prénom vide', '', 'Hopper', 'grace@example.org'],
-    ['un nom composé uniquement d’espaces', 'Grace', '   ', 'grace@example.org'],
+    ['un nom blanc', 'Grace', '   ', 'grace@example.org'],
     ['un prénom trop long', 'G'.repeat(101), 'Hopper', 'grace@example.org'],
     ['un nom trop long', 'Grace', 'H'.repeat(101), 'grace@example.org'],
     ['un e-mail invalide', 'Grace', 'Hopper', 'adresse-invalide'],
-    ['un e-mail trop long', 'Grace', 'Hopper', `${'a'.repeat(64)}@${'b'.repeat(63)}.${'c'.repeat(63)}.${'d'.repeat(60)}.fr`]
+    ['un e-mail trop long', 'Grace', 'Hopper', 'a'.repeat(255)]
   ]) {
-    it(`refuse ${label} sans appeler l’API`, async () => {
-      await fillForm(firstName, lastName, email);
-      submit();
-
-      http.expectNone((request) => request.method === 'POST');
-      expect(element.querySelector('[role="alert"]')!.textContent).toContain('Vérifiez le prénom');
-    });
+    it(`refuse ${label} sans appeler l’API`, async () => { await fill(firstName, lastName, email); submit(); http.expectNone(request => request.method === 'POST'); expect(element.querySelector('[role="alert"]')!.textContent).toContain('Vérifiez le prénom'); });
   }
-
-  it('bloque les doubles envois et conserve la saisie en cas de conflit d’identité', async () => {
-    await fillForm();
-    submit();
-    const request = http.expectOne(`${url}/guardians`);
-    submit();
-    http.expectNone((pending) => pending.method === 'POST');
-    request.flush(null, { status: 409, statusText: 'Conflict' });
-    fixture.detectChanges();
-
+  it('bloque les doubles envois et conserve la ligne en cas de refus', async () => {
+    await fill(); submit(); const call = http.expectOne(`${url}/guardians`); submit(); http.expectNone(request => request.method === 'POST');
+    call.flush({}, { status: 409, statusText: 'Conflict' }); fixture.detectChanges();
     expect(element.querySelector('[role="alert"]')!.textContent).toContain('en conflit avec une autre identité');
-    expect(element.querySelector<HTMLInputElement>('input[type="email"]')!.value).toBe('grace@example.org');
-    expect(element.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBeFalse();
-    submit();
-    http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'ACCESS_ALREADY_ACTIVE' });
-    finishLink();
-    expect(element.querySelector('[role="alert"]')).toBeNull();
+    expect(fixture.componentInstance.snapshot().email).toBe('grace@example.org');
+    submit(); http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'ACCESS_ALREADY_ACTIVE' }); fixture.detectChanges(); http.expectNone(request => request.method === 'GET');
   });
-
-  it('explique qu’un tuteur désactivé ou inaccessible ne peut pas être lié', async () => {
-    await fillForm();
-    submit();
-    http.expectOne(`${url}/guardians`).flush(null, { status: 404, statusText: 'Not Found' });
-    fixture.detectChanges();
-
-    expect(element.querySelector('[role="alert"]')!.textContent).toContain('désactivé ou inaccessible');
+  it('conserve les réussites partielles et ne renvoie que les lignes restantes après une erreur', async () => {
+    await fill(); [...element.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.trim() === 'Ajouter un tuteur')!.click(); fixture.detectChanges(); await fixture.whenStable();
+    await fill('Marie', 'Diallo', 'marie@example.org');
+    const continued = jasmine.createSpy('continued'); fixture.componentInstance.continued.subscribe(continued);
+    submit(); http.expectOne(`${url}/guardians`).flush({ guardian, accessStatus: 'INVITATION_SENT' });
+    const second = http.expectOne(`${url}/guardians`); expect(second.request.body.email).toBe('marie@example.org'); second.flush({}, { status: 503, statusText: 'Unavailable' }); fixture.detectChanges(); await fixture.whenStable();
+    expect(continued).not.toHaveBeenCalled(); expect(fixture.componentInstance.snapshots()).toEqual([{ firstName: 'Marie', lastName: 'Diallo', email: 'marie@example.org' }]);
+    expect(fixture.componentInstance['guardians']()).toEqual([guardian]);
+    submit(); const retry = http.expectOne(`${url}/guardians`); expect(retry.request.body.email).toBe('marie@example.org'); retry.flush({ guardian: other, accessStatus: 'INVITATION_SENT' }); fixture.detectChanges();
+    expect(continued).toHaveBeenCalledTimes(1); expect(fixture.componentInstance.snapshots()).toEqual([]); http.expectNone(() => true);
   });
 });

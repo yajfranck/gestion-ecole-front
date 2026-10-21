@@ -3,7 +3,7 @@ import { FormModalComponent } from '../../../shared/form-modal/form-modal.compon
 import { ConfirmationDialogService } from '../../../shared/confirmation-dialog/confirmation-dialog.service';
 import { WorkspaceAccessService } from '../../../core/workspace-access.service';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, input, OnInit, signal, viewChild, ElementRef } from '@angular/core';
+import { Component, computed, inject, input, OnInit, signal, viewChild, ElementRef, DestroyRef } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SchoolClass } from '../../../models/school-class/school-class.model';
 import { AcademicYearService } from '../../../service/academic-year-service/academic-year.service';
@@ -12,15 +12,23 @@ import { WorkspaceContextService } from '../../../shared/workspace-context.servi
 import { SchoolClassDetailComponent } from '../school-class-detail/school-class-detail.component';
 import { SchoolClassFormComponent } from '../school-class-form/school-class-form.component';
 import { SchoolClassGridComponent } from '../school-class-grid/school-class-grid.component';
+import { ClassSubjectManagerComponent } from '../../subject/class-subject-manager/class-subject-manager.component';
+import { ClassroomManagerComponent } from '../../classroom/classroom-manager/classroom-manager.component';
+import { Classroom } from '../../../models/classroom/classroom.model';
+import { SchoolClassCapacityService } from '../../../service/school-class-capacity-service/school-class-capacity.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-school-class-manager',
-  imports: [FormModalComponent, FormsModule, DialogComponent, SchoolClassDetailComponent, SchoolClassFormComponent, SchoolClassGridComponent],
+  providers: [SchoolClassCapacityService],
+  imports: [FormModalComponent, FormsModule, DialogComponent, SchoolClassDetailComponent, SchoolClassFormComponent, SchoolClassGridComponent, ClassSubjectManagerComponent, ClassroomManagerComponent],
   templateUrl: './school-class-manager.component.html',
   styleUrl: './school-class-manager.component.css'
 })
 export class SchoolClassManagerComponent implements OnInit {
   private readonly toast = inject(ToastService);
+  private readonly destroyRef = inject(DestroyRef);
+  protected readonly capacity = inject(SchoolClassCapacityService);
 
   constructor() {
     this.toast.connect(this.successMessage, 'success');
@@ -66,6 +74,27 @@ export class SchoolClassManagerComponent implements OnInit {
   protected name = '';
   protected series = '';
   protected readonly isCreating = signal(false);
+  protected readonly management = signal<{ kind: 'subjects' | 'rooms'; schoolClass: SchoolClass; trigger: HTMLElement | null } | null>(null);
+  private readonly subjectManager = viewChild(ClassSubjectManagerComponent);
+  private readonly roomManager = viewChild(ClassroomManagerComponent);
+  private readonly classDetail = viewChild(SchoolClassDetailComponent);
+  protected readonly managementBusy = computed(() => !!(this.subjectManager()?.busy() || this.roomManager()?.saving()));
+
+  protected openManagement(schoolClass: SchoolClass, kind: 'subjects' | 'rooms', event: Event): void {
+    if (this.managementBusy() || !this.can('read') || (kind === 'subjects' && !this.access.hasPermission('can_class_subject_read', this.establishmentId()))) return;
+    this.management.set({ kind, schoolClass, trigger: event.currentTarget as HTMLElement | null });
+  }
+
+  protected closeManagement(): void { if (!this.managementBusy()) this.management.set(null); }
+
+  protected updateClassrooms(schoolClassId: string, rooms: Classroom[]): void {
+    this.capacity.setClassrooms(schoolClassId, rooms);
+    if (this.classDetail()?.schoolClassId() === schoolClassId) this.classDetail()?.setClassrooms(rooms);
+  }
+
+  protected refreshCapacity(): void {
+    this.capacity.load(this.establishmentId(), this.academicYearId(), this.classes().map(schoolClass => schoolClass.id));
+  }
 
   protected can(action: 'read' | 'create' | 'update' | 'delete'): boolean {
     return this.access.hasPermission(`can_school_class_${action}`, this.establishmentId());
@@ -107,9 +136,10 @@ export class SchoolClassManagerComponent implements OnInit {
     if (!this.access.hasPermission('can_school_class_read', this.establishmentId())) { this.isLoading.set(false); return; }
     this.isLoading.set(true);
     this.loadError.set(null);
-    this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).subscribe({
+    this.academicYearService.getClasses(this.establishmentId(), this.academicYearId()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (classes) => {
-        this.classes.set(classes);
+        this.classes.set(classes.filter(schoolClass => schoolClass.enabled && schoolClass.establishmentId === this.establishmentId() && schoolClass.academicYearId === this.academicYearId()));
+        this.refreshCapacity();
         const initial = this.initialClassId();
         if (initial && this.expandedId() === null && classes.some((item) => item.id === initial)) {
           this.expandedId.set(initial);
@@ -126,8 +156,8 @@ export class SchoolClassManagerComponent implements OnInit {
   protected onCreated(classes: SchoolClass[]): void {
     this.createOpen.set(false);
     this.successMessage.set(classes.length === 1
-      ? `La classe « ${classes[0].name} » a été créée. Ajoutez ses salles depuis les détails.`
-      : `${classes.length} classes ont été créées. Ajoutez leurs salles depuis les détails.`);
+      ? `La classe « ${classes[0].name} » a été créée. Ajoutez ses salles depuis le bouton Salles.`
+      : `${classes.length} classes ont été créées. Ajoutez leurs salles depuis le bouton Salles.`);
     this.load();
   }
 

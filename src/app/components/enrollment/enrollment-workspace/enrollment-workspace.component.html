@@ -2,8 +2,9 @@
   <div class="section-header">
     <div>
       <h2 id="enrollments-title" class="section-title">Inscriptions</h2>
-      <p class="section-hint">Une inscription par élève et par année scolaire, conservée dans l’historique. Les élèves viennent des dossiers de l’établissement.</p>
+      <p class="section-hint">De l’identité de l’élève à l’encaissement : préparez, reprenez et finalisez les inscriptions de l’année scolaire.</p>
     </div>
+    @if (canStart()) { <button class="btn btn-primary" type="button" [disabled]="isLoading()" aria-haspopup="dialog" (click)="startJourney($event)">Nouvelle inscription</button> }
   </div>
 
   @if (isLoading()) {
@@ -11,14 +12,7 @@
   } @else if (loadError()) {
     <div class="state-error" role="alert"><p>{{ loadError() }}</p><button class="state-retry" type="button" (click)="load()">Réessayer</button></div>
   } @else {
-    @if (students().length === 0 || classes().length === 0) {
-      <p class="border-b border-[#edf0ec] px-5 py-4 text-sm text-[#69756d] sm:px-6">
-        Pour inscrire un élève, il faut
-        @if (students().length === 0) { au moins un <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'students']">dossier élève</a> }
-        @if (students().length === 0 && classes().length === 0) { et }
-        @if (classes().length === 0) { au moins une <a class="font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']">classe de cette année</a> }.
-      </p>
-    }
+    @if (classes().length === 0) { <p class="border-b border-[#edf0ec] px-5 py-4 text-sm text-[#69756d] sm:px-6">Vous pouvez déjà préparer l’élève et son tuteur. Une classe et une salle actives seront nécessaires pour finaliser l’inscription.</p> }
 
     @if (successMessage()) {
       <output class="block border-b border-[#edf0ec] px-5 py-3 text-sm text-[#28563b] sm:px-6">{{ successMessage() }}
@@ -27,40 +21,85 @@
           <a class="ml-3 font-semibold text-[#47745d]" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'finance']" [queryParams]="{ studentId: created.studentId }">Voir la situation financière</a>
         }
       </output>
-      @if (lastEnrollment(); as created) { <ul class="px-5 py-3 text-sm text-[#35473b]">@for (payment of created.payments; track payment.id) { <li>Reçu {{ payment.receiptNumber }} · {{ payment.amount }} {{ payment.currency }} · {{ payment.paymentMethodName }} · Solde {{ payment.balance }} {{ payment.currency }}</li> }</ul> }
+      @if (lastEnrollment(); as created) {
+        @if (created.payments.length) {
+          <div class="table-wrap border-b border-[#edf0ec]" role="region" aria-label="Reçus de la dernière inscription" tabindex="0">
+            <table class="w-full min-w-[36rem] text-left text-sm">
+              <caption class="sr-only">Reçus de la dernière inscription</caption>
+              <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th scope="col" class="px-5 py-3 font-semibold sm:px-6">Reçu</th><th scope="col" class="px-5 py-3 text-right font-semibold">Montant encaissé</th><th scope="col" class="px-5 py-3 font-semibold">Moyen de paiement</th><th scope="col" class="px-5 py-3 text-right font-semibold sm:px-6">Solde restant</th></tr></thead>
+              <tbody class="divide-y divide-[#edf0ec] text-[#35473b]">@for (payment of created.payments; track payment.id) { <tr class="hover:bg-[#fbfcfa]"><th scope="row" class="px-5 py-4 font-mono text-xs font-medium text-[#47745d] sm:px-6">{{ payment.receiptNumber }}</th><td class="whitespace-nowrap px-5 py-4 text-right tabular-nums">{{ payment.amount }} {{ payment.currency }}</td><td class="px-5 py-4">{{ payment.paymentMethodName }}</td><td class="whitespace-nowrap px-5 py-4 text-right tabular-nums sm:px-6">{{ payment.balance }} {{ payment.currency }}</td></tr> }</tbody>
+            </table>
+          </div>
+        }
+      }
     }
 
     @if (actionError()) { <p class="state-error" role="alert">{{ actionError() }}</p> }
     @if (roomsError()) { <div class="state-error" role="alert"><p>{{ roomsError() }}</p><button type="button" class="state-retry" (click)="load()">Réessayer</button></div> }
-    @if (enrollments().length === 0) {
-      <p class="state-empty">Aucune inscription enregistrée pour cette année scolaire.</p>
+    @if (!access.hasPermission('can_enrollment_read', establishmentId())) { <p class="px-5 py-4 text-sm text-[#69756d] sm:px-6">Votre compte ne permet pas de consulter les inscriptions terminées.</p> }
+    @if (enrollmentRows().length === 0) {
+      <p class="state-empty">{{ access.hasPermission('can_enrollment_read', establishmentId()) ? 'Aucune inscription enregistrée ou en cours pour cette année scolaire.' : 'Aucun parcours en cours sur cet appareil.' }}</p>
     } @else {
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-left text-sm">
-          <caption class="sr-only">Inscriptions de l’année scolaire</caption>
-          <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]"><tr><th class="px-5 py-3 font-semibold sm:px-6">Élève</th><th class="px-5 py-3 font-semibold">Classe</th><th class="px-5 py-3">Salle / groupe</th><th class="px-5 py-3">Décision à l’inscription</th></tr></thead>
+      <div class="table-wrap" role="region" aria-labelledby="enrollments-title" tabindex="0">
+        <table class="w-full min-w-[56rem] text-left text-sm">
+          <caption class="sr-only">Parcours d’inscription de l’année scolaire</caption>
+          <thead class="bg-[#f8faf7] text-xs uppercase tracking-wide text-[#78847b]">
+            <tr>
+              <th scope="col" class="px-4 py-3 font-semibold sm:pl-6">Élève</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Statut</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Classe</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Progression / décision</th>
+              <th scope="col" class="px-4 py-3 font-semibold">Date / mise à jour</th>
+              <th scope="col" class="px-4 py-3 text-right font-semibold sm:pr-6">Actions</th>
+            </tr>
+          </thead>
           <tbody class="divide-y divide-[#edf0ec]">
-            @for (enrollment of enrollments(); track enrollment.id) {
-              <tr>
-                <td class="px-5 py-3 font-medium sm:px-6"><a class="text-[#35473b] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'students']" [queryParams]="{ studentId: enrollment.studentId }" [attr.aria-label]="'Voir la fiche de ' + studentNameFor(enrollment.studentId)">{{ studentNameFor(enrollment.studentId) }}</a></td>
-                <td class="px-5 py-3"><a class="text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: enrollment.schoolClassId }" [attr.aria-label]="'Voir la classe ' + classNameFor(enrollment.schoolClassId)">{{ classNameFor(enrollment.schoolClassId) }}</a></td>
-                <td class="px-5 py-3"><span>{{ roomNameFor(enrollment) }}</span>
-                  @if (access.authorities().includes('can_enrollment_update')) {
-                    @if (changingId() === enrollment.id) { <app-form-modal title="Changer de salle" [busy]="moving()" (closed)="changingId.set(null)" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
-<form class="form-grid" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form>
-</ng-template></app-form-modal> }
-                    @else { <button *appPermission="'can_enrollment_update'" type="button" class="ml-2 text-[#47745d] underline" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
-                  }
-                </td><td class="px-5 py-3 text-xs">{{ enrollment.paymentDecisionBy ? (enrollment.advanceAccepted ? 'Avance acceptée' : 'Règlement intégral ou sans frais') : 'Inscription antérieure · décision non renseignée' }}@if (enrollment.paymentDecisionBy) { <span class="block">Par {{ enrollment.paymentDecisionBy }}</span> }</td>
+            @for (row of enrollmentRows(); track row.key) {
+              <tr class="hover:bg-[#fbfcfa]">
+                <th scope="row" class="px-4 py-4 font-semibold text-[#26372d] sm:pl-6">
+                  @if (row.enrollment) { <a class="no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'students']" [queryParams]="{ studentId: row.studentId }" [attr.aria-label]="'Voir la fiche de ' + row.studentName">{{ row.studentName }}</a> }
+                  @else { {{ row.studentName }} }
+                </th>
+                <td class="px-4 py-4">
+                  @if (row.status === 'COMPLETED') { <span class="inline-flex whitespace-nowrap rounded-full border border-[#bdd6c5] bg-[#eef7f0] px-3 py-1 text-xs font-semibold text-[#28563b]">Terminé</span> }
+                  @else { <span class="inline-flex whitespace-nowrap rounded-full border border-[#e8d9b6] bg-[#fff8e8] px-3 py-1 text-xs font-semibold text-[#806124]">En cours</span> }
+                </td>
+                <td class="px-4 py-4 text-[#35473b]">
+                  @if (row.enrollment) { <a class="text-[#47745d] no-underline hover:underline" [routerLink]="['/establishments', establishmentId(), 'school-years', academicYearId(), 'classes']" [queryParams]="{ classId: row.schoolClassId }" [attr.aria-label]="'Voir la classe ' + row.className">{{ row.className }}</a> }
+                  @else { {{ row.className }} }
+                  <span class="mt-1 block text-xs text-[#69756d]"><span class="sr-only">Salle / groupe : </span>{{ row.roomName }}</span>
+                </td>
+                <td class="px-4 py-4 text-xs leading-5 text-[#69756d]">{{ row.progress }}@if (row.enrollment?.paymentDecisionBy) { <span class="block">Par {{ row.enrollment?.paymentDecisionBy }}</span> }</td>
+                <td class="whitespace-nowrap px-4 py-4 text-xs tabular-nums text-[#69756d]">@if (row.updatedAt) { {{ row.updatedAt | date:'dd/MM/yyyy à HH:mm' }} } @else { — }</td>
+                <td class="px-4 py-3 sm:pr-6">
+                  <div class="flex items-center justify-end gap-2">
+                    @if (row.draft; as draft) {
+                      <button class="btn btn-primary" type="button" aria-haspopup="dialog" [disabled]="!canStart()" (click)="startJourney($event, draft)">Reprendre</button>
+                      <button class="btn btn-secondary size-11! p-0!" type="button" [attr.aria-label]="'Supprimer le brouillon de ' + row.studentName" title="Supprimer le brouillon" (click)="removeDraft(draft)"><svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+                    } @else if (row.enrollment; as enrollment) {
+                      @if (access.hasPermission('can_enrollment_update', establishmentId())) {
+                        @if (changingId() === enrollment.id) {
+                          <app-form-modal title="Changer de salle" [busy]="moving()" (closed)="changingId.set(null)" [showTrigger]="false" [open]="true" [error]="actionError()"><ng-template>
+                            <form class="form-grid" (ngSubmit)="changeRoom(enrollment)"><label class="sr-only" [for]="'move-room-' + enrollment.id">Salle de destination</label><select class="form-control" [id]="'move-room-' + enrollment.id" [name]="'moveRoom' + enrollment.id" [(ngModel)]="targetRoomId" [disabled]="moving()">@for (room of roomsByClass()[enrollment.schoolClassId] || []; track room.id) { <option [value]="room.id">{{ room.name }} · {{ roomOccupancy(room.id, enrollment.id) }}/{{ room.maxStudents }} élèves</option> }</select><button class="btn btn-primary" [disabled]="moving()">Enregistrer</button><button type="button" class="btn btn-secondary" (click)="changingId.set(null)" [disabled]="moving()">Annuler</button></form>
+                          </ng-template></app-form-modal>
+                        } @else { <button *appPermission="'can_enrollment_update'" class="btn btn-secondary whitespace-nowrap" type="button" (click)="startChangingRoom(enrollment)">Changer de salle</button> }
+                      } @else { <span class="text-[#78837b]">—</span> }
+                    }
+                  </div>
+                </td>
               </tr>
             }
           </tbody>
         </table>
       </div>
+      @if (pendingDrafts().length) { <p class="border-t border-[#edf0ec] px-5 py-3 text-xs text-[#78837b] sm:px-6">Les parcours en cours sont conservés sur cet appareil pour votre compte.</p> }
     }
-
-
-      <app-form-modal #enrollmentModal title="Nouvelle inscription" (opened)="successMessage.set(null); actionError.set(null)" *appPermission="'can_enrollment_create'" [open]="!!studentId || !!schoolClassId" [protectChanges]="true"><ng-template><app-enrollment-form [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="students()" [classes]="classes()" [enrollments]="enrollments()" [initialStudentId]="studentId" [initialClassId]="schoolClassId" [initialClassroomId]="requestedClassroomId" (created)="onCreated($event); enrollmentModal.complete()" (busyChange)="enrollmentModal.working.set($event)" /></ng-template></app-form-modal>
 
   }
 </section>
+
+@if (journeyOpen()) {
+  <app-dialog title="Inscrire un élève" size="extra-wide" [busy]="journey()?.saving() ?? false" [returnFocusTo]="journeyTrigger" (dismiss)="journey()?.saveAndClose()">
+    <app-enrollment-journey #journeyEditor [establishmentId]="establishmentId()" [academicYearId]="academicYearId()" [students]="students()" [classes]="classes()" [enrollments]="enrollments()" [draft]="activeDraft()" [initialStudentId]="studentId" [initialClassId]="schoolClassId" [initialClassroomId]="requestedClassroomId" (created)="onCreated($event)" (studentSaved)="onStudentSaved($event)" (closed)="journeyOpen.set(false); activeDraft.set(null); studentId = ''; schoolClassId = ''" />
+  </app-dialog>
+}
